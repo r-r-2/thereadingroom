@@ -76,7 +76,7 @@
     <h1>The Reading Room</h1>
     <p>A room with my books in it. Walk over to a shelf and look at a spine to pull it out. There’s a record playing in the corner.</p>
     <div class="keys">
-      <kbd>W A S D</kbd><kbd>Mouse to look</kbd><kbd>Click a book</kbd><kbd>Click the record to stop it</kbd><kbd>Esc to leave</kbd>
+      <kbd>W A S D</kbd><kbd>Mouse to look</kbd><kbd>Click a book</kbd><kbd>C covers</kbd><kbd>Click the record to stop it</kbd><kbd>Esc to leave</kbd>
     </div>
     <div class="cta">Click to enter</div>
   </div>
@@ -372,21 +372,52 @@ function placeBooks() {
 
       mesh.userData = {
         book: b,
-        home: mesh.position.clone(),
-        homeRotY: 0,
+        depth,
+        spineHome: mesh.position.clone(),
+        spineRotY: 0,
+        faceHome: new THREE.Vector3(),
+        faceRotY: -Math.PI / 2,
         out: false,
-        t: 0
+        t: 0,
+        type: 'book'
       };
 
-      mesh.userData.type = 'book';
       shelfGroup.add(mesh);
       books.push(mesh);
       interactables.push(mesh);
       x += b.th + 0.004;
     });
   });
+
+  // Face-out rest poses: two covers per lower shelf, packed left of
+  // the decor. A −90° Y rotation turns the +x jacket toward the room.
+  const faceXStart = -CASE.w / 2 + 0.12;
+  const faceYs = [SHELF_Y[2], SHELF_Y[1], SHELF_Y[0]];
+  let faceShelf = 0;
+  let faceSlot = 0;
+  let faceX = faceXStart;
+  for (const mesh of books) {
+    if (faceSlot >= 2) {
+      faceShelf = Math.min(faceShelf + 1, faceYs.length - 1);
+      faceSlot = 0;
+      faceX = faceXStart;
+    }
+    const b = mesh.userData.book;
+    const d = mesh.userData.depth;
+    mesh.userData.faceHome.set(
+      faceX + d / 2,
+      faceYs[faceShelf] + 0.018 + b.h / 2,
+      CASE.d / 2 - b.th / 2 - 0.015
+    );
+    faceX += d + 0.012;
+    faceSlot++;
+  }
 }
 placeBooks();
+
+let coverMode = false;
+let coverT = 0;
+const restPos = new THREE.Vector3();
 
 /* Cover images are preloaded from Open Library in the background.
    When a cover arrives the ±x (cover) faces are swapped in, and the
@@ -441,6 +472,58 @@ function loadCover(mesh, b) {
 
 // Start fetching all covers immediately in the background.
 books.forEach((m) => loadCover(m, m.userData.book));
+
+/* Cover-display switch on the left stile. MeshLambert only — a
+   MeshBasicMaterial here would bloom and wash the room. */
+const SWITCH_PLATE = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
+const SWITCH_KNOB = new THREE.MeshLambertMaterial({ color: 0xC9A66B });
+const SWITCH_X = -CASE.w / 2;
+
+const switchPlate = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.068, 0.01), SWITCH_PLATE);
+switchPlate.position.set(SWITCH_X, 1.2, CASE.d / 2 + 0.007);
+switchPlate.userData.type = 'switch';
+shelfGroup.add(switchPlate);
+interactables.push(switchPlate);
+
+const switchPivot = new THREE.Group();
+switchPivot.position.set(SWITCH_X, 1.2, CASE.d / 2 + 0.016);
+shelfGroup.add(switchPivot);
+
+const switchLever = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.028, 0.008), SWITCH_KNOB);
+switchLever.position.y = 0.012;
+switchPivot.add(switchLever);
+switchPivot.rotation.x = -0.55;
+
+/* Instruction plaque above the switch. Not in interactables — only
+   the lever plate is clickable. */
+const plaqueCanvas = document.createElement('canvas');
+plaqueCanvas.width = 256;
+plaqueCanvas.height = 288;
+{
+  const x = plaqueCanvas.getContext('2d');
+  x.fillStyle = '#F7F1E7';
+  x.fillRect(0, 0, 256, 288);
+  x.fillStyle = '#5C4E40';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = '600 28px ui-sans-serif, system-ui, sans-serif';
+  const lines = ['Click the switch', 'or press C', 'to flip covers'];
+  lines.forEach((line, i) => x.fillText(line, 128, 84 + i * 44));
+}
+const plaqueTex = new THREE.CanvasTexture(plaqueCanvas);
+plaqueTex.colorSpace = THREE.SRGBColorSpace;
+const plaqueFrame = new THREE.Mesh(
+  new THREE.BoxGeometry(0.09, 0.11, 0.01),
+  new THREE.MeshLambertMaterial({ color: 0xC49A68 })
+);
+const plaqueArt = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.078, 0.096),
+  new THREE.MeshLambertMaterial({ map: plaqueTex })
+);
+plaqueArt.position.z = 0.006;
+plaqueFrame.add(plaqueArt);
+plaqueFrame.position.set(SWITCH_X, 1.38, CASE.d / 2 + 0.007);
+shelfGroup.add(plaqueFrame);
 
 /* ============================================================
    POST-PROCESSING
@@ -1193,12 +1276,34 @@ function showDetail(b) {
 }
 function hideDetail() { detail.classList.remove('on'); }
 
+function toggleCoverMode() {
+  coverMode = !coverMode;
+  if (opened) {
+    opened.userData.out = false;
+    opened = null;
+    hideDetail();
+  }
+  if (looked && looked.userData.type === 'switch') {
+    promptEl.textContent = coverMode ? 'Click to show spines' : 'Click to show covers';
+  }
+}
+
+addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyC' || e.repeat || !controls.isLocked) return;
+  toggleCoverMode();
+});
+
 document.addEventListener('click', () => {
   if (!controls.isLocked) return;
 
   if (looked && looked.userData.type === 'player') {
     Music.toggle();
     promptEl.textContent = Music.playing ? 'Click to stop the record' : 'Click to start the record';
+    return;
+  }
+
+  if (looked && looked.userData.type === 'switch') {
+    toggleCoverMode();
     return;
   }
 
@@ -1257,6 +1362,8 @@ function animate() {
       if (hit) {
         if (hit.userData.type === 'player') {
           promptEl.textContent = Music.playing ? 'Click to stop the record' : 'Click to start the record';
+        } else if (hit.userData.type === 'switch') {
+          promptEl.textContent = coverMode ? 'Click to show spines' : 'Click to show covers';
         } else {
           promptEl.textContent = hit === opened ? 'Click to put it back' : 'Click to pull out';
         }
@@ -1279,15 +1386,20 @@ function animate() {
   player.getWorldPosition(playerWorldPos);
   Music.updateListener(camera.position, playerWorldPos);
 
-  // animate books toward their target state
+  // cover-display: blend spine-out ↔ face-out, then apply pull-out
+  coverT += ((coverMode ? 1 : 0) - coverT) * Math.min(1, dt * 9);
+  switchPivot.rotation.x = -0.55 + coverT * 1.1;
+
   for (const m of books) {
     const u = m.userData;
     const target = u.out ? 1 : 0;
     u.t += (target - u.t) * Math.min(1, dt * 9);
-    if (Math.abs(u.t) < 0.001 && !u.out) continue;
-    m.position.z = u.home.z + u.t * 0.17;
-    m.position.y = u.home.y + u.t * 0.012;
-    m.rotation.y = u.t * -0.95;
+    restPos.lerpVectors(u.spineHome, u.faceHome, coverT);
+    const restRotY = u.spineRotY + (u.faceRotY - u.spineRotY) * coverT;
+    m.position.x = restPos.x;
+    m.position.y = restPos.y + u.t * 0.012;
+    m.position.z = restPos.z + u.t * (0.17 * (1 - coverT) + 0.06 * coverT);
+    m.rotation.y = restRotY + u.t * -0.95 * (1 - coverT);
   }
 
   composer.render();
