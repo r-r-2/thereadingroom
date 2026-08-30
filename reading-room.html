@@ -239,6 +239,131 @@ scene.add(rug);
 const WOOD = new THREE.MeshLambertMaterial({ color: 0xC49A68 });
 const WOOD_DARK = new THREE.MeshLambertMaterial({ color: 0x9E7546 });
 
+/* ============================================================
+   WINDOW — left wall, facing the turntable
+   ============================================================ */
+function landscapeTexture() {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 768;
+  const g = c.getContext('2d');
+
+  const sky = g.createLinearGradient(0, 0, 0, 768);
+  sky.addColorStop(0, '#F3C9A4');
+  sky.addColorStop(0.38, '#E8B07A');
+  sky.addColorStop(0.62, '#C9896A');
+  sky.addColorStop(1, '#7A8B62');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, 1024, 768);
+
+  g.fillStyle = 'rgba(255,236,210,0.55)';
+  g.beginPath();
+  g.arc(780, 170, 54, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = 'rgba(255,220,170,0.35)';
+  g.beginPath();
+  g.arc(780, 170, 78, 0, Math.PI * 2);
+  g.fill();
+
+  function mountain(pts, color) {
+    g.fillStyle = color;
+    g.beginPath();
+    g.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]);
+    g.closePath();
+    g.fill();
+  }
+  mountain([0, 520, 90, 390, 210, 450, 340, 280, 470, 410, 580, 330, 720, 430, 860, 300, 1024, 420, 1024, 768, 0, 768], '#6D5A70');
+  mountain([0, 560, 140, 430, 280, 500, 420, 360, 560, 470, 700, 380, 850, 500, 1024, 410, 1024, 768, 0, 768], '#4F5A4A');
+  mountain([0, 620, 180, 500, 320, 560, 500, 440, 680, 540, 840, 470, 1024, 560, 1024, 768, 0, 768], '#3E4A38');
+
+  function tree(tx, baseY, h, canopy) {
+    g.fillStyle = '#4A3528';
+    g.fillRect(tx - h * 0.035, baseY - h * 0.28, h * 0.07, h * 0.3);
+    g.fillStyle = canopy;
+    g.beginPath();
+    g.moveTo(tx, baseY - h);
+    g.lineTo(tx + h * 0.32, baseY - h * 0.22);
+    g.lineTo(tx - h * 0.32, baseY - h * 0.22);
+    g.closePath();
+    g.fill();
+    g.beginPath();
+    g.moveTo(tx, baseY - h * 0.72);
+    g.lineTo(tx + h * 0.26, baseY - h * 0.12);
+    g.lineTo(tx - h * 0.26, baseY - h * 0.12);
+    g.closePath();
+    g.fill();
+  }
+  const canopies = ['#2F4A2A', '#3A5A32', '#4A6A38', '#2A3E24'];
+  [[80, 210], [160, 170], [250, 230], [340, 160], [430, 200], [540, 150],
+   [630, 220], [740, 165], [830, 195], [920, 155], [120, 140], [480, 130],
+   [700, 140], [880, 125]].forEach(([tx, h], i) => {
+    tree(tx, 640, h, canopies[i % canopies.length]);
+  });
+
+  g.fillStyle = '#35522E';
+  g.beginPath();
+  g.moveTo(0, 700);
+  g.bezierCurveTo(180, 640, 360, 720, 540, 660);
+  g.bezierCurveTo(720, 610, 880, 700, 1024, 650);
+  g.lineTo(1024, 768);
+  g.lineTo(0, 768);
+  g.closePath();
+  g.fill();
+
+  g.fillStyle = '#4A7A3A';
+  for (let i = 0; i < 18; i++) {
+    const px = 40 + i * 55 + (i % 3) * 12;
+    const ph = 40 + (i % 5) * 14;
+    g.beginPath();
+    g.ellipse(px, 730, 16 + (i % 4) * 4, ph, -0.2, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.fillStyle = '#6B8F4A';
+  for (let i = 0; i < 12; i++) {
+    const px = 70 + i * 80;
+    g.beginPath();
+    g.ellipse(px, 748, 22, 28 + (i % 3) * 8, 0.15, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+const WIN = { w: 2.4, h: 1.7, sill: 0.75 };
+const windowGroup = new THREE.Group();
+windowGroup.position.set(-ROOM.w / 2, 0, -0.4);
+windowGroup.rotation.y = Math.PI / 2;
+scene.add(windowGroup);
+
+const view = new THREE.Mesh(
+  new THREE.PlaneGeometry(WIN.w, WIN.h),
+  new THREE.MeshLambertMaterial({ map: landscapeTexture() })
+);
+view.position.set(0, WIN.sill + WIN.h / 2, 0.02);
+windowGroup.add(view);
+
+const FRAME_T = 0.07;
+const FRAME_D = 0.09;
+const winCy = WIN.sill + WIN.h / 2;
+function winBox(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  windowGroup.add(m);
+}
+winBox(FRAME_T, WIN.h + FRAME_T * 2, FRAME_D, WOOD, -WIN.w / 2 - FRAME_T / 2, winCy, 0.05);
+winBox(FRAME_T, WIN.h + FRAME_T * 2, FRAME_D, WOOD, WIN.w / 2 + FRAME_T / 2, winCy, 0.05);
+winBox(WIN.w + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, WIN.sill + WIN.h + FRAME_T / 2, 0.05);
+winBox(WIN.w + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, WIN.sill - FRAME_T / 2, 0.05);
+winBox(0.045, WIN.h, 0.05, WOOD_DARK, 0, winCy, 0.055);
+winBox(WIN.w + 0.22, 0.055, 0.16, WOOD, 0, WIN.sill - 0.03, 0.10);
+
+const windowLight = new THREE.PointLight(0xffd4a8, 5.5, 4.2, 2);
+windowLight.position.set(-ROOM.w / 2 + 0.45, winCy, -0.4);
+scene.add(windowLight);
+
 const shelfGroup = new THREE.Group();
 shelfGroup.position.set(0, 0, -ROOM.d / 2 + 0.19);
 scene.add(shelfGroup);
@@ -356,13 +481,28 @@ const books = [];
    so declaring it later threw a temporal-dead-zone ReferenceError. */
 const interactables = [];
 
+function makeBookMesh(b) {
+  const depth = 0.20 + Math.random() * 0.03;
+  const geo = new THREE.BoxGeometry(b.th, b.h, depth);
+  const spine = new THREE.MeshLambertMaterial({ map: makeSpineTexture(b) });
+  const cover = new THREE.MeshLambertMaterial({ map: makeCoverTexture(b) });
+  const mesh = new THREE.Mesh(geo, [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT]);
+  mesh.userData = {
+    book: b,
+    depth,
+    out: false,
+    t: 0,
+    type: 'book'
+  };
+  return mesh;
+}
+
 function placeBooks() {
-  // reading-now books go on the top shelf, everything else below
-  const reading = BOOKS.filter((b) => b.reading);
+  // Finished books fill the three lower shelves. Reading-now books
+  // go on the table (placeTableBooks), not the top shelf.
   const read = BOOKS.filter((b) => !b.reading);
 
   const rows = [
-    { y: SHELF_Y[3], list: reading, xStart: -CASE.w / 2 + 0.12 },
     { y: SHELF_Y[2], list: read.slice(0, 5), xStart: -CASE.w / 2 + 0.12 },
     { y: SHELF_Y[1], list: read.slice(5, 10), xStart: -CASE.w / 2 + 0.12 },
     { y: SHELF_Y[0], list: read.slice(10), xStart: -CASE.w / 2 + 0.12 }
@@ -371,29 +511,14 @@ function placeBooks() {
   rows.forEach((row) => {
     let x = row.xStart;
     row.list.forEach((b) => {
-      const depth = 0.20 + Math.random() * 0.03;
-      const geo = new THREE.BoxGeometry(b.th, b.h, depth);
-      const spine = new THREE.MeshLambertMaterial({ map: makeSpineTexture(b) });
-      const cover = new THREE.MeshLambertMaterial({ map: makeCoverTexture(b) });
-      const mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT];
-
-      const mesh = new THREE.Mesh(geo, mats);
-      // sit on the board, front edge just proud of the shelf lip
-      mesh.position.set(x + b.th / 2, row.y + 0.018 + b.h / 2, CASE.d / 2 - depth / 2 - 0.015);
-      // a small random lean, because real books are never perfectly upright
+      const mesh = makeBookMesh(b);
+      mesh.position.set(x + b.th / 2, row.y + 0.018 + b.h / 2, CASE.d / 2 - mesh.userData.depth / 2 - 0.015);
       mesh.rotation.z = (Math.random() - 0.5) * 0.03;
-
-      mesh.userData = {
-        book: b,
-        depth,
-        spineHome: mesh.position.clone(),
-        spineRotY: 0,
-        faceHome: new THREE.Vector3(),
-        faceRotY: -Math.PI / 2,
-        out: false,
-        t: 0,
-        type: 'book'
-      };
+      mesh.userData.spineHome = mesh.position.clone();
+      mesh.userData.spineRotY = 0;
+      mesh.userData.faceHome = new THREE.Vector3();
+      mesh.userData.faceRotY = -Math.PI / 2;
+      mesh.userData.onTable = false;
 
       shelfGroup.add(mesh);
       books.push(mesh);
@@ -403,7 +528,7 @@ function placeBooks() {
   });
 
   // Face-out rest poses: two covers per lower shelf, packed left of
-  // the decor. A −90° Y rotation turns the +x jacket toward the room.
+  // the decor. Shelf books only — table books never get a shelf pose.
   const faceXStart = -CASE.w / 2 + 0.12;
   const faceYs = [SHELF_Y[2], SHELF_Y[1], SHELF_Y[0]];
   let faceShelf = 0;
@@ -451,10 +576,12 @@ function dominantColor(img) {
 }
 
 function loadCover(mesh, b) {
-  if (!b.isbn || mesh.userData.coverLoaded || mesh.userData.coverFailed) return;
+  if (mesh.userData.coverLoaded || mesh.userData.coverFailed) return;
+  const url = b.cover || (b.isbn && `https://covers.openlibrary.org/b/isbn/${b.isbn}-M.jpg`);
+  if (!url) return;
   mesh.userData.coverLoaded = true;
   texLoader.load(
-    `https://covers.openlibrary.org/b/isbn/${b.isbn}-M.jpg`,
+    url,
     (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       const coverMat = new THREE.MeshLambertMaterial({ map: tex });
@@ -755,7 +882,7 @@ const SUCC_LIGHT = new THREE.MeshLambertMaterial({ color: 0x8CAC66 });
 const SUCC_MID = new THREE.MeshLambertMaterial({ color: 0x6E9350 });
 const SUCC_DEEP = new THREE.MeshLambertMaterial({ color: 0x4F7139 });
 
-function succulent(x, y, z, variant = 0, scale = 1) {
+function succulent(x, y, z, variant = 0, scale = 1, parent = shelfGroup) {
   const g = new THREE.Group();
   const R = 0.034;
 
@@ -825,7 +952,7 @@ function succulent(x, y, z, variant = 0, scale = 1) {
 
   g.position.set(x, y, z);
   g.scale.setScalar(scale);
-  shelfGroup.add(g);
+  parent.add(g);
   return g;
 }
 
@@ -895,7 +1022,7 @@ function vase(x, y, z) {
    need roughly 40 books per shelf and we have 17 in total. */
 const Z = CASE.d / 2 - 0.13;
 
-// top shelf (reading now)
+// top shelf (decor only — currently-reading books sit on the table)
 succulent(0.11, SHELF_Y[3] + 0.018, Z, 0, 1.0);
 succulent(0.20, SHELF_Y[3] + 0.018, Z - 0.03, 2, 0.85);
 candle(0.34, SHELF_Y[3] + 0.018, Z);
@@ -924,6 +1051,108 @@ const candleLight = new THREE.PointLight(0xffb765, 0.9, 1.1, 2);
 candleLight.position.set(0.30, SHELF_Y[3] + 0.10, Z);
 shelfGroup.add(candleLight);
 
+
+/* ============================================================
+   READING TABLE — left of the bookcase
+   ============================================================ */
+const TABLE = { w: 1.15, d: 0.62, h: 0.75 };
+const TABLE_X = -1.95;
+const TABLE_Z = -2.52;
+
+const tableGroup = new THREE.Group();
+tableGroup.position.set(TABLE_X, 0, TABLE_Z);
+scene.add(tableGroup);
+
+function tableBox(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  tableGroup.add(m);
+  return m;
+}
+
+tableBox(TABLE.w, 0.04, TABLE.d, WOOD, 0, TABLE.h - 0.02, 0);
+tableBox(TABLE.w - 0.04, 0.07, 0.03, WOOD_DARK, 0, TABLE.h - 0.075, TABLE.d / 2 - 0.025);
+const legInsetX = TABLE.w / 2 - 0.05;
+const legInsetZ = TABLE.d / 2 - 0.05;
+[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+  tableBox(0.045, TABLE.h - 0.04, 0.045, WOOD_DARK, sx * legInsetX, (TABLE.h - 0.04) / 2, sz * legInsetZ);
+});
+
+const SHADE = new THREE.MeshBasicMaterial({ color: 0xF2D7A6 });
+const BRASS = new THREE.MeshLambertMaterial({ color: 0xC9A66B });
+const lamp = new THREE.Group();
+const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.02, 16), BRASS);
+lampBase.position.y = 0.01;
+lamp.add(lampBase);
+const lampStem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.01, 0.28, 8), BRASS);
+lampStem.position.y = 0.16;
+lamp.add(lampStem);
+const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.12, 16, 1, true), SHADE);
+lampShade.position.y = 0.34;
+lamp.add(lampShade);
+const lampGlow = new THREE.Mesh(
+  new THREE.SphereGeometry(0.04, 8, 8),
+  new THREE.MeshBasicMaterial({ color: 0xFFE6B0 })
+);
+lampGlow.position.y = 0.32;
+lamp.add(lampGlow);
+lamp.position.set(0.40, TABLE.h, -0.12);
+tableGroup.add(lamp);
+
+const lampLight = new THREE.PointLight(0xffc98a, 1.4, 1.6, 2);
+lampLight.position.set(0.40, TABLE.h + 0.32, -0.12);
+tableGroup.add(lampLight);
+
+succulent(0.42, TABLE.h, 0.14, 0, 1.05, tableGroup);
+
+function placeTableBooks() {
+  const reading = BOOKS.filter((b) => b.reading);
+  const LAYER = 4;
+  const gap = 0.018;
+  let x = -TABLE.w / 2 + 0.10;
+  const colX = [];
+  const colZ = [];
+  let pileTop = TABLE.h;
+
+  reading.forEach((b, i) => {
+    const mesh = makeBookMesh(b);
+    const d = mesh.userData.depth;
+    const nest = new THREE.Group();
+    mesh.rotation.z = -Math.PI / 2;
+    nest.add(mesh);
+    nest.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.16;
+
+    let px, py, pz;
+    if (i < LAYER) {
+      px = x + d / 2;
+      py = TABLE.h + b.th / 2;
+      pz = TABLE.d / 2 - b.h / 2 - 0.04;
+      colX[i] = px;
+      colZ[i] = pz;
+      x += d + gap;
+      if (i === 0) pileTop = TABLE.h + b.th;
+    } else {
+      px = colX[0] + (Math.random() - 0.5) * 0.025;
+      py = pileTop + b.th / 2;
+      pz = colZ[0] + (Math.random() - 0.5) * 0.02;
+      pileTop += b.th;
+    }
+
+    nest.position.set(px, py, pz);
+    const home = nest.position.clone();
+    mesh.userData.spineHome = home;
+    mesh.userData.spineRotY = nest.rotation.y;
+    mesh.userData.faceHome = home.clone();
+    mesh.userData.faceRotY = nest.rotation.y;
+    mesh.userData.onTable = true;
+    mesh.userData.tableRoot = nest;
+    tableGroup.add(nest);
+    books.push(mesh);
+    interactables.push(mesh);
+    loadCover(mesh, b);
+  });
+}
+placeTableBooks();
 
 /* ============================================================
    TURNTABLE
@@ -1280,12 +1509,28 @@ const CASE_MIN_X = -CASE.w / 2 - 0.08;
 const CASE_MAX_X = CASE.w / 2 + 0.08;
 const CASE_MAX_Z = -ROOM.d / 2 + 0.19 + CASE.d / 2 + 0.42; // + personal space
 
+const TABLE_MIN_X = TABLE_X - TABLE.w / 2 - 0.08;
+const TABLE_MAX_X = TABLE_X + TABLE.w / 2 + 0.08;
+const TABLE_MIN_Z = TABLE_Z - TABLE.d / 2 - 0.08;
+const TABLE_MAX_Z = TABLE_Z + TABLE.d / 2 + 0.42;
+
 function collide(pos) {
   const pad = 0.42;
   pos.x = Math.max(-ROOM.w / 2 + pad, Math.min(ROOM.w / 2 - pad, pos.x));
   pos.z = Math.max(-ROOM.d / 2 + pad, Math.min(ROOM.d / 2 - pad, pos.z));
   if (pos.x > CASE_MIN_X && pos.x < CASE_MAX_X && pos.z < CASE_MAX_Z) {
     pos.z = CASE_MAX_Z;
+  }
+  if (pos.x > TABLE_MIN_X && pos.x < TABLE_MAX_X && pos.z > TABLE_MIN_Z && pos.z < TABLE_MAX_Z) {
+    const dxMin = pos.x - TABLE_MIN_X;
+    const dxMax = TABLE_MAX_X - pos.x;
+    const dzMin = pos.z - TABLE_MIN_Z;
+    const dzMax = TABLE_MAX_Z - pos.z;
+    const nearest = Math.min(dxMin, dxMax, dzMin, dzMax);
+    if (nearest === dxMin) pos.x = TABLE_MIN_X;
+    else if (nearest === dxMax) pos.x = TABLE_MAX_X;
+    else if (nearest === dzMin) pos.z = TABLE_MIN_Z;
+    else pos.z = TABLE_MAX_Z;
   }
   pos.y = EYE;
 }
@@ -1465,12 +1710,20 @@ function animate() {
     const u = m.userData;
     const target = u.out ? 1 : 0;
     u.t += (target - u.t) * Math.min(1, dt * 9);
-    restPos.lerpVectors(u.spineHome, u.faceHome, coverT);
-    const restRotY = u.spineRotY + (u.faceRotY - u.spineRotY) * coverT;
-    m.position.x = restPos.x;
-    m.position.y = restPos.y + u.t * 0.012;
-    m.position.z = restPos.z + u.t * (0.17 * (1 - coverT) + 0.06 * coverT);
-    m.rotation.y = restRotY + u.t * -0.95 * (1 - coverT);
+    const ct = u.onTable ? 0 : coverT;
+    restPos.lerpVectors(u.spineHome, u.faceHome, ct);
+    const restRotY = u.spineRotY + (u.faceRotY - u.spineRotY) * ct;
+    if (u.onTable) {
+      const root = u.tableRoot;
+      root.position.x = restPos.x;
+      root.position.y = restPos.y + u.t * 0.08;
+      root.position.z = restPos.z + u.t * 0.06;
+    } else {
+      m.position.x = restPos.x;
+      m.position.y = restPos.y + u.t * 0.012;
+      m.position.z = restPos.z + u.t * (0.17 * (1 - ct) + 0.06 * ct);
+      m.rotation.y = restRotY + u.t * -0.95 * (1 - ct);
+    }
   }
 
   composer.render();

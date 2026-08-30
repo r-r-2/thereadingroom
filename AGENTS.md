@@ -17,15 +17,15 @@ Chrome blocks those from `file://` URLs. No build step beyond that.
 
 ## Files
 
-- **`reading-room.html`** — scene, lights, room, bookcase, decor,
-  turntable, audio, controls, post-processing, animation loop.
+- **`reading-room.html`** — scene, lights, room, window, bookcase, decor,
+  reading table, turntable, audio, controls, post-processing, animation loop.
 - **`books.js`** — exported array of book objects. Edit this to add or update
   books. See **Adding a book** below for the full field schema.
 
 ## Adding a book
 
 Edit only [`books.js`](books.js). Do not change placement logic in
-`reading-room.html` unless shelf capacity is exceeded.
+`reading-room.html` unless shelf or table capacity is exceeded.
 
 ### Fields
 
@@ -35,6 +35,7 @@ Edit only [`books.js`](books.js). Do not change placement logic in
 | `c`, `f` | yes | fallback spine background / text colour (hex) |
 | `th`, `h` | yes | thickness / height in metres |
 | `isbn` | yes | ISBN-13 preferred; Open Library cover + title link |
+| `cover` | optional | local jacket path when Open Library has no image |
 | `fin` **or** `reading` | one of | finished date (`'Oct 2025'`) or progress `0–100` |
 | `note` | optional | short detail-panel line; omit or `''` to hide |
 | `review` | optional | longer personal review; Review section only if set |
@@ -47,14 +48,17 @@ Size heuristics from current entries: `th` ≈ `0.014`–`0.030`, `h` ≈ `0.178
 
 ### Shelf order
 
-- Books with `reading` go on the **top** shelf.
+- Books with `reading` lie **cover-up** on the **reading table** (left of
+  the bookcase). The first **four** sit in a row; further titles stack on
+  the leftmost book.
 - Finished books fill the lower three shelves in **array order**: 5 / 5 /
-  remainder.
+  remainder. The top shelf is decor only.
 - Face-out mode packs at most two covers per lower shelf (**6** finished
   books look clean). More still works in spine mode but overlaps face-out.
+  Table books ignore cover-mode.
 
 Append finished books at the end of the array. `reading` books can sit
-anywhere; they are filtered to the top shelf.
+anywhere; they are filtered onto the table.
 
 ### Templates
 
@@ -99,9 +103,10 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
 1. **Imports** — Three.js addons, lil-gui, and `BOOKS` from `./books.js`.
 2. **Scene** — `THREE.Scene`, camera (eye at 1.62 m), renderer, ACES tone
    mapping, fog.
-3. **Lights** — ambient, key, fill, shelfWash, candleLight, playerLight.
+3. **Lights** — ambient, key, fill, shelfWash, windowLight, candleLight,
+   lampLight, playerLight.
 4. **Room shell** — floor with procedural plank texture, ceiling, four walls,
-   a rug.
+   a rug, left-wall nature window (canvas view, frame, sill, mullion).
 5. **Bookcase frame** — back panel, sides, top, toe board, shelf boards at
    y = 0.42 / 0.90 / 1.38 / 1.86.
 6. **Book meshes** — `makeSpineTexture`, `makeCoverTexture`, `placeBooks()`,
@@ -111,14 +116,15 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
 8. **Design harness** — `SETTINGS` object and lil-gui panel.
 9. **Decor** — shelf props: succulents, candles, flat book stacks, framed
    prints, vase, candleLight.
-10. **Turntable** — credenza, plinth, platter, record, spindle, tonearm.
+10. **Reading table** — top, legs, apron, lamp, succulent, `placeTableBooks()`.
+11. **Turntable** — credenza, plinth, platter, record, spindle, tonearm.
     Tonearm hit targets added to `interactables`.
-11. **Music** — `Music` IIFE wrapping the Web Audio graph (pads, plucks,
+12. **Music** — `Music` IIFE wrapping the Web Audio graph (pads, plucks,
     delay, vinyl hiss).
-12. **Controls** — `PointerLockControls`, keyboard map, velocity/collision.
-13. **Raycast interaction** — book pull-out, wall lever, detail
+13. **Controls** — `PointerLockControls`, keyboard map, velocity/collision.
+14. **Raycast interaction** — book pull-out, wall lever, detail
     panel, record toggle.
-14. **Animation loop** — movement, turntable rotation, arm travel, cover
+15. **Animation loop** — movement, turntable rotation, arm travel, cover
     mode / book animation, `composer.render()`.
 
 See `ARCHITECTURE.md` for the how and why of each section.
@@ -152,9 +158,14 @@ See `ARCHITECTURE.md` for the how and why of each section.
    throws down and books rotate face-out on the left of the three
    lower shelves, clear of the decor. Press C to flip back to spines.
 8. In both modes, pull a book out and put it back. Cover mode should
-   nudge forward only (no extra quarter-turn).
-9. Walk to the turntable, click to stop/start the record.
-10. Press Esc, open the lil-gui panel, toggle post-processing off to see the
+   nudge forward only (no extra quarter-turn). Table books (if any
+   `reading` entries exist) should stay on the table, lying cover-up.
+9. Face the left wall: a large framed window should show a stylized
+   landscape (mountains, trees, plants) across from the turntable.
+10. Walk left of the bookcase: a wooden reading table with a lamp and
+    plant. You should not be able to walk through it.
+11. Walk to the turntable, click to stop/start the record.
+12. Press Esc, open the lil-gui panel, toggle post-processing off to see the
     raw scene without bloom.
-11. Check the browser console for errors. The global `error` handler on the
+13. Check the browser console for errors. The global `error` handler on the
     loading div will surface module-level throws.

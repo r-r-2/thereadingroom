@@ -8,19 +8,29 @@ THREE.Scene
 ├── key (PointLight, 0xffc078, intensity 19, range 10)
 ├── fill (PointLight, 0xd8cbb4, intensity 7, range 12)
 ├── shelfWash (PointLight, 0xffd9a0, intensity 7, range 4.6)
+├── windowLight (PointLight, 0xffd4a8, intensity 5.5, range 4.2)
 ├── playerLight (PointLight, 0xffc98a, intensity 3.2, range 2.4)
 ├── floor (Mesh)
 ├── ceiling (Mesh)
 ├── four wall planes (Mesh ×4)
 ├── rug (Mesh)
+├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.4)
+│   ├── landscape view plane (canvas texture)
+│   ├── frame rails, mullion, sill
+│   └── (windowLight is scene-parented, not in this group)
 ├── wallSwitch (Group, back wall left of the bookcase)
 │   ├── lever plate, bezel, pivot, arm, knob
 │   └── instruction plaque
 ├── shelfGroup (Group, z = -ROOM.d/2 + 0.19)
 │   ├── bookcase panels and shelf boards (Mesh ×9)
-│   ├── book meshes (Mesh ×N, added by placeBooks())
+│   ├── finished-book meshes (Mesh ×N, added by placeBooks())
 │   ├── decor objects (Groups and Meshes)
 │   └── candleLight (PointLight, parented to shelfGroup)
+├── tableGroup (Group, left of the bookcase)
+│   ├── top, apron, legs
+│   ├── lamp (base, stem, shade, glow) + lampLight
+│   ├── succulent
+│   └── reading-book meshes (placeTableBooks())
 └── player (Group, at far-right corner, rotated −π/2)
     ├── credenza (Mesh)
     ├── plinth (Mesh)
@@ -47,7 +57,7 @@ every proportion feel wrong.
 
 ## Lights
 
-Six light sources in total (not three as originally noted):
+Eight light sources in total (not three as originally noted):
 
 | Name | Type | Colour | Initial intensity |
 |---|---|---|---|
@@ -55,7 +65,9 @@ Six light sources in total (not three as originally noted):
 | key | PointLight | 0xffc078 | 19 |
 | fill | PointLight | 0xd8cbb4 | 7 |
 | shelfWash | PointLight | 0xffd9a0 | 7 |
+| windowLight | PointLight | 0xffd4a8 | 5.5 |
 | candleLight | PointLight | 0xffb765 | 0.9 |
+| lampLight | PointLight | 0xffc98a | 1.4 |
 | playerLight | PointLight | 0xffc98a | 3.2 |
 
 No realtime shadows anywhere. `MeshLambertMaterial` is used throughout
@@ -76,8 +88,9 @@ mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT]
 
 `+z` faces the room (spine), `±x` are the front and back covers, the
 remaining three faces are the page block. A wall-mounted lever to the
-left of the bookcase lerps every book to a face-out rest pose (`rotation.y = −π/2`)
-so `+x` faces the room. Do not put the jacket texture on `+z` — that face
+left of the bookcase lerps **shelf** books to a face-out rest pose
+(`rotation.y = −π/2`) so `+x` faces the room. Table books skip that blend.
+Do not put the jacket texture on `+z` — that face
 is only 1.4–3 cm wide and would squash the cover.
 
 ### Spine texture (`makeSpineTexture`)
@@ -103,19 +116,27 @@ To swap in real cover images, replace `makeCoverTexture` with a
 books, pack them into a texture atlas — one texture per book creates
 50 `gl.texImage2D` calls on startup.
 
-### Book placement (`placeBooks`)
+### Book placement (`placeBooks` / `placeTableBooks`)
 
-Books with `reading` go on the top shelf (SHELF_Y[3]); finished books
-fill the lower three shelves in declaration order (5 / 5 / 4 split
-across SHELF_Y[2..0]). Each book is offset from the previous by its
-thickness plus a 4 mm gap. A small random Z-lean (`rotation.z ±0.015
-rad`) keeps them from looking machine-placed.
+Finished books (`!reading`) fill the three lower shelves in declaration
+order (5 / 5 / remainder across SHELF_Y[2..0]). The top shelf is decor
+only. Books with `reading` lie cover-up on the reading table to the left
+of the bookcase (`placeTableBooks`). The first four sit in a row on the
+tabletop; further titles stack on the leftmost book, each still its own
+interactable. Cover-mode does not stand them up or send them to a shelf.
 
-Each mesh stores two rest poses: `spineHome` / `spineRotY = 0` (current
+Each shelf book is offset from the previous by its thickness plus a 4 mm
+gap. A small random Z-lean (`rotation.z ±0.015 rad`) keeps them from
+looking machine-placed.
+
+Shelf meshes store two rest poses: `spineHome` / `spineRotY = 0` (current
 row) and `faceHome` / `faceRotY = −π/2`. Face-out packs two covers per
 lower shelf on the left of the board so they clear the decor (usable
 left band is about 0.64 m). That is a hard cap of six face-out books;
-more than that will overlap on the bottom shelf.
+more than that will overlap on the bottom shelf. Table books set
+`onTable`, rotate `z = −π/2` so the jacket (`+x`) faces up, and copy
+`spineHome` into `faceHome` so cover-mode is a no-op. Pull-out lifts them
+in Y rather than applying the standing-spine quarter-turn.
 
 The `interactables` array is declared at module scope **before**
 `placeBooks()` is called. Each book mesh is pushed into it; the
@@ -141,6 +162,8 @@ the current rest pose (a blend of `spineHome` and `faceHome` by
 - Spine mode (`coverT ≈ 0`): `z + 0.17`, `y + 0.012`, `rotation.y += −0.95`
 - Cover mode (`coverT ≈ 1`): forward nudge only (`z + 0.06`). The jacket
   already faces the room; another quarter-turn would hide it.
+- Table books (`onTable`): lift `y + 0.08` and `z + 0.06`; no Y spin, so
+  the jacket stays facing up.
 
 Clicking again while looking at the open book closes it (`out = false`,
 `t` lerps back to 0). Clicking a different book while one is open first
@@ -184,7 +207,9 @@ Collision is a bounding-box clamp in `collide()`:
 1. Room walls: clamp x and z inside the room minus a 0.42 m padding.
 2. Bookcase footprint: if the player is within the case's x-extent and
    tries to move past `CASE_MAX_Z`, clamp z to that boundary.
-3. Eye height: `position.y` is always reset to 1.62. There is no
+3. Reading table AABB: if inside the table's x/z box, push to the
+   nearest face so the player can walk around it but not through it.
+4. Eye height: `position.y` is always reset to 1.62. There is no
    gravity and no jumping.
 
 ## Turntable
