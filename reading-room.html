@@ -182,6 +182,7 @@ import BOOKS from './books.js';
 /* Touch-first devices cannot use Pointer Lock (unsupported on iOS Safari,
    and there is no WASD). Drag-to-look + a virtual stick instead. */
 const TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
+const EDIT = new URLSearchParams(location.search).has('edit');
 let useTouch = TOUCH;
 function pixelRatio() {
   return Math.min(devicePixelRatio, useTouch ? 1.25 : 2);
@@ -783,9 +784,10 @@ composer.addPass(new OutputPass());
 
 /* ============================================================
    DESIGN HARNESS
-   A live tweak panel. Walk around, press Esc, adjust, click back in.
-   "Copy settings" puts the current values on your clipboard as JSON
-   so you can paste the numbers you liked into the source.
+   A live tweak panel, visitors never see it. Append ?edit=1, walk
+   around, press Esc, adjust, click back in. "Copy settings" puts
+   the current values on your clipboard as JSON so you can paste
+   the numbers you liked into the source.
    ============================================================ */
 const SETTINGS = {
   exposure: 0.92,
@@ -813,6 +815,7 @@ const SETTINGS = {
 
 const gui = new GUI({ title: 'Look' });
 gui.domElement.style.zIndex = 15;
+if (!EDIT) gui.hide();
 
 const gGrade = gui.addFolder('Grade');
 gGrade.add(SETTINGS, 'effects').name('Post-processing').onChange((v) => {
@@ -1544,13 +1547,18 @@ let stickY = 0;
 let looked = null;
 let opened = null;
 
+function syncGui() {
+  if (EDIT && !useTouch && !inRoom) gui.show();
+  else gui.hide();
+}
+
 function syncChrome() {
   document.documentElement.classList.toggle('touch-ui', useTouch);
   document.getElementById('keys-desk').hidden = useTouch;
   document.getElementById('keys-touch').hidden = !useTouch;
   document.getElementById('cta').textContent = useTouch ? 'Tap to enter' : 'Click to enter';
   hintEl.textContent = useTouch ? '' : 'Esc to release the cursor';
-  if (useTouch) gui.hide();
+  syncGui();
 }
 
 function enterRoom() {
@@ -1558,7 +1566,7 @@ function enterRoom() {
   inRoom = true;
   gate.classList.add('hidden');
   crosshair.classList.remove('hidden');
-  gui.hide();
+  syncGui();
   if (useTouch) {
     touchHud.hidden = false;
     stickEl.hidden = false;
@@ -1583,8 +1591,7 @@ function leaveRoom() {
   touchHud.hidden = true;
   resetStick();
   velocity.set(0, 0, 0);
-  if (useTouch) gui.hide();
-  else gui.show();
+  syncGui();
 }
 
 syncChrome();
@@ -2007,8 +2014,7 @@ visualViewport?.addEventListener('resize', fitView);
 
 document.getElementById('loading').remove();
 gate.classList.remove('hidden');
-if (!useTouch) gui.show();
-else gui.hide();
+syncGui();
 animate();
 </script>
 </body>

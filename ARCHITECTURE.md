@@ -298,10 +298,12 @@ each other — tune them together.
 
 ## Design harness (lil-gui)
 
-The panel is visible when the pointer is unlocked. It edits a `SETTINGS`
-object and applies changes live to the scene. When the look feels right,
-"Copy settings" writes `JSON.stringify(SETTINGS)` to the clipboard. Paste
-the values you want back into the source as new hardcoded defaults.
+The panel is visible only with `?edit=1` in the URL, and then only when
+the pointer is unlocked (the entry gate). Visitors never see it. It edits
+a `SETTINGS` object and applies changes live to the scene. When the look
+feels right, "Copy settings" writes `JSON.stringify(SETTINGS)` to the
+clipboard. Paste the values you want back into the source as new
+hardcoded defaults.
 
 **Important:** `SETTINGS` is initialised with values that were set at an
 earlier stage of development. Several of them do not match the current

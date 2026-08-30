@@ -113,7 +113,8 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
    `loadCover()`, wall lever and plaque. The `interactables` array is
    declared here, before `placeBooks()` runs.
 7. **Post-processing** — `EffectComposer` with bloom, vignette, output pass.
-8. **Design harness** — `SETTINGS` object and lil-gui panel.
+8. **Design harness** — `SETTINGS` object and lil-gui panel (visible only
+    with `?edit=1`).
 9. **Decor** — shelf props: succulents, candles, flat book stacks, framed
    prints, vase, candleLight.
 10. **Reading table** — top, legs, apron, lamp, succulent, `placeTableBooks()`.
@@ -169,11 +170,13 @@ See `ARCHITECTURE.md` for the how and why of each section.
 10. Walk left of the bookcase: a wooden reading table with a lamp and
     plant. You should not be able to walk through it.
 11. Walk to the turntable, click to stop/start the record.
-12. Press Esc, open the lil-gui panel, toggle post-processing off to see the
-    raw scene without bloom.
-13. Check the browser console for errors. The global `error` handler on the
+12. Check the browser console for errors. The global `error` handler on the
     loading div will surface module-level throws.
-14. On a phone (or DevTools device mode): the gate should list drag / stick /
+13. On a phone (or DevTools device mode): the gate should list drag / stick /
     tap, not WASD. Tap to enter — a walk stick, Covers, and Leave appear.
     Drag looks around; the stick walks; tap a book to pull it out; Leave
     returns to the gate without re-entering from the same tap.
+14. The Look / lil-gui panel must be absent on the default URL. Open
+    `reading-room.html?edit=1`, press Esc (or stay on the gate): the panel
+    should appear. Toggle post-processing off to see the raw scene without
+    bloom. Without the query param, leaving the room must not show it.
