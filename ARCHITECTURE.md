@@ -45,7 +45,8 @@ THREE.Scene
 
 `PointerLockControls` wraps the camera; the camera is added directly to the
 scene (the controls object / `controls.getObject()` is the camera itself in
-Three.js r170).
+Three.js r170). On touch devices, Pointer Lock is skipped: the same camera
+is yaw/pitched from drag, and `moveForward` / `moveRight` still drive walking.
 
 ## Real-world units
 
@@ -189,8 +190,13 @@ reads "Click the lever / or press C / to flip covers". Prompts:
 
 ## Movement and collision
 
-`PointerLockControls` handles mouse look. Movement uses an explicit
-velocity vector with exponential damping each frame:
+`PointerLockControls` handles mouse look on desktop. On `(hover: none) and
+(pointer: coarse)` — and if Pointer Lock errors or never arrives on a
+touch laptop/iPad — drag on the canvas yaws/pitches the camera (`YXZ`
+Euler) and a virtual stick on the left feeds the same `dir` vector as
+WASD. `inRoom` gates movement and interaction in both modes.
+
+Movement uses an explicit velocity vector with exponential damping each frame:
 
 ```js
 velocity.x -= velocity.x * DAMP * dt;     // DAMP = 9
@@ -270,8 +276,8 @@ linear falloff between 1.2 m (full volume) and 7 m (38 % volume) and
 applies it to `master.gain`. Simpler and cheaper than a `PannerNode`.
 
 The `AudioContext` is not created until `Music.start()` is called, which
-happens inside the `controls 'lock'` event — the earliest moment a user
-gesture is guaranteed.
+happens inside `enterRoom()` — the earliest moment a user gesture is
+guaranteed (pointer-lock on desktop, tap-to-enter on touch).
 
 ## Post-processing chain
 
@@ -281,7 +287,7 @@ RenderPass → UnrealBloomPass → ShaderPass(VignetteShader) → OutputPass
 
 `EffectComposer` pixel ratio is set explicitly:
 ```js
-composer.setPixelRatio(Math.min(devicePixelRatio, 2));
+composer.setPixelRatio(pixelRatio()); // 2 desktop, 1.25 touch
 ```
 Without this it renders at roughly half resolution. See GOTCHAS.md.
 

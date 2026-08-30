@@ -121,9 +121,12 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
     Tonearm hit targets added to `interactables`.
 12. **Music** — `Music` IIFE wrapping the Web Audio graph (pads, plucks,
     delay, vinyl hiss).
-13. **Controls** — `PointerLockControls`, keyboard map, velocity/collision.
+13. **Controls** — `PointerLockControls` on desktop; on touch, drag-to-look
+    plus a virtual stick, with Cover / Leave buttons. Shared `inRoom` flag,
+    keyboard map, velocity/collision.
 14. **Raycast interaction** — book pull-out, wall lever, detail
-    panel, record toggle.
+    panel, record toggle. Taps raycast from the finger; clicks use the
+    center crosshair.
 15. **Animation loop** — movement, turntable rotation, arm travel, cover
     mode / book animation, `composer.render()`.
 
@@ -133,10 +136,11 @@ See `ARCHITECTURE.md` for the how and why of each section.
 
 - **No realtime shadows.** Performance trap at browser scale. Bake into
   textures if shadows are ever needed.
-- **No mobile.** Pointer Lock is unsupported on iOS Safari; there is no WASD
-  on a phone. The plan is a flat 2D shelf as the default everywhere, with a
-  link into this room shown only when `navigator.permissions` / the Pointer
-  Lock API reports availability. Not yet implemented.
+- **Touch is first-person, not a 2D shelf.** Pointer Lock is unsupported on
+  iOS Safari, so phones and tablets use drag-to-look, a virtual stick, and
+  tap-to-interact. Desktop keeps Pointer Lock + WASD. Cap pixel ratio at
+  1.25 on touch. Do not add a separate mobile scene unless that is an
+  explicit product change.
 - **Single file** unless explicitly decided otherwise. See `ARCHITECTURE.md`
   §Module split for the trade-offs.
 - **Stylized, not photoreal.** Spine text is larger and higher-contrast than a
@@ -169,3 +173,7 @@ See `ARCHITECTURE.md` for the how and why of each section.
     raw scene without bloom.
 13. Check the browser console for errors. The global `error` handler on the
     loading div will surface module-level throws.
+14. On a phone (or DevTools device mode): the gate should list drag / stick /
+    tap, not WASD. Tap to enter — a walk stick, Covers, and Leave appear.
+    Drag looks around; the stick walks; tap a book to pull it out; Leave
+    returns to the gate without re-entering from the same tap.

@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Reading Room</title>
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;overflow:hidden;background:#2a2119;
-    font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;color:#EDE3D4}
-  canvas{display:block}
+  html,body{margin:0;height:100%;height:100dvh;overflow:hidden;background:#2a2119;
+    font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;color:#EDE3D4;
+    touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;
+    -webkit-tap-highlight-color:transparent}
+  canvas{display:block;position:relative;z-index:0}
 
   /* ---- entry gate ---- */
   #gate{position:fixed;inset:0;z-index:14;display:grid;place-items:center;
@@ -18,6 +20,7 @@
   #gate h1{font-size:30px;font-weight:600;letter-spacing:.02em;margin:0 0 10px}
   #gate p{font-size:14px;line-height:1.6;color:#A8998A;margin:0 0 22px}
   #gate .keys{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+  #gate .keys[hidden]{display:none!important}
   #gate kbd{background:#221c17;border:1px solid #3a2f26;border-bottom-width:2px;
     border-radius:5px;padding:5px 10px;font:inherit;font-size:12px;color:#D6C8B6}
   #gate .cta{display:inline-block;background:#E8D9C0;color:#241d16;font-weight:600;
@@ -54,7 +57,7 @@
   #detail .review{margin:12px 0 0}
   #detail .review-label{margin:0 0 6px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
   #detail .review-body{margin:0;font-size:13px;line-height:1.6;color:#CFC1AE;
-    max-height:9.6em;overflow-y:auto}
+    max-height:9.6em;overflow-y:auto;touch-action:pan-y;-webkit-user-select:text;user-select:text}
   #detail .meta{margin:14px 0 0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
   #detail .bar{height:3px;border-radius:2px;background:rgba(220,196,158,.2);margin-top:10px;overflow:hidden}
   #detail .bar i{display:block;height:100%;background:#E0B36B;border-radius:2px}
@@ -63,6 +66,41 @@
     letter-spacing:.03em;pointer-events:none}
   #loading{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
     font-size:13px;color:#8C7D6E}
+
+  /* ---- touch HUD (phones / tablets) ---- */
+  #touch-hud{position:fixed;inset:0;z-index:11;pointer-events:none}
+  #touch-hud[hidden]{display:none!important}
+  #touch-hud .hud-btn{
+    pointer-events:auto;position:absolute;
+    top:max(12px,env(safe-area-inset-top));
+    background:rgba(24,19,15,.72);color:#EDE3D4;
+    border:1px solid rgba(220,196,158,.28);border-radius:999px;
+    font:inherit;font-size:13px;font-weight:600;padding:9px 16px;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #btn-leave{right:max(12px,env(safe-area-inset-right))}
+  #btn-covers{left:max(12px,env(safe-area-inset-left))}
+  #stick{
+    pointer-events:auto;position:absolute;
+    left:max(18px,env(safe-area-inset-left));
+    bottom:max(24px,env(safe-area-inset-bottom));
+    width:132px;height:132px}
+  #stick[hidden]{display:none!important}
+  #stick-base{
+    width:100%;height:100%;border-radius:50%;
+    background:rgba(24,19,15,.42);border:1px solid rgba(220,196,158,.28);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #stick-knob{
+    position:absolute;left:50%;top:50%;width:54px;height:54px;
+    margin:-27px 0 0 -27px;border-radius:50%;
+    background:rgba(232,217,192,.88);box-shadow:0 2px 8px rgba(0,0,0,.35);
+    pointer-events:none}
+
+  html.touch-ui #hint{display:none}
+  html.touch-ui #detail{
+    top:auto;right:16px;left:16px;width:auto;max-width:none;
+    bottom:max(16px,env(safe-area-inset-bottom));
+    transform:translateY(16px)}
+  html.touch-ui #detail.on{transform:translateY(0)}
 </style>
 </head>
 <body>
@@ -84,10 +122,13 @@
   <div class="inner">
     <h1>The Reading Room</h1>
     <p>A room with my books in it. Walk over to a shelf and look at a spine to pull it out. There’s a record playing in the corner.</p>
-    <div class="keys">
+    <div class="keys" id="keys-desk">
       <kbd>W A S D</kbd><kbd>Mouse to look</kbd><kbd>Click a book</kbd><kbd>C covers</kbd><kbd>Click the record to stop it</kbd><kbd>Esc to leave</kbd>
     </div>
-    <div class="cta">Click to enter</div>
+    <div class="keys" id="keys-touch" hidden>
+      <kbd>Drag to look</kbd><kbd>Stick to walk</kbd><kbd>Tap a book</kbd><kbd>Covers</kbd><kbd>Tap the record</kbd>
+    </div>
+    <div class="cta" id="cta">Click to enter</div>
   </div>
 </div>
 
@@ -107,6 +148,15 @@
 </div>
 
 <div id="hint">Esc to release the cursor</div>
+
+<div id="touch-hud" hidden>
+  <button type="button" class="hud-btn" id="btn-covers">Covers</button>
+  <button type="button" class="hud-btn" id="btn-leave">Leave</button>
+  <div id="stick" aria-label="Walk">
+    <div id="stick-base"></div>
+    <div id="stick-knob"></div>
+  </div>
+</div>
 
 <script type="importmap">
 {
@@ -129,6 +179,14 @@ import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import BOOKS from './books.js';
 
+/* Touch-first devices cannot use Pointer Lock (unsupported on iOS Safari,
+   and there is no WASD). Drag-to-look + a virtual stick instead. */
+const TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
+let useTouch = TOUCH;
+function pixelRatio() {
+  return Math.min(devicePixelRatio, useTouch ? 1.25 : 2);
+}
+
 /* ============================================================
    SCENE
    ============================================================ */
@@ -141,7 +199,8 @@ camera.position.set(0, 1.62, 2.6);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(pixelRatio());
+renderer.domElement.style.touchAction = 'none';
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 /* Filmic tone mapping rather than the default linear clamp. This alone
    changes the look substantially: highlights roll off instead of
@@ -703,7 +762,7 @@ const composer = new EffectComposer(renderer);
 /* EffectComposer makes its own render target and does NOT inherit the
    renderer's pixel ratio. Without this the whole frame renders at roughly
    half resolution and gets upscaled — it reads as a soft, blurry image. */
-composer.setPixelRatio(Math.min(devicePixelRatio, 2));
+composer.setPixelRatio(pixelRatio());
 composer.setSize(innerWidth, innerHeight);
 composer.addPass(new RenderPass(scene, camera));
 
@@ -1466,28 +1525,105 @@ const playerWorldPos = new THREE.Vector3();
    ============================================================ */
 const controls = new PointerLockControls(camera, renderer.domElement);
 scene.add(controls.object ?? controls.getObject?.() ?? camera);
+camera.rotation.order = 'YXZ';
 
 const gate = document.getElementById('gate');
 const crosshair = document.getElementById('crosshair');
 const promptEl = document.getElementById('prompt');
+const hintEl = document.getElementById('hint');
+const touchHud = document.getElementById('touch-hud');
+const stickEl = document.getElementById('stick');
+const stickKnob = document.getElementById('stick-knob');
+const btnCovers = document.getElementById('btn-covers');
+const btnLeave = document.getElementById('btn-leave');
 
-gate.addEventListener('click', (e) => {
-  if (e.target.closest && (e.target.closest('.lil-gui') || e.target.closest('#detail'))) return;
-  controls.lock();
-});
-controls.addEventListener('lock', () => {
+let inRoom = false;
+let gateIgnoreUntil = 0;
+let stickX = 0;
+let stickY = 0;
+let looked = null;
+let opened = null;
+
+function syncChrome() {
+  document.documentElement.classList.toggle('touch-ui', useTouch);
+  document.getElementById('keys-desk').hidden = useTouch;
+  document.getElementById('keys-touch').hidden = !useTouch;
+  document.getElementById('cta').textContent = useTouch ? 'Tap to enter' : 'Click to enter';
+  hintEl.textContent = useTouch ? '' : 'Esc to release the cursor';
+  if (useTouch) gui.hide();
+}
+
+function enterRoom() {
+  if (inRoom) return;
+  inRoom = true;
   gate.classList.add('hidden');
   crosshair.classList.remove('hidden');
   gui.hide();
+  if (useTouch) {
+    touchHud.hidden = false;
+    stickEl.hidden = false;
+  }
   /* Browsers block audio until a user gesture. Entering the room is
      that gesture, so this is the earliest legal moment to start. */
   if (!Music.ready) Music.start();
-});
-controls.addEventListener('unlock', () => {
+}
+
+function leaveRoom() {
+  if (!inRoom) return;
+  inRoom = false;
+  gateIgnoreUntil = performance.now() + 500;
+  if (opened) {
+    opened.userData.out = false;
+    opened = null;
+  }
+  hideDetail();
   gate.classList.remove('hidden');
   crosshair.classList.add('hidden');
   promptEl.classList.remove('on');
-  gui.show();
+  touchHud.hidden = true;
+  resetStick();
+  velocity.set(0, 0, 0);
+  if (useTouch) gui.hide();
+  else gui.show();
+}
+
+syncChrome();
+
+gate.addEventListener('click', (e) => {
+  if (e.target.closest && (e.target.closest('.lil-gui') || e.target.closest('#detail'))) return;
+  if (performance.now() < gateIgnoreUntil) return;
+  if (useTouch) {
+    enterRoom();
+    return;
+  }
+  controls.lock();
+  /* iPadOS "Request Desktop Website" often looks like a mouse but still
+     cannot pointer-lock. If lock never arrives, fall through to touch. */
+  if (navigator.maxTouchPoints > 1) {
+    setTimeout(() => {
+      if (inRoom) return;
+      useTouch = true;
+      syncChrome();
+      enterRoom();
+    }, 400);
+  }
+});
+controls.addEventListener('lock', enterRoom);
+controls.addEventListener('unlock', () => {
+  if (useTouch) return;
+  leaveRoom();
+});
+document.addEventListener('pointerlockerror', () => {
+  if (inRoom) return;
+  useTouch = true;
+  syncChrome();
+  enterRoom();
+});
+
+btnLeave.addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  leaveRoom();
 });
 
 const keys = Object.create(null);
@@ -1496,6 +1632,104 @@ addEventListener('keyup', (e) => { keys[e.code] = false; });
 
 const velocity = new THREE.Vector3();
 const dir = new THREE.Vector3();
+const lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+const LOOK_SENS = 0.0048;
+const TAP_PX = 14;
+const PITCH_MAX = Math.PI / 2 - 0.04;
+const STICK_MAX = 48;
+
+let lookId = null;
+let lookLastX = 0;
+let lookLastY = 0;
+let lookStartX = 0;
+let lookStartY = 0;
+let lookMoved = false;
+let stickId = null;
+
+function resetStick() {
+  stickId = null;
+  stickX = 0;
+  stickY = 0;
+  stickKnob.style.transform = '';
+}
+
+function applyStick(e) {
+  const r = stickEl.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  let dx = e.clientX - cx;
+  let dy = e.clientY - cy;
+  const len = Math.hypot(dx, dy);
+  if (len > STICK_MAX) {
+    dx *= STICK_MAX / len;
+    dy *= STICK_MAX / len;
+  }
+  stickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+  stickX = dx / STICK_MAX;
+  stickY = -dy / STICK_MAX;
+}
+
+stickEl.addEventListener('pointerdown', (e) => {
+  if (!inRoom || stickId != null) return;
+  e.preventDefault();
+  stickId = e.pointerId;
+  stickEl.setPointerCapture(e.pointerId);
+  applyStick(e);
+});
+stickEl.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== stickId) return;
+  applyStick(e);
+});
+function endStick(e) {
+  if (e.pointerId !== stickId) return;
+  resetStick();
+}
+stickEl.addEventListener('pointerup', endStick);
+stickEl.addEventListener('pointercancel', endStick);
+
+function applyLook(dx, dy) {
+  lookEuler.setFromQuaternion(camera.quaternion);
+  lookEuler.y -= dx * LOOK_SENS;
+  lookEuler.x -= dy * LOOK_SENS;
+  lookEuler.x = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, lookEuler.x));
+  camera.quaternion.setFromEuler(lookEuler);
+}
+
+const canvas = renderer.domElement;
+canvas.addEventListener('pointerdown', (e) => {
+  if (!useTouch || !inRoom || lookId != null) return;
+  if (e.target !== canvas) return;
+  lookId = e.pointerId;
+  lookLastX = lookStartX = e.clientX;
+  lookLastY = lookStartY = e.clientY;
+  lookMoved = false;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== lookId) return;
+  const dx = e.clientX - lookLastX;
+  const dy = e.clientY - lookLastY;
+  lookLastX = e.clientX;
+  lookLastY = e.clientY;
+  if (Math.hypot(e.clientX - lookStartX, e.clientY - lookStartY) > TAP_PX) lookMoved = true;
+  applyLook(dx, dy);
+});
+function endLook(e) {
+  if (e.pointerId !== lookId) return;
+  const tapped = !lookMoved;
+  lookId = null;
+  if (tapped) interact(hitFromPointer(e) || looked);
+}
+canvas.addEventListener('pointerup', endLook);
+canvas.addEventListener('pointercancel', (e) => {
+  if (e.pointerId === lookId) lookId = null;
+});
+
+addEventListener('touchmove', (e) => {
+  if (!inRoom) return;
+  if (e.target.closest && e.target.closest('.review-body')) return;
+  e.preventDefault();
+}, { passive: false });
 
 // acceleration, driven by the tweak panel
 const SPEED = 22;
@@ -1542,9 +1776,6 @@ const raycaster = new THREE.Raycaster();
 raycaster.far = 2.4;
 const CENTER = new THREE.Vector2(0, 0);
 
-let looked = null;
-let opened = null;
-
 const detail = document.getElementById('detail');
 
 function showDetail(b) {
@@ -1586,54 +1817,94 @@ function showDetail(b) {
     bar.style.display = 'none';
   }
   detail.classList.add('on');
+  if (useTouch) stickEl.hidden = true;
 }
-function hideDetail() { detail.classList.remove('on'); }
+function hideDetail() {
+  detail.classList.remove('on');
+  if (useTouch && inRoom) stickEl.hidden = false;
+}
 
 // Clicks on the panel (title link, scroll) must not hit the 3D click handler.
 detail.addEventListener('click', (e) => e.stopPropagation());
+detail.addEventListener('pointerdown', (e) => e.stopPropagation());
 
-function toggleCoverMode() {
-  coverMode = !coverMode;
-  if (opened) {
-    opened.userData.out = false;
-    opened = null;
-    hideDetail();
+function actVerb() { return useTouch ? 'Tap' : 'Click'; }
+
+function promptFor(hit) {
+  if (!hit) return '';
+  if (hit.userData.type === 'player') {
+    return Music.playing ? `${actVerb()} to stop the record` : `${actVerb()} to start the record`;
   }
-  if (looked && looked.userData.type === 'switch') {
-    promptEl.textContent = coverMode ? 'Click to show spines' : 'Click to show covers';
+  if (hit.userData.type === 'switch') {
+    return coverMode ? `${actVerb()} to show spines` : `${actVerb()} to show covers`;
   }
+  return hit === opened ? `${actVerb()} to put it back` : `${actVerb()} to pull out`;
 }
 
-addEventListener('keydown', (e) => {
-  if (e.code !== 'KeyC' || e.repeat || !controls.isLocked) return;
-  toggleCoverMode();
-});
+function hitFromPointer(e) {
+  const ndc = new THREE.Vector2(
+    (e.clientX / innerWidth) * 2 - 1,
+    -(e.clientY / innerHeight) * 2 + 1
+  );
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(interactables, false);
+  return hits.length ? hits[0].object : null;
+}
 
-document.addEventListener('click', () => {
-  if (!controls.isLocked) return;
+function interact(target = looked) {
+  if (!inRoom) return;
 
-  if (looked && looked.userData.type === 'player') {
+  if (target && target.userData.type === 'player') {
     Music.toggle();
-    promptEl.textContent = Music.playing ? 'Click to stop the record' : 'Click to start the record';
+    promptEl.textContent = promptFor(target);
     return;
   }
 
-  if (looked && looked.userData.type === 'switch') {
+  if (target && target.userData.type === 'switch') {
     toggleCoverMode();
     return;
   }
 
   if (opened) {
     opened.userData.out = false;
-    if (opened === looked) { opened = null; hideDetail(); return; }
+    if (opened === target) { opened = null; hideDetail(); return; }
     opened = null;
     hideDetail();
   }
-  if (looked) {
-    looked.userData.out = true;
-    opened = looked;
-    showDetail(looked.userData.book);
+  if (target && target.userData.book) {
+    target.userData.out = true;
+    opened = target;
+    showDetail(target.userData.book);
   }
+}
+
+function toggleCoverMode() {
+  coverMode = !coverMode;
+  btnCovers.textContent = coverMode ? 'Spines' : 'Covers';
+  if (opened) {
+    opened.userData.out = false;
+    opened = null;
+    hideDetail();
+  }
+  if (looked && looked.userData.type === 'switch') {
+    promptEl.textContent = promptFor(looked);
+  }
+}
+
+btnCovers.addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (inRoom) toggleCoverMode();
+});
+
+addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyC' || e.repeat || !inRoom) return;
+  toggleCoverMode();
+});
+
+document.addEventListener('click', () => {
+  if (useTouch || !inRoom) return;
+  interact();
 });
 
 /* ============================================================
@@ -1644,7 +1915,7 @@ const clock = new THREE.Clock();
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  if (controls.isLocked) {
+  if (inRoom) {
     velocity.x -= velocity.x * DAMP * dt;
     velocity.z -= velocity.z * DAMP * dt;
 
@@ -1656,7 +1927,7 @@ function animate() {
     const back = (keys['KeyS'] || keys['ArrowDown']) ? 1 : 0;
     const right = (keys['KeyD'] || keys['ArrowRight']) ? 1 : 0;
     const left = (keys['KeyA'] || keys['ArrowLeft']) ? 1 : 0;
-    dir.set(right - left, 0, fwd - back);
+    dir.set(right - left + stickX, 0, fwd - back + stickY);
     if (dir.lengthSq() > 0) dir.normalize();
 
     if (dir.z) velocity.z -= dir.z * SETTINGS.moveSpeed * dt;
@@ -1675,15 +1946,7 @@ function animate() {
       looked = hit;
       crosshair.classList.toggle('hot', !!hit);
       promptEl.classList.toggle('on', !!hit);
-      if (hit) {
-        if (hit.userData.type === 'player') {
-          promptEl.textContent = Music.playing ? 'Click to stop the record' : 'Click to start the record';
-        } else if (hit.userData.type === 'switch') {
-          promptEl.textContent = coverMode ? 'Click to show spines' : 'Click to show covers';
-        } else {
-          promptEl.textContent = hit === opened ? 'Click to put it back' : 'Click to pull out';
-        }
-      }
+      if (hit) promptEl.textContent = promptFor(hit);
     }
   }
 
@@ -1730,17 +1993,22 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+function fitView() {
+  const w = innerWidth;
+  const h = innerHeight;
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-  composer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  composer.setSize(innerWidth, innerHeight);
-});
+  renderer.setSize(w, h);
+  composer.setPixelRatio(pixelRatio());
+  composer.setSize(w, h);
+}
+addEventListener('resize', fitView);
+visualViewport?.addEventListener('resize', fitView);
 
 document.getElementById('loading').remove();
 gate.classList.remove('hidden');
-gui.show();
+if (!useTouch) gui.show();
+else gui.hide();
 animate();
 </script>
 </body>
