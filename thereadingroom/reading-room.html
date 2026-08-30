@@ -410,6 +410,9 @@ function loadCover(mesh, b) {
   );
 }
 
+// Start fetching all covers immediately in the background.
+books.forEach((m) => loadCover(m, m.userData.book));
+
 /* ============================================================
    POST-PROCESSING
    Bloom + vignette + filmic tone mapping. This is the cheapest
@@ -1180,7 +1183,6 @@ document.addEventListener('click', () => {
     looked.userData.out = true;
     opened = looked;
     showDetail(looked.userData.book);
-    loadCover(looked, looked.userData.book);
   }
 });
 
