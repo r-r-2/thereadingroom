@@ -60,11 +60,15 @@
 
 <div id="loading">Building the room&hellip;</div>
 <script>
-  // If the module throws, say so rather than sitting on the loading text.
-  addEventListener('error', (e) => {
+  function showError(msg) {
     const el = document.getElementById('loading');
-    if (el) el.textContent = 'Failed to start: ' + (e.message || 'unknown error');
-  });
+    if (el) el.textContent = 'Failed to start: ' + (msg || 'unknown error');
+  }
+  // Catches synchronous throws inside the module body.
+  addEventListener('error', (e) => showError(e.message));
+  // Catches module-load failures (e.g. books.js not found), which fire as
+  // unhandled rejections rather than error events in most browsers.
+  addEventListener('unhandledrejection', (e) => showError(e.reason?.message ?? String(e.reason)));
 </script>
 
 <div id="gate" class="hidden">
