@@ -473,57 +473,86 @@ function loadCover(mesh, b) {
 // Start fetching all covers immediately in the background.
 books.forEach((m) => loadCover(m, m.userData.book));
 
-/* Cover-display switch on the left stile. MeshLambert only — a
-   MeshBasicMaterial here would bloom and wash the room. */
-const SWITCH_PLATE = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
-const SWITCH_KNOB = new THREE.MeshLambertMaterial({ color: 0xC9A66B });
-const SWITCH_X = -CASE.w / 2;
+/* Cover-display switch and plaque on the back wall, left of the
+   bookcase. MeshLambert only — MeshBasicMaterial would bloom. */
+const SWITCH_WOOD = new THREE.MeshLambertMaterial({ color: 0xC49A68 });
+const SWITCH_BRASS = new THREE.MeshLambertMaterial({ color: 0xC9A66B });
+const SWITCH_DARK = new THREE.MeshLambertMaterial({ color: 0x6B5340 });
 
-const switchPlate = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.068, 0.01), SWITCH_PLATE);
-switchPlate.position.set(SWITCH_X, 1.2, CASE.d / 2 + 0.007);
-switchPlate.userData.type = 'switch';
-shelfGroup.add(switchPlate);
-interactables.push(switchPlate);
+const wallSwitch = new THREE.Group();
+wallSwitch.position.set(-CASE.w / 2 - 0.32, 0, -ROOM.d / 2 + 0.014);
+scene.add(wallSwitch);
+
+function markSwitch(mesh) {
+  mesh.userData.type = 'switch';
+  interactables.push(mesh);
+}
+
+const switchPlate = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.24, 0.02), SWITCH_WOOD);
+switchPlate.position.set(0, 1.18, 0.01);
+wallSwitch.add(switchPlate);
+markSwitch(switchPlate);
+
+const switchBezel = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.16, 0.012), SWITCH_DARK);
+switchBezel.position.set(0, 1.18, 0.022);
+wallSwitch.add(switchBezel);
+markSwitch(switchBezel);
+
+const switchBarrel = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.016, 0.016, 0.05, 12),
+  SWITCH_BRASS
+);
+switchBarrel.rotation.z = Math.PI / 2;
+switchBarrel.position.set(0, 1.18, 0.034);
+wallSwitch.add(switchBarrel);
+markSwitch(switchBarrel);
 
 const switchPivot = new THREE.Group();
-switchPivot.position.set(SWITCH_X, 1.2, CASE.d / 2 + 0.016);
-shelfGroup.add(switchPivot);
+switchPivot.position.set(0, 1.18, 0.034);
+wallSwitch.add(switchPivot);
 
-const switchLever = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.028, 0.008), SWITCH_KNOB);
-switchLever.position.y = 0.012;
-switchPivot.add(switchLever);
-switchPivot.rotation.x = -0.55;
+/* Lever throws along +z (into the room) and rocks up/down around X. */
+const switchArm = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.011, 0.11, 10), SWITCH_BRASS);
+switchArm.rotation.x = Math.PI / 2;
+switchArm.position.z = 0.055;
+switchPivot.add(switchArm);
+markSwitch(switchArm);
 
-/* Instruction plaque above the switch. Not in interactables — only
-   the lever plate is clickable. */
+const switchKnob = new THREE.Mesh(new THREE.SphereGeometry(0.024, 14, 12), SWITCH_BRASS);
+switchKnob.position.z = 0.12;
+switchPivot.add(switchKnob);
+markSwitch(switchKnob);
+switchPivot.rotation.x = -0.7;
+
+/* Instruction plaque above the lever. Not in interactables. */
 const plaqueCanvas = document.createElement('canvas');
-plaqueCanvas.width = 256;
-plaqueCanvas.height = 288;
+plaqueCanvas.width = 512;
+plaqueCanvas.height = 384;
 {
   const x = plaqueCanvas.getContext('2d');
   x.fillStyle = '#F7F1E7';
-  x.fillRect(0, 0, 256, 288);
+  x.fillRect(0, 0, 512, 384);
   x.fillStyle = '#5C4E40';
   x.textAlign = 'center';
   x.textBaseline = 'middle';
-  x.font = '600 28px ui-sans-serif, system-ui, sans-serif';
-  const lines = ['Click the switch', 'or press C', 'to flip covers'];
-  lines.forEach((line, i) => x.fillText(line, 128, 84 + i * 44));
+  x.font = '600 42px ui-sans-serif, system-ui, sans-serif';
+  const lines = ['Click the lever', 'or press C', 'to flip covers'];
+  lines.forEach((line, i) => x.fillText(line, 256, 118 + i * 58));
 }
 const plaqueTex = new THREE.CanvasTexture(plaqueCanvas);
 plaqueTex.colorSpace = THREE.SRGBColorSpace;
 const plaqueFrame = new THREE.Mesh(
-  new THREE.BoxGeometry(0.09, 0.11, 0.01),
-  new THREE.MeshLambertMaterial({ color: 0xC49A68 })
+  new THREE.BoxGeometry(0.36, 0.26, 0.02),
+  SWITCH_WOOD
 );
 const plaqueArt = new THREE.Mesh(
-  new THREE.PlaneGeometry(0.078, 0.096),
+  new THREE.PlaneGeometry(0.32, 0.22),
   new THREE.MeshLambertMaterial({ map: plaqueTex })
 );
-plaqueArt.position.z = 0.006;
+plaqueArt.position.z = 0.011;
 plaqueFrame.add(plaqueArt);
-plaqueFrame.position.set(SWITCH_X, 1.38, CASE.d / 2 + 0.007);
-shelfGroup.add(plaqueFrame);
+plaqueFrame.position.set(0, 1.58, 0.01);
+wallSwitch.add(plaqueFrame);
 
 /* ============================================================
    POST-PROCESSING
@@ -1388,7 +1417,7 @@ function animate() {
 
   // cover-display: blend spine-out ↔ face-out, then apply pull-out
   coverT += ((coverMode ? 1 : 0) - coverT) * Math.min(1, dt * 9);
-  switchPivot.rotation.x = -0.55 + coverT * 1.1;
+  switchPivot.rotation.x = -0.7 + coverT * 1.4;
 
   for (const m of books) {
     const u = m.userData;

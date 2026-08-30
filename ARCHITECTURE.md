@@ -13,11 +13,12 @@ THREE.Scene
 ├── ceiling (Mesh)
 ├── four wall planes (Mesh ×4)
 ├── rug (Mesh)
+├── wallSwitch (Group, back wall left of the bookcase)
+│   ├── lever plate, bezel, pivot, arm, knob
+│   └── instruction plaque
 ├── shelfGroup (Group, z = -ROOM.d/2 + 0.19)
 │   ├── bookcase panels and shelf boards (Mesh ×9)
 │   ├── book meshes (Mesh ×N, added by placeBooks())
-│   ├── cover-display switch (plate + lever on the left stile)
-│   ├── instruction plaque above the switch
 │   ├── decor objects (Groups and Meshes)
 │   └── candleLight (PointLight, parented to shelfGroup)
 └── player (Group, at far-right corner, rotated −π/2)
@@ -74,8 +75,8 @@ mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT]
 ```
 
 `+z` faces the room (spine), `±x` are the front and back covers, the
-remaining three faces are the page block. A cover-display switch on the
-left stile lerps every book to a face-out rest pose (`rotation.y = −π/2`)
+remaining three faces are the page block. A wall-mounted lever to the
+left of the bookcase lerps every book to a face-out rest pose (`rotation.y = −π/2`)
 so `+x` faces the room. Do not put the jacket texture on `+z` — that face
 is only 1.4–3 cm wide and would squash the cover.
 
@@ -118,8 +119,8 @@ more than that will overlap on the bottom shelf.
 
 The `interactables` array is declared at module scope **before**
 `placeBooks()` is called. Each book mesh is pushed into it; the
-cover-display switch and the tonearm hit targets (record, platter,
-plinth) are pushed in later.
+cover-display lever (plate, arm, knob) and the tonearm hit targets
+(record, platter, plinth) are pushed in later.
 
 ## Interaction model
 
@@ -148,13 +149,13 @@ closes the open one.
 **Clicking** the turntable (record, platter, or plinth): toggles
 `Music.toggle()`.
 
-**Clicking** the cover-display switch, or pressing **C** while the
-pointer is locked: calls `toggleCoverMode()`. Any open book is closed
-first so the two animations do not fight. The lever lerps with
-`coverT`. `keydown` ignores `e.repeat` so holding C does not flicker.
-A small plaque above the switch reads "Click the switch / or press C /
-to flip covers". Prompts: `Click to show covers` /
-`Click to show spines`.
+**Clicking** the wall lever (plate, arm, or knob), or pressing **C**
+while the pointer is locked: calls `toggleCoverMode()`. Any open book
+is closed first so the two animations do not fight. The lever throws
+up (spines) and down (covers) with `coverT`. `keydown` ignores
+`e.repeat` so holding C does not flicker. A plaque above the lever
+reads "Click the lever / or press C / to flip covers". Prompts:
+`Click to show covers` / `Click to show spines`.
 
 ## Movement and collision
 
