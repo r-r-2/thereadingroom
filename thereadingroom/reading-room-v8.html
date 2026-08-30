@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Reading Room</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#2a2119;
+    font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;color:#EDE3D4}
+  canvas{display:block}
+
+  /* ---- entry gate ---- */
+  #gate{position:fixed;inset:0;z-index:14;display:grid;place-items:center;
+    background:radial-gradient(60% 50% at 50% 45%,#1a1512 0%,#0b0908 100%);cursor:pointer}
+  #gate .inner{text-align:center;max-width:420px;padding:0 24px}
+  .lil-gui{--width:270px}
+  #gate h1{font-size:30px;font-weight:600;letter-spacing:.02em;margin:0 0 10px}
+  #gate p{font-size:14px;line-height:1.6;color:#A8998A;margin:0 0 22px}
+  #gate .keys{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+  #gate kbd{background:#221c17;border:1px solid #3a2f26;border-bottom-width:2px;
+    border-radius:5px;padding:5px 10px;font:inherit;font-size:12px;color:#D6C8B6}
+  #gate .cta{display:inline-block;background:#E8D9C0;color:#241d16;font-weight:600;
+    font-size:14px;padding:11px 26px;border-radius:999px}
+  #gate.hidden{display:none}
+
+  /* ---- hud ---- */
+  #crosshair{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;
+    border-radius:50%;background:rgba(255,245,230,.65);z-index:10;pointer-events:none;
+    transition:transform .15s ease,background .15s ease}
+  #crosshair.hot{transform:scale(2.1);background:rgba(255,213,140,.95)}
+  #crosshair.hidden{display:none}
+
+  #prompt{position:fixed;left:50%;top:calc(50% + 26px);transform:translateX(-50%);
+    z-index:10;pointer-events:none;font-size:12.5px;letter-spacing:.04em;
+    color:#F0DFC4;text-shadow:0 1px 6px rgba(0,0,0,.9);opacity:0;transition:opacity .18s ease}
+  #prompt.on{opacity:1}
+
+  /* ---- book detail ---- */
+  #detail{position:fixed;right:28px;top:50%;transform:translate(20px,-50%);
+    width:330px;max-width:calc(100vw - 40px);z-index:12;pointer-events:none;
+    background:rgba(24,19,15,.93);backdrop-filter:blur(10px);
+    border:1px solid rgba(220,196,158,.22);border-radius:10px;padding:20px 22px;
+    opacity:0;transition:opacity .25s ease,transform .25s cubic-bezier(.22,.8,.3,1)}
+  #detail.on{opacity:1;transform:translate(0,-50%)}
+  #detail h2{margin:0 0 3px;font-size:18px;font-weight:600;line-height:1.25}
+  #detail .author{margin:0 0 12px;font-size:13px;color:#A8998A}
+  #detail .note{margin:0;font-size:13px;line-height:1.6;color:#CFC1AE}
+  #detail .meta{margin:14px 0 0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
+  #detail .bar{height:3px;border-radius:2px;background:rgba(220,196,158,.2);margin-top:10px;overflow:hidden}
+  #detail .bar i{display:block;height:100%;background:#E0B36B;border-radius:2px}
+
+  #hint{position:fixed;left:20px;bottom:18px;z-index:10;font-size:11.5px;color:#7C6E60;
+    letter-spacing:.03em;pointer-events:none}
+  #loading{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
+    font-size:13px;color:#8C7D6E}
+</style>
+</head>
+<body>
+
+<div id="loading">Building the room&hellip;</div>
+<script>
+  // If the module throws, say so rather than sitting on the loading text.
+  addEventListener('error', (e) => {
+    const el = document.getElementById('loading');
+    if (el) el.textContent = 'Failed to start: ' + (e.message || 'unknown error');
+  });
+</script>
+
+<div id="gate" class="hidden">
+  <div class="inner">
+    <h1>The Reading Room</h1>
+    <p>A room with my books in it. Walk over to a shelf and look at a spine to pull it out. There’s a record playing in the corner.</p>
+    <div class="keys">
+      <kbd>W A S D</kbd><kbd>Mouse to look</kbd><kbd>Click a book</kbd><kbd>Click the record to stop it</kbd><kbd>Esc to leave</kbd>
+    </div>
+    <div class="cta">Click to enter</div>
+  </div>
+</div>
+
+<div id="crosshair" class="hidden"></div>
+<div id="prompt">Click to pull out</div>
+
+<div id="detail">
+  <h2 id="d-title"></h2>
+  <p class="author" id="d-author"></p>
+  <p class="note" id="d-note"></p>
+  <p class="meta" id="d-meta"></p>
+  <div class="bar" id="d-bar" style="display:none"><i id="d-bar-i"></i></div>
+</div>
+
+<div id="hint">Esc to release the cursor</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
+import GUI from 'three/addons/libs/lil-gui.module.min.js';
+
+/* ============================================================
+   BOOK DATA
+   Covers are drawn procedurally so the prototype has no network
+   dependency. To use real covers, see the note by makeCoverTexture.
+   ============================================================ */
+const BOOKS = [
+  {t:'The Left Hand of Darkness', a:'Ursula K. Le Guin', c:'#20455F', f:'#E4F1F9', th:.030, h:.205, note:'Ambassadorial sci-fi that spends its real energy on how a culture without fixed gender would actually think.', fin:'Jan 2025'},
+  {t:'Seeing Like a State', a:'James C. Scott', c:'#7B2E2E', f:'#F5E4DA', th:.042, h:.232, note:'Why grand top-down schemes fail. The chapter on scientific forestry rearranged how I look at metrics.', fin:'Mar 2025'},
+  {t:'Piranesi', a:'Susanna Clarke', c:'#CDC2AE', f:'#33291D', th:.024, h:.192, note:'A house of infinite halls and tides. Short, strange, and completely sure of itself.', fin:'Apr 2025'},
+  {t:'Exhalation', a:'Ted Chiang', c:'#3C3057', f:'#E9E0F7', th:.028, h:.203, note:'Nine stories, no filler. The one about the gate is the one I retell at dinner.', fin:'May 2025'},
+  {t:'A Pattern Language', a:'Christopher Alexander', c:'#B67A22', f:'#2A1C04', th:.055, h:.222, note:'253 patterns for building places people want to be in. Half of it applies to software.', fin:'Jul 2025'},
+  {t:'Invisible Cities', a:'Italo Calvino', c:'#8B3055', f:'#FBE2EC', th:.018, h:.178, note:'Fifty-five cities that don\u2019t exist, described to a bored emperor.', fin:'Jul 2025'},
+  {t:'Thinking in Systems', a:'Donella Meadows', c:'#22705E', f:'#DCF3EB', th:.030, h:.198, note:'Stocks, flows, and leverage points. The list of where to intervene is worth the book.', fin:'Aug 2025'},
+  {t:'Ways of Seeing', a:'John Berger', c:'#C74328', f:'#FFE8DF', th:.016, h:.172, note:'Written for television in 1972 and still the sharpest thing on how images work on us.', fin:'Sep 2025'},
+  {t:'Klara and the Sun', a:'Kazuo Ishiguro', c:'#DFB444', f:'#33260A', th:.028, h:.200, note:'An artificial friend watching a family from the window.', fin:'Oct 2025'},
+  {t:'Deep Work', a:'Cal Newport', c:'#243039', f:'#DAE3EC', th:.032, h:.194, note:'The diagnosis is better than the prescription, but the diagnosis is the part I needed.', fin:'Oct 2025'},
+  {t:'The Dispossessed', a:'Ursula K. Le Guin', c:'#2C5978', f:'#DEEFF9', th:.026, h:.188, note:'Two worlds, one wall, and an ambiguous utopia that refuses to let either side win.', fin:'Nov 2025'},
+  {t:'Range', a:'David Epstein', c:'#AF4A1E', f:'#FFE6D9', th:.034, h:.204, note:'The case for generalists. Overstated in places, but the opening earns its keep.', fin:'Feb 2026'},
+  {t:'The Beginning of Infinity', a:'David Deutsch', c:'#123A5C', f:'#DCEDF9', th:.038, h:.228, note:'Ambitious to the point of arrogance, and mostly earns it.', fin:'Apr 2026'},
+  {t:'A Field Guide to Getting Lost', a:'Rebecca Solnit', c:'#5D7A8C', f:'#EAF3F8', th:.022, h:.182, note:'Essays about not knowing where you are, in the good sense.', fin:'May 2026'},
+  {t:'The Order of Time', a:'Carlo Rovelli', c:'#1F3A34', f:'#D9EFE4', th:.024, h:.186, note:'Physics written like poetry. I keep re-reading the middle section.', reading:62},
+  {t:'Braiding Sweetgrass', a:'Robin Wall Kimmerer', c:'#4A6B2A', f:'#EDF6E1', th:.034, h:.212, note:'Botany and Potawatomi teaching in the same breath. Slow on purpose.', reading:28},
+  {t:'The Dawn of Everything', a:'Graeber & Wengrow', c:'#5C2450', f:'#F3E0EE', th:.050, h:.238, note:'Takes a hammer to the tidy story of how humans went from bands to states.', reading:44}
+];
+
+/* ============================================================
+   SCENE
+   ============================================================ */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2a2119);
+scene.fog = new THREE.Fog(0x2a2119, 7, 17);
+
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.05, 60);
+camera.position.set(0, 1.62, 2.6);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+/* Filmic tone mapping rather than the default linear clamp. This alone
+   changes the look substantially: highlights roll off instead of
+   blowing out to flat white. */
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+document.body.appendChild(renderer.domElement);
+
+/* ---- lighting ----
+   No realtime shadows. A warm key from the lamp side, a cool fill
+   from the window side, and a low ambient. Two lights and an ambient
+   is enough when the room is small; realtime shadows in a browser are
+   a performance trap for very little gain at this scale. */
+const ambient = new THREE.AmbientLight(0xffeaCF, 0.62);
+scene.add(ambient);
+
+const key = new THREE.PointLight(0xffc078, 19, 10, 2);
+key.position.set(2.1, 1.75, 1.4);
+scene.add(key);
+
+const fill = new THREE.PointLight(0xd8cbb4, 7, 12, 2);
+fill.position.set(-2.4, 2.1, -1.0);
+scene.add(fill);
+
+const shelfWash = new THREE.PointLight(0xffd9a0, 7, 4.6, 2);
+shelfWash.position.set(0, 1.95, -2.1);
+scene.add(shelfWash);
+
+/* ---- room ---- */
+const ROOM = { w: 7, d: 6.4, h: 2.9 };
+
+function wall(w, h, color, rot, pos) {
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  m.rotation.set(rot[0], rot[1], rot[2]);
+  m.position.set(pos[0], pos[1], pos[2]);
+  scene.add(m);
+  return m;
+}
+
+// floor — plank stripes drawn to a canvas, cheaper than a texture download
+function floorTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const x = c.getContext('2d');
+  x.fillStyle = '#b58a5c';
+  x.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 8; i++) {
+    const y = i * 64;
+    x.fillStyle = `hsl(31, ${30 + Math.random() * 9}%, ${52 + Math.random() * 9}%)`;
+    x.fillRect(0, y, 512, 62);
+    for (let g = 0; g < 60; g++) {
+      x.strokeStyle = `rgba(92,58,26,${0.05 + Math.random() * 0.07})`;
+      x.lineWidth = Math.random() * 1.4;
+      x.beginPath();
+      x.moveTo(0, y + Math.random() * 62);
+      x.bezierCurveTo(170, y + Math.random() * 62, 340, y + Math.random() * 62, 512, y + Math.random() * 62);
+      x.stroke();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(3, 3);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(ROOM.w, ROOM.d),
+  new THREE.MeshLambertMaterial({ map: floorTexture() })
+);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
+
+wall(ROOM.w, ROOM.d, 0xB9AFA0, [Math.PI / 2, 0, 0], [0, ROOM.h, 0]);              // ceiling
+wall(ROOM.w, ROOM.h, 0xE9E0D2, [0, 0, 0], [0, ROOM.h / 2, -ROOM.d / 2]);          // back
+wall(ROOM.w, ROOM.h, 0xE4DACB, [0, Math.PI, 0], [0, ROOM.h / 2, ROOM.d / 2]);     // front
+wall(ROOM.d, ROOM.h, 0xE7DDCE, [0, Math.PI / 2, 0], [-ROOM.w / 2, ROOM.h / 2, 0]); // left
+wall(ROOM.d, ROOM.h, 0xE1D7C7, [0, -Math.PI / 2, 0], [ROOM.w / 2, ROOM.h / 2, 0]); // right
+
+/* ---- rug, for a bit of floor interest ---- */
+const rug = new THREE.Mesh(
+  new THREE.PlaneGeometry(3.0, 2.2),
+  new THREE.MeshLambertMaterial({ color: 0xD9CDBA })
+);
+rug.rotation.x = -Math.PI / 2;
+rug.position.set(0, 0.005, 0.7);
+scene.add(rug);
+
+/* ============================================================
+   BOOKCASE
+   ============================================================ */
+const WOOD = new THREE.MeshLambertMaterial({ color: 0xC49A68 });
+const WOOD_DARK = new THREE.MeshLambertMaterial({ color: 0x9E7546 });
+
+const shelfGroup = new THREE.Group();
+shelfGroup.position.set(0, 0, -ROOM.d / 2 + 0.19);
+scene.add(shelfGroup);
+
+const CASE = { w: 1.42, h: 2.3, d: 0.32 };
+const SHELF_Y = [0.42, 0.90, 1.38, 1.86];   // heights of each shelf board
+
+function box(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  shelfGroup.add(m);
+  return m;
+}
+
+// back panel, sides, top
+box(CASE.w, CASE.h, 0.03, WOOD_DARK, 0, CASE.h / 2, -CASE.d / 2);
+box(0.05, CASE.h, CASE.d, WOOD, -CASE.w / 2, CASE.h / 2, 0);
+box(0.05, CASE.h, CASE.d, WOOD, CASE.w / 2, CASE.h / 2, 0);
+box(CASE.w + 0.05, 0.05, CASE.d, WOOD, 0, CASE.h, 0);
+box(CASE.w + 0.05, 0.06, CASE.d, WOOD, 0, 0.03, 0);
+// shelf boards
+SHELF_Y.forEach((y) => box(CASE.w, 0.035, CASE.d, WOOD, 0, y, 0));
+
+/* ============================================================
+   BOOK MESHES
+   Each book is a box with six materials. Face order in Three.js is
+   [+x, -x, +y, -y, +z, -z], so +z is the spine facing the room and
+   ±x are the covers.
+   ============================================================ */
+function makeSpineTexture(b) {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 640;
+  const x = c.getContext('2d');
+  x.fillStyle = b.c;
+  x.fillRect(0, 0, 128, 640);
+
+  // edge shading so the spine reads as slightly rounded
+  const g = x.createLinearGradient(0, 0, 128, 0);
+  g.addColorStop(0, 'rgba(0,0,0,.45)');
+  g.addColorStop(0.18, 'rgba(0,0,0,.05)');
+  g.addColorStop(0.5, 'rgba(255,255,255,.14)');
+  g.addColorStop(0.85, 'rgba(0,0,0,.08)');
+  g.addColorStop(1, 'rgba(0,0,0,.45)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 128, 640);
+
+  // two bands, the way a lot of spines are set
+  x.fillStyle = 'rgba(255,255,255,.12)';
+  x.fillRect(0, 46, 128, 3);
+  x.fillRect(0, 594, 128, 3);
+
+  x.save();
+  x.translate(64, 320);
+  x.rotate(-Math.PI / 2);
+  x.fillStyle = b.f;
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  let size = 46;
+  do {
+    x.font = `600 ${size}px ui-sans-serif, system-ui, sans-serif`;
+    size -= 2;
+  } while (x.measureText(b.t).width > 470 && size > 18);
+  x.fillText(b.t, 0, 0);
+  x.restore();
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/* To use real cover images instead, replace the body of this function:
+     const t = new THREE.TextureLoader().load(url);
+     t.colorSpace = THREE.SRGBColorSpace;
+     return t;
+   Set crossOrigin on the loader, and preload into a texture atlas if
+   you end up with more than ~50 books. */
+function makeCoverTexture(b) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 384;
+  const x = c.getContext('2d');
+  x.fillStyle = b.c;
+  x.fillRect(0, 0, 256, 384);
+  const g = x.createLinearGradient(0, 0, 256, 384);
+  g.addColorStop(0, 'rgba(255,255,255,.16)');
+  g.addColorStop(1, 'rgba(0,0,0,.28)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 256, 384);
+
+  x.fillStyle = b.f;
+  x.textAlign = 'left';
+  const words = b.t.split(' ');
+  const lines = [];
+  let line = '';
+  x.font = '600 26px ui-sans-serif, system-ui, sans-serif';
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (x.measureText(test).width > 200) { lines.push(line); line = w; }
+    else line = test;
+  }
+  lines.push(line);
+  lines.forEach((l, i) => x.fillText(l, 26, 250 + i * 32));
+  x.font = '400 16px ui-sans-serif, system-ui, sans-serif';
+  x.globalAlpha = 0.75;
+  x.fillText(b.a, 26, 262 + lines.length * 32);
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+const PAGE_MAT = new THREE.MeshLambertMaterial({ color: 0xe6dcc6 });
+const books = [];
+/* Declared here, not further down with the turntable: placeBooks()
+   runs immediately below and pushes into it. `const` is not hoisted,
+   so declaring it later threw a temporal-dead-zone ReferenceError. */
+const interactables = [];
+
+function placeBooks() {
+  // reading-now books go on the top shelf, everything else below
+  const reading = BOOKS.filter((b) => b.reading);
+  const read = BOOKS.filter((b) => !b.reading);
+
+  const rows = [
+    { y: SHELF_Y[3], list: reading, xStart: -CASE.w / 2 + 0.12 },
+    { y: SHELF_Y[2], list: read.slice(0, 5), xStart: -CASE.w / 2 + 0.12 },
+    { y: SHELF_Y[1], list: read.slice(5, 10), xStart: -CASE.w / 2 + 0.12 },
+    { y: SHELF_Y[0], list: read.slice(10), xStart: -CASE.w / 2 + 0.12 }
+  ];
+
+  rows.forEach((row) => {
+    let x = row.xStart;
+    row.list.forEach((b) => {
+      const depth = 0.20 + Math.random() * 0.03;
+      const geo = new THREE.BoxGeometry(b.th, b.h, depth);
+      const spine = new THREE.MeshLambertMaterial({ map: makeSpineTexture(b) });
+      const cover = new THREE.MeshLambertMaterial({ map: makeCoverTexture(b) });
+      const mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT];
+
+      const mesh = new THREE.Mesh(geo, mats);
+      // sit on the board, front edge just proud of the shelf lip
+      mesh.position.set(x + b.th / 2, row.y + 0.018 + b.h / 2, CASE.d / 2 - depth / 2 - 0.015);
+      // a small random lean, because real books are never perfectly upright
+      mesh.rotation.z = (Math.random() - 0.5) * 0.03;
+
+      mesh.userData = {
+        book: b,
+        home: mesh.position.clone(),
+        homeRotY: 0,
+        out: false,
+        t: 0
+      };
+
+      mesh.userData.type = 'book';
+      shelfGroup.add(mesh);
+      books.push(mesh);
+      interactables.push(mesh);
+      x += b.th + 0.004;
+    });
+  });
+}
+placeBooks();
+
+/* ============================================================
+   POST-PROCESSING
+   Bloom + vignette + filmic tone mapping. This is the cheapest
+   large improvement available — the geometry is unchanged.
+   ============================================================ */
+const composer = new EffectComposer(renderer);
+/* EffectComposer makes its own render target and does NOT inherit the
+   renderer's pixel ratio. Without this the whole frame renders at roughly
+   half resolution and gets upscaled — it reads as a soft, blurry image. */
+composer.setPixelRatio(Math.min(devicePixelRatio, 2));
+composer.setSize(innerWidth, innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight),
+  0.16,  // strength
+  0.45,  // radius
+  0.90   // threshold — only the brightest things glow
+);
+composer.addPass(bloom);
+
+const vignette = new ShaderPass(VignetteShader);
+vignette.uniforms.offset.value = 0.95;
+vignette.uniforms.darkness.value = 1.05;
+composer.addPass(vignette);
+
+composer.addPass(new OutputPass());
+
+/* ============================================================
+   DESIGN HARNESS
+   A live tweak panel. Walk around, press Esc, adjust, click back in.
+   "Copy settings" puts the current values on your clipboard as JSON
+   so you can paste the numbers you liked into the source.
+   ============================================================ */
+const SETTINGS = {
+  exposure: 0.92,
+  effects: true,
+  bloomStrength: 0.16,
+  bloomRadius: 0.45,
+  bloomThreshold: 0.90,
+  vignetteOffset: 0.95,
+  vignetteDarkness: 1.05,
+  fogNear: 6,
+  fogFar: 15,
+  ambientIntensity: 0.5,
+  ambientColor: '#ffeedd',
+  keyIntensity: 22,
+  keyColor: '#ffcb8a',
+  keyX: 2.1, keyY: 1.75, keyZ: 1.4,
+  fillIntensity: 9,
+  fillColor: '#9fc4e8',
+  washIntensity: 7,
+  washColor: '#ffe0b0',
+  moveSpeed: 22,
+  fov: 68,
+  volume: 0.34
+};
+
+const gui = new GUI({ title: 'Look' });
+gui.domElement.style.zIndex = 15;
+
+const gGrade = gui.addFolder('Grade');
+gGrade.add(SETTINGS, 'effects').name('Post-processing').onChange((v) => {
+  bloom.enabled = v;
+  vignette.enabled = v;
+});
+gGrade.add(SETTINGS, 'exposure', 0.3, 2.2, 0.01).onChange((v) => (renderer.toneMappingExposure = v));
+gGrade.add(SETTINGS, 'bloomStrength', 0, 1.5, 0.01).onChange((v) => (bloom.strength = v));
+gGrade.add(SETTINGS, 'bloomRadius', 0, 1.5, 0.01).onChange((v) => (bloom.radius = v));
+gGrade.add(SETTINGS, 'bloomThreshold', 0, 1, 0.01).onChange((v) => (bloom.threshold = v));
+gGrade.add(SETTINGS, 'vignetteOffset', 0, 2, 0.01).onChange((v) => (vignette.uniforms.offset.value = v));
+gGrade.add(SETTINGS, 'vignetteDarkness', 0, 3, 0.01).onChange((v) => (vignette.uniforms.darkness.value = v));
+
+const gLight = gui.addFolder('Lighting');
+gLight.add(SETTINGS, 'ambientIntensity', 0, 2, 0.01).onChange((v) => (ambient.intensity = v));
+gLight.addColor(SETTINGS, 'ambientColor').onChange((v) => ambient.color.set(v));
+gLight.add(SETTINGS, 'keyIntensity', 0, 60, 0.5).onChange((v) => (key.intensity = v));
+gLight.addColor(SETTINGS, 'keyColor').onChange((v) => key.color.set(v));
+gLight.add(SETTINGS, 'keyX', -3.4, 3.4, 0.05).onChange((v) => (key.position.x = v));
+gLight.add(SETTINGS, 'keyY', 0.2, 2.8, 0.05).onChange((v) => (key.position.y = v));
+gLight.add(SETTINGS, 'keyZ', -3, 3, 0.05).onChange((v) => (key.position.z = v));
+gLight.add(SETTINGS, 'fillIntensity', 0, 40, 0.5).onChange((v) => (fill.intensity = v));
+gLight.addColor(SETTINGS, 'fillColor').onChange((v) => fill.color.set(v));
+gLight.add(SETTINGS, 'washIntensity', 0, 40, 0.5).onChange((v) => (shelfWash.intensity = v));
+gLight.addColor(SETTINGS, 'washColor').onChange((v) => shelfWash.color.set(v));
+
+const gRoom = gui.addFolder('Room');
+gRoom.add(SETTINGS, 'fogNear', 0, 20, 0.1).onChange((v) => (scene.fog.near = v));
+gRoom.add(SETTINGS, 'fogFar', 2, 40, 0.1).onChange((v) => (scene.fog.far = v));
+gRoom.add(SETTINGS, 'fov', 45, 100, 1).onChange((v) => {
+  camera.fov = v;
+  camera.updateProjectionMatrix();
+});
+gRoom.add(SETTINGS, 'moveSpeed', 5, 50, 1);
+
+const gSound = gui.addFolder('Sound');
+gSound.add(SETTINGS, 'volume', 0, 1, 0.01).onChange((v) => Music.setVolume(v));
+gSound.add({ toggle: () => Music.toggle() }, 'toggle').name('Play / pause');
+gRoom.close();
+
+gui.add({
+  copy() {
+    navigator.clipboard
+      ?.writeText(JSON.stringify(SETTINGS, null, 2))
+      .then(() => alert('Settings copied to clipboard'))
+      .catch(() => console.log(SETTINGS));
+  }
+}, 'copy').name('Copy settings');
+
+
+/* ============================================================
+   SHELF LIGHTING + DECOR
+   The reference image is carried almost entirely by light tucked
+   into the shelf edges — warm strips hidden under each board,
+   washing down over the books. The strips are MeshBasicMaterial
+   so they ignore scene lighting and read as emissive, and the
+   bloom pass turns them into a glow for free.
+   ============================================================ */
+const GLASS = new THREE.MeshLambertMaterial({
+  color: 0xd8e2e0, transparent: true, opacity: 0.42
+});
+const CERAMIC = new THREE.MeshLambertMaterial({ color: 0xF2E9DC });
+const CERAMIC_PINK = new THREE.MeshLambertMaterial({ color: 0xE6C9BE });
+const LEAF = new THREE.MeshLambertMaterial({ color: 0x6E8F52 });
+const LEAF_DARK = new THREE.MeshLambertMaterial({ color: 0x55743E });
+const FLAME = new THREE.MeshBasicMaterial({ color: 0xD9A86A });
+const PAPER = new THREE.MeshLambertMaterial({ color: 0xF6EFE4 });
+
+/* ---- small props ---- */
+function potPlant(x, y, z, scale = 1, trailing = false) {
+  const g = new THREE.Group();
+  const pot = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.036, 0.062, 16),
+    Math.random() < 0.5 ? CERAMIC : CERAMIC_PINK
+  );
+  pot.position.y = 0.031;
+  g.add(pot);
+
+  const n = trailing ? 11 : 7;
+  for (let i = 0; i < n; i++) {
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), i % 3 ? LEAF : LEAF_DARK);
+    const a = (i / n) * Math.PI * 2;
+    const spread = trailing ? 0.075 : 0.05;
+    leaf.position.set(
+      Math.cos(a) * spread * (0.5 + Math.random()),
+      0.075 + (trailing ? -Math.random() * 0.10 : Math.random() * 0.05),
+      Math.sin(a) * spread * (0.5 + Math.random())
+    );
+    leaf.scale.set(1.5, 0.65, 1.1);
+    leaf.rotation.y = a;
+    g.add(leaf);
+  }
+  g.position.set(x, y, z);
+  g.scale.setScalar(scale);
+  shelfGroup.add(g);
+  return g;
+}
+
+function candle(x, y, z, h = 0.075) {
+  const g = new THREE.Group();
+  const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, h, 14), GLASS);
+  jar.position.y = h / 2;
+  g.add(jar);
+  const wax = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, h * 0.62, 14), CERAMIC);
+  wax.position.y = h * 0.31;
+  g.add(wax);
+  const flame = new THREE.Mesh(new THREE.SphereGeometry(0.009, 8, 8), FLAME);
+  flame.scale.set(1, 1.7, 1);
+  flame.position.y = h * 0.72;
+  g.add(flame);
+  g.position.set(x, y, z);
+  shelfGroup.add(g);
+  return flame;
+}
+
+
+/* ---- small glazed succulents ----
+   White ceramic ball pot, dark soil, and one of three plant forms.
+   Phong rather than Lambert on the pot so the glaze catches a highlight;
+   that specular dot is most of what makes it read as ceramic. */
+const POT_WHITE = new THREE.MeshPhongMaterial({
+  color: 0xFCFAF7, shininess: 90, specular: 0x6b6b6b
+});
+const SOIL = new THREE.MeshLambertMaterial({ color: 0x59452F });
+const SUCC_LIGHT = new THREE.MeshLambertMaterial({ color: 0x8CAC66 });
+const SUCC_MID = new THREE.MeshLambertMaterial({ color: 0x6E9350 });
+const SUCC_DEEP = new THREE.MeshLambertMaterial({ color: 0x4F7139 });
+
+function succulent(x, y, z, variant = 0, scale = 1) {
+  const g = new THREE.Group();
+  const R = 0.034;
+
+  const pot = new THREE.Mesh(new THREE.SphereGeometry(R, 20, 16), POT_WHITE);
+  pot.scale.y = 0.86;
+  pot.position.y = R * 0.86;
+  g.add(pot);
+
+  const soil = new THREE.Mesh(new THREE.CircleGeometry(R * 0.52, 16), SOIL);
+  soil.rotation.x = -Math.PI / 2;
+  soil.position.y = R * 1.63;
+  g.add(soil);
+
+  const top = R * 1.63;
+
+  if (variant === 0) {
+    // echeveria rosette: rings of tapered leaves, tighter and more upright
+    // toward the centre
+    for (let ring = 0; ring < 3; ring++) {
+      const count = 9 - ring * 2;
+      const len = 0.042 - ring * 0.011;
+      const tilt = 1.15 - ring * 0.36;
+      const rad = 0.016 - ring * 0.005;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + ring * 0.45;
+        const leaf = new THREE.Mesh(
+          new THREE.ConeGeometry(0.0105 - ring * 0.002, len, 5),
+          ring === 1 ? SUCC_MID : ring === 2 ? SUCC_DEEP : SUCC_LIGHT
+        );
+        leaf.position.set(Math.cos(a) * rad, top + len * 0.34 + ring * 0.007, Math.sin(a) * rad);
+        leaf.rotation.z = -Math.cos(a) * tilt;
+        leaf.rotation.x = Math.sin(a) * tilt;
+        g.add(leaf);
+      }
+    }
+  } else if (variant === 1) {
+    // jade: fat rounded leaves climbing a short stem
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.005, 0.05, 8), SUCC_DEEP);
+    stem.position.y = top + 0.025;
+    g.add(stem);
+    for (let i = 0; i < 9; i++) {
+      const a = i * 2.4;
+      const h = top + 0.012 + i * 0.006;
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.0115, 8, 6), i % 2 ? SUCC_MID : SUCC_LIGHT);
+      leaf.scale.set(0.75, 1.45, 0.75);
+      leaf.position.set(Math.cos(a) * 0.014, h, Math.sin(a) * 0.014);
+      leaf.rotation.z = -Math.cos(a) * 0.55;
+      leaf.rotation.x = Math.sin(a) * 0.55;
+      g.add(leaf);
+    }
+  } else {
+    // aloe: fewer, longer, sharper blades
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + 0.2;
+      const len = 0.052 + Math.random() * 0.016;
+      const blade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.0085, len, 4),
+        i % 3 === 0 ? SUCC_LIGHT : i % 3 === 1 ? SUCC_MID : SUCC_DEEP
+      );
+      const tilt = 0.42 + Math.random() * 0.3;
+      blade.position.set(Math.cos(a) * 0.011, top + len * 0.4, Math.sin(a) * 0.011);
+      blade.rotation.z = -Math.cos(a) * tilt;
+      blade.rotation.x = Math.sin(a) * tilt;
+      g.add(blade);
+    }
+  }
+
+  g.position.set(x, y, z);
+  g.scale.setScalar(scale);
+  shelfGroup.add(g);
+  return g;
+}
+
+// books lying flat, which is how a real shelf fills its gaps
+function flatStack(x, y, z, count = 3) {
+  const palette = [0xE8D9C6, 0xDCC0B4, 0xC9D3C4, 0xE3D3B8, 0xD6C4CE];
+  let cy = y;
+  for (let i = 0; i < count; i++) {
+    const w = 0.15 - i * 0.008;
+    const d = 0.105 - i * 0.005;
+    const h = 0.020 + Math.random() * 0.008;
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshLambertMaterial({ color: palette[(Math.random() * palette.length) | 0] })
+    );
+    m.position.set(x + (Math.random() - 0.5) * 0.008, cy + h / 2, z);
+    m.rotation.y = (Math.random() - 0.5) * 0.09;
+    shelfGroup.add(m);
+    cy += h;
+  }
+  return cy;
+}
+
+function framedPrint(x, y, z, text) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 320;
+  const g2 = c.getContext('2d');
+  g2.fillStyle = '#F7F1E7';
+  g2.fillRect(0, 0, 256, 320);
+  g2.fillStyle = '#8A7A66';
+  g2.font = 'italic 300 26px Georgia, serif';
+  g2.textAlign = 'center';
+  text.split('\n').forEach((line, i) => g2.fillText(line, 128, 150 + i * 34));
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.175, 0.012), CERAMIC);
+  const art = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.115, 0.15),
+    new THREE.MeshLambertMaterial({ map: tex })
+  );
+  art.position.z = 0.0065;
+  frame.add(art);
+  frame.position.set(x, y + 0.088, z);
+  frame.rotation.y = -0.12;
+  shelfGroup.add(frame);
+}
+
+function vase(x, y, z) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.020, 0.085, 14), GLASS);
+  body.position.y = 0.043;
+  g.add(body);
+  for (let i = 0; i < 7; i++) {
+    const stem = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 8),
+      new THREE.MeshLambertMaterial({ color: i % 2 ? 0xE9AFA0 : 0xF0C3B4 }));
+    stem.position.set((Math.random() - 0.5) * 0.05, 0.10 + Math.random() * 0.03, (Math.random() - 0.5) * 0.04);
+    g.add(stem);
+  }
+  g.position.set(x, y, z);
+  shelfGroup.add(g);
+}
+
+/* ---- lay the decor out shelf by shelf ----
+   Books are grouped to the left of each shelf; objects fill the rest,
+   which is how the reference actually reads. Wall-to-wall spines would
+   need roughly 40 books per shelf and we have 17 in total. */
+const Z = CASE.d / 2 - 0.13;
+
+// top shelf (reading now)
+succulent(0.11, SHELF_Y[3] + 0.018, Z, 0, 1.0);
+succulent(0.20, SHELF_Y[3] + 0.018, Z - 0.03, 2, 0.85);
+candle(0.34, SHELF_Y[3] + 0.018, Z);
+framedPrint(0.50, SHELF_Y[3] + 0.018, Z - 0.02, 'collect\nmoments');
+succulent(0.63, SHELF_Y[3] + 0.018, Z, 1, 0.95);
+
+// second shelf — one succulent perched on the flat stack, the way
+// they always seem to end up
+const stackTop = flatStack(0.20, SHELF_Y[2] + 0.018, Z, 3);
+succulent(0.20, stackTop, Z, 0, 0.8);
+vase(0.40, SHELF_Y[2] + 0.018, Z);
+candle(0.54, SHELF_Y[2] + 0.018, Z, 0.06);
+succulent(0.65, SHELF_Y[2] + 0.018, Z, 2, 0.9);
+
+// third shelf
+potPlant(0.22, SHELF_Y[1] + 0.018, Z, 1.05);
+flatStack(0.58, SHELF_Y[1] + 0.018, Z, 2);
+
+// bottom shelf
+framedPrint(0.18, SHELF_Y[0] + 0.018, Z - 0.02, 'romanticize\nyour life');
+flatStack(0.40, SHELF_Y[0] + 0.018, Z, 4);
+potPlant(0.58, SHELF_Y[0] + 0.018, Z, 0.9);
+
+// two small warm sources so the candles actually throw light
+const candleLight = new THREE.PointLight(0xffb765, 0.9, 1.1, 2);
+candleLight.position.set(0.30, SHELF_Y[3] + 0.10, Z);
+shelfGroup.add(candleLight);
+
+
+/* ============================================================
+   TURNTABLE
+   ============================================================ */
+const player = new THREE.Group();
+player.position.set(ROOM.w / 2 - 0.62, 0, -0.4);
+player.rotation.y = -Math.PI / 2;
+scene.add(player);
+
+const PLINTH = new THREE.MeshLambertMaterial({ color: 0xB68C5C });
+const METAL = new THREE.MeshLambertMaterial({ color: 0x9a9691 });
+const FELT = new THREE.MeshLambertMaterial({ color: 0x2b2a2e });
+
+// credenza it sits on
+const credenza = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.72, 0.46), PLINTH);
+credenza.position.set(0, 0.36, 0);
+player.add(credenza);
+
+// plinth
+const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.09, 0.42), PLINTH);
+plinth.position.set(0, 0.765, 0);
+player.add(plinth);
+
+// platter
+const platter = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.02, 40), FELT);
+platter.position.set(-0.04, 0.82, 0);
+player.add(platter);
+
+// the record itself — grooves drawn to a canvas
+function recordTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const x = c.getContext('2d');
+  x.fillStyle = '#0e0d10';
+  x.fillRect(0, 0, 512, 512);
+  for (let r = 60; r < 250; r += 2.2) {
+    x.strokeStyle = `rgba(255,255,255,${0.015 + Math.random() * 0.03})`;
+    x.lineWidth = 0.8;
+    x.beginPath();
+    x.arc(256, 256, r, 0, Math.PI * 2);
+    x.stroke();
+  }
+  x.fillStyle = '#C25A3A';
+  x.beginPath();
+  x.arc(256, 256, 58, 0, Math.PI * 2);
+  x.fill();
+  x.fillStyle = '#F0E2CE';
+  x.font = '600 20px ui-sans-serif, system-ui, sans-serif';
+  x.textAlign = 'center';
+  x.fillText('SIDE A', 256, 250);
+  x.font = '400 13px ui-sans-serif, system-ui, sans-serif';
+  x.globalAlpha = 0.75;
+  x.fillText('reading music', 256, 270);
+  x.globalAlpha = 1;
+  x.fillStyle = '#0e0d10';
+  x.beginPath();
+  x.arc(256, 256, 7, 0, Math.PI * 2);
+  x.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+const recordMat = new THREE.MeshLambertMaterial({ map: recordTexture() });
+const record = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.148, 0.148, 0.004, 48),
+  [new THREE.MeshLambertMaterial({ color: 0x0e0d10 }), recordMat, recordMat]
+);
+record.position.set(-0.04, 0.833, 0);
+player.add(record);
+
+// spindle
+const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.03, 8), METAL);
+spindle.position.set(-0.04, 0.845, 0);
+player.add(spindle);
+
+// tonearm, pivoting from the back right
+const arm = new THREE.Group();
+arm.position.set(0.17, 0.83, -0.13);
+player.add(arm);
+
+const armBase = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.035, 14), METAL);
+armBase.position.y = 0.012;
+arm.add(armBase);
+
+const armTube = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 0.24), METAL);
+armTube.position.set(0, 0.026, 0.11);
+arm.add(armTube);
+
+const headshell = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.014, 0.035), FELT);
+headshell.position.set(0, 0.012, 0.228);
+arm.add(headshell);
+
+/* Angles solved against the geometry rather than guessed. The pivot sits
+   0.247 from the record centre and the arm is 0.228 long, so the old
+   +0.12 put the headshell 0.256 out — past the 0.148 record edge. */
+const ARM_PARK = 0.404;    // clear of the platter
+const ARM_OUTER = -0.459;  // first groove
+const ARM_INNER = -0.710;  // run-out, just outside the label
+arm.rotation.y = ARM_PARK;
+let armTravel = 0;         // 0 at the outer groove, 1 at the inner
+
+// a small warm light so the corner reads
+const playerLight = new THREE.PointLight(0xffc98a, 3.2, 2.4, 2);
+playerLight.position.set(ROOM.w / 2 - 0.9, 1.25, -0.4);
+scene.add(playerLight);
+
+// hit targets
+[record, platter, plinth].forEach((m) => {
+  m.userData.type = 'player';
+  interactables.push(m);
+});
+
+/* ============================================================
+   GENERATIVE MUSIC
+   Synthesised rather than streamed: nothing to download, nothing
+   to license, and it never loops audibly because each phrase is
+   generated as it plays.
+
+   Slow D-minor pad underneath, occasional plucked notes from a
+   pentatonic scale on top, a long delay for space, and a little
+   filtered noise standing in for vinyl surface hiss.
+   ============================================================ */
+const Music = (() => {
+  let ctx = null;
+  let master = null;
+  let padGain = null;
+  let noiseGain = null;
+  let delay = null;
+  let running = false;
+  let timers = [];
+  let voices = [];
+
+  // Dm7 – Fmaj7 – Am7 – Gm7, as frequencies
+  const CHORDS = [
+    [146.83, 174.61, 220.0, 261.63],
+    [174.61, 220.0, 261.63, 329.63],
+    [220.0, 261.63, 329.63, 392.0],
+    [196.0, 233.08, 293.66, 349.23]
+  ];
+  // D minor pentatonic, two octaves up
+  const PLUCKS = [587.33, 698.46, 783.99, 880.0, 1046.5, 1174.66];
+
+  let chordIndex = 0;
+
+  function noiseBuffer() {
+    const len = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+    return buf;
+  }
+
+  function init() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    master = ctx.createGain();
+    master.gain.value = 0;
+
+    // gentle overall shaping
+    const tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass';
+    tone.frequency.value = 2200;
+    tone.Q.value = 0.4;
+
+    // long soft delay for space
+    delay = ctx.createDelay(1.2);
+    delay.delayTime.value = 0.46;
+    const fb = ctx.createGain();
+    fb.gain.value = 0.34;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.3;
+    const damp = ctx.createBiquadFilter();
+    damp.type = 'lowpass';
+    damp.frequency.value = 1400;
+    delay.connect(damp);
+    damp.connect(fb);
+    fb.connect(delay);
+    delay.connect(wet);
+
+    padGain = ctx.createGain();
+    padGain.gain.value = 0.16;
+
+    // vinyl hiss
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer();
+    noise.loop = true;
+    const nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass';
+    nf.frequency.value = 3200;
+    nf.Q.value = 0.5;
+    noiseGain = ctx.createGain();
+    noiseGain.gain.value = 0.012;
+    noise.connect(nf);
+    nf.connect(noiseGain);
+    noiseGain.connect(tone);
+    noise.start();
+
+    padGain.connect(tone);
+    wet.connect(tone);
+    tone.connect(master);
+    master.connect(ctx.destination);
+  }
+
+  function pad(freqs, at, dur) {
+    freqs.forEach((f, i) => {
+      const o = ctx.createOscillator();
+      o.type = i % 2 ? 'sine' : 'triangle';
+      o.frequency.value = f;
+      o.detune.value = (Math.random() - 0.5) * 9;
+
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.14 / freqs.length + 0.02, at + 3.2);
+      g.gain.setValueAtTime(0.14 / freqs.length + 0.02, at + dur - 3.4);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+
+      o.connect(g);
+      g.connect(padGain);
+      o.start(at);
+      o.stop(at + dur + 0.1);
+      voices.push(o);
+    });
+  }
+
+  function pluck(freq, at) {
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.09, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 2.6);
+
+    o.connect(g);
+    g.connect(padGain);
+    g.connect(delay);
+    o.start(at);
+    o.stop(at + 2.8);
+    voices.push(o);
+  }
+
+  function schedule() {
+    const CHORD_LEN = 9.5;
+    const now = ctx.currentTime + 0.1;
+    pad(CHORDS[chordIndex % CHORDS.length], now, CHORD_LEN);
+
+    // two or three plucks per chord, loosely placed
+    const n = 2 + (Math.random() < 0.45 ? 1 : 0);
+    for (let i = 0; i < n; i++) {
+      const at = now + 1.2 + Math.random() * (CHORD_LEN - 3);
+      pluck(PLUCKS[(Math.random() * PLUCKS.length) | 0], at);
+    }
+
+    chordIndex++;
+    timers.push(setTimeout(schedule, CHORD_LEN * 1000));
+  }
+
+  return {
+    get playing() { return running; },
+    get ready() { return !!ctx; },
+
+    start() {
+      if (!ctx) init();
+      if (ctx.state === 'suspended') ctx.resume();
+      if (running) return;
+      running = true;
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), ctx.currentTime);
+      master.gain.linearRampToValueAtTime(SETTINGS.volume, ctx.currentTime + 1.6);
+      schedule();
+    },
+
+    stop() {
+      if (!ctx || !running) return;
+      running = false;
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 1.1);
+      timers.forEach(clearTimeout);
+      timers = [];
+    },
+
+    toggle() { this.playing ? this.stop() : this.start(); },
+
+    setVolume(v) {
+      if (ctx && running) {
+        master.gain.linearRampToValueAtTime(v, ctx.currentTime + 0.2);
+      }
+    },
+
+    /* Distance falloff, so the music is louder by the turntable and
+       quieter across the room. Cheaper and more predictable than a
+       full PannerNode, and at this scale it reads the same. */
+    updateListener(camPos, srcPos) {
+      if (!ctx || !running) return;
+      const d = camPos.distanceTo(srcPos);
+      const near = 1.2, far = 7;
+      const t = Math.min(1, Math.max(0, (d - near) / (far - near)));
+      const atten = 1 - t * 0.62;
+      master.gain.setTargetAtTime(SETTINGS.volume * atten, ctx.currentTime, 0.25);
+    }
+  };
+})();
+
+const playerWorldPos = new THREE.Vector3();
+
+/* ============================================================
+   CONTROLS + MOVEMENT
+   ============================================================ */
+const controls = new PointerLockControls(camera, renderer.domElement);
+scene.add(controls.object ?? controls.getObject?.() ?? camera);
+
+const gate = document.getElementById('gate');
+const crosshair = document.getElementById('crosshair');
+const promptEl = document.getElementById('prompt');
+
+gate.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('.lil-gui')) return;
+  controls.lock();
+});
+controls.addEventListener('lock', () => {
+  gate.classList.add('hidden');
+  crosshair.classList.remove('hidden');
+  gui.hide();
+  /* Browsers block audio until a user gesture. Entering the room is
+     that gesture, so this is the earliest legal moment to start. */
+  if (!Music.ready) Music.start();
+});
+controls.addEventListener('unlock', () => {
+  gate.classList.remove('hidden');
+  crosshair.classList.add('hidden');
+  promptEl.classList.remove('on');
+  gui.show();
+});
+
+const keys = Object.create(null);
+addEventListener('keydown', (e) => { keys[e.code] = true; });
+addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+const velocity = new THREE.Vector3();
+const dir = new THREE.Vector3();
+
+// acceleration, driven by the tweak panel
+const SPEED = 22;
+const DAMP = 9;        // friction
+const EYE = 1.62;
+
+/* Collision is deliberately crude: keep the player inside the room and
+   outside the bookcase's footprint. A physics engine would be overkill
+   for a box in a box. */
+const CASE_MIN_X = -CASE.w / 2 - 0.08;
+const CASE_MAX_X = CASE.w / 2 + 0.08;
+const CASE_MAX_Z = -ROOM.d / 2 + 0.19 + CASE.d / 2 + 0.42; // + personal space
+
+function collide(pos) {
+  const pad = 0.42;
+  pos.x = Math.max(-ROOM.w / 2 + pad, Math.min(ROOM.w / 2 - pad, pos.x));
+  pos.z = Math.max(-ROOM.d / 2 + pad, Math.min(ROOM.d / 2 - pad, pos.z));
+  if (pos.x > CASE_MIN_X && pos.x < CASE_MAX_X && pos.z < CASE_MAX_Z) {
+    pos.z = CASE_MAX_Z;
+  }
+  pos.y = EYE;
+}
+
+/* ============================================================
+   RAYCAST INTERACTION
+   ============================================================ */
+const raycaster = new THREE.Raycaster();
+raycaster.far = 2.4;
+const CENTER = new THREE.Vector2(0, 0);
+
+let looked = null;
+let opened = null;
+
+const detail = document.getElementById('detail');
+
+function showDetail(b) {
+  document.getElementById('d-title').textContent = b.t;
+  document.getElementById('d-author').textContent = b.a;
+  document.getElementById('d-note').textContent = b.note;
+  document.getElementById('d-meta').textContent = b.reading ? 'Reading now' : `Finished ${b.fin}`;
+  const bar = document.getElementById('d-bar');
+  if (b.reading) {
+    bar.style.display = 'block';
+    document.getElementById('d-bar-i').style.width = b.reading + '%';
+  } else {
+    bar.style.display = 'none';
+  }
+  detail.classList.add('on');
+}
+function hideDetail() { detail.classList.remove('on'); }
+
+document.addEventListener('click', () => {
+  if (!controls.isLocked) return;
+
+  if (looked && looked.userData.type === 'player') {
+    Music.toggle();
+    promptEl.textContent = Music.playing ? 'Click to stop the record' : 'Click to start the record';
+    return;
+  }
+
+  if (opened) {
+    opened.userData.out = false;
+    if (opened === looked) { opened = null; hideDetail(); return; }
+    opened = null;
+    hideDetail();
+  }
+  if (looked) {
+    looked.userData.out = true;
+    opened = looked;
+    showDetail(looked.userData.book);
+  }
+});
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+const clock = new THREE.Clock();
+
+function animate() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  if (controls.isLocked) {
+    velocity.x -= velocity.x * DAMP * dt;
+    velocity.z -= velocity.z * DAMP * dt;
+
+    /* NOTE: use explicit ternaries, not Number(). keys[code] is undefined
+       until that key is first pressed, and Number(undefined) is NaN — which
+       propagates into velocity and then into camera.position, permanently
+       breaking movement. */
+    const fwd = (keys['KeyW'] || keys['ArrowUp']) ? 1 : 0;
+    const back = (keys['KeyS'] || keys['ArrowDown']) ? 1 : 0;
+    const right = (keys['KeyD'] || keys['ArrowRight']) ? 1 : 0;
+    const left = (keys['KeyA'] || keys['ArrowLeft']) ? 1 : 0;
+    dir.set(right - left, 0, fwd - back);
+    if (dir.lengthSq() > 0) dir.normalize();
+
+    if (dir.z) velocity.z -= dir.z * SETTINGS.moveSpeed * dt;
+    if (dir.x) velocity.x -= dir.x * SETTINGS.moveSpeed * dt;
+
+    if (!Number.isFinite(velocity.x) || !Number.isFinite(velocity.z)) velocity.set(0, 0, 0);
+    controls.moveRight(-velocity.x * dt);
+    controls.moveForward(-velocity.z * dt);
+    collide(camera.position);
+
+    // what am I looking at
+    raycaster.setFromCamera(CENTER, camera);
+    const hits = raycaster.intersectObjects(interactables, false);
+    const hit = hits.length ? hits[0].object : null;
+    if (hit !== looked) {
+      looked = hit;
+      crosshair.classList.toggle('hot', !!hit);
+      promptEl.classList.toggle('on', !!hit);
+      if (hit) {
+        if (hit.userData.type === 'player') {
+          promptEl.textContent = Music.playing ? 'Click to stop the record' : 'Click to start the record';
+        } else {
+          promptEl.textContent = hit === opened ? 'Click to put it back' : 'Click to pull out';
+        }
+      }
+    }
+  }
+
+  // turntable
+  if (Music.playing) {
+    record.rotation.y -= dt * 3.49;   // 33 1/3 rpm
+    platter.rotation.y -= dt * 3.49;
+    // creep inward across the side, then hold at the run-out
+    armTravel = Math.min(1, armTravel + dt / 420);
+    const target = ARM_OUTER + (ARM_INNER - ARM_OUTER) * armTravel;
+    arm.rotation.y += (target - arm.rotation.y) * Math.min(1, dt * 2);
+  } else {
+    armTravel = 0;
+    arm.rotation.y += (ARM_PARK - arm.rotation.y) * Math.min(1, dt * 2);
+  }
+  player.getWorldPosition(playerWorldPos);
+  Music.updateListener(camera.position, playerWorldPos);
+
+  // animate books toward their target state
+  for (const m of books) {
+    const u = m.userData;
+    const target = u.out ? 1 : 0;
+    u.t += (target - u.t) * Math.min(1, dt * 9);
+    if (Math.abs(u.t) < 0.001 && !u.out) continue;
+    m.position.z = u.home.z + u.t * 0.17;
+    m.position.y = u.home.y + u.t * 0.012;
+    m.rotation.y = u.t * -0.95;
+  }
+
+  composer.render();
+  requestAnimationFrame(animate);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  composer.setSize(innerWidth, innerHeight);
+});
+
+document.getElementById('loading').remove();
+gate.classList.remove('hidden');
+gui.show();
+animate();
+</script>
+</body>
+</html>
