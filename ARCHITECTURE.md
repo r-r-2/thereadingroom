@@ -146,6 +146,13 @@ Clicking again while looking at the open book closes it (`out = false`,
 `t` lerps back to 0). Clicking a different book while one is open first
 closes the open one.
 
+The detail panel (`#detail`) shows title, author, optional `note`, optional
+`review` (labeled section only when set), and finished / reading meta.
+The title is an `<a>` to `https://openlibrary.org/isbn/{isbn}`. While the
+panel is open it uses `pointer-events: auto` and `z-index` above the entry
+gate, so after Esc the player can click the title without the gate
+re-locking the pointer. Gate clicks ignore targets inside `#detail`.
+
 **Clicking** the turntable (record, platter, or plinth): toggles
 `Music.toggle()`.
 

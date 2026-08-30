@@ -42,10 +42,19 @@
     background:rgba(24,19,15,.93);backdrop-filter:blur(10px);
     border:1px solid rgba(220,196,158,.22);border-radius:10px;padding:20px 22px;
     opacity:0;transition:opacity .25s ease,transform .25s cubic-bezier(.22,.8,.3,1)}
-  #detail.on{opacity:1;transform:translate(0,-50%)}
-  #detail h2{margin:0 0 3px;font-size:18px;font-weight:600;line-height:1.25}
+  /* Above the gate (z-index 14) so Esc → click title works. */
+  #detail.on{opacity:1;transform:translate(0,-50%);pointer-events:auto;z-index:15}
+  #detail #d-title{display:block;margin:0 0 3px;font-size:18px;font-weight:600;line-height:1.25;
+    color:inherit;text-decoration:none;cursor:pointer}
+  #detail #d-title:hover{text-decoration:underline;text-underline-offset:3px}
+  #detail #d-title:not([href]){cursor:default}
+  #detail #d-title:not([href]):hover{text-decoration:none}
   #detail .author{margin:0 0 12px;font-size:13px;color:#A8998A}
   #detail .note{margin:0;font-size:13px;line-height:1.6;color:#CFC1AE}
+  #detail .review{margin:12px 0 0}
+  #detail .review-label{margin:0 0 6px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
+  #detail .review-body{margin:0;font-size:13px;line-height:1.6;color:#CFC1AE;
+    max-height:9.6em;overflow-y:auto}
   #detail .meta{margin:14px 0 0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
   #detail .bar{height:3px;border-radius:2px;background:rgba(220,196,158,.2);margin-top:10px;overflow:hidden}
   #detail .bar i{display:block;height:100%;background:#E0B36B;border-radius:2px}
@@ -86,9 +95,13 @@
 <div id="prompt">Click to pull out</div>
 
 <div id="detail">
-  <h2 id="d-title"></h2>
+  <a id="d-title" target="_blank" rel="noopener noreferrer"></a>
   <p class="author" id="d-author"></p>
-  <p class="note" id="d-note"></p>
+  <p class="note" id="d-note" hidden></p>
+  <div id="d-review" class="review" hidden>
+    <p class="review-label">Review</p>
+    <p class="review-body" id="d-review-body"></p>
+  </div>
   <p class="meta" id="d-meta"></p>
   <div class="bar" id="d-bar" style="display:none"><i id="d-bar-i"></i></div>
 </div>
@@ -1230,7 +1243,7 @@ const crosshair = document.getElementById('crosshair');
 const promptEl = document.getElementById('prompt');
 
 gate.addEventListener('click', (e) => {
-  if (e.target.closest && e.target.closest('.lil-gui')) return;
+  if (e.target.closest && (e.target.closest('.lil-gui') || e.target.closest('#detail'))) return;
   controls.lock();
 });
 controls.addEventListener('lock', () => {
@@ -1290,9 +1303,35 @@ let opened = null;
 const detail = document.getElementById('detail');
 
 function showDetail(b) {
-  document.getElementById('d-title').textContent = b.t;
+  const title = document.getElementById('d-title');
+  title.textContent = b.t;
+  if (b.isbn) {
+    title.href = `https://openlibrary.org/isbn/${b.isbn}`;
+  } else {
+    title.removeAttribute('href');
+  }
+
   document.getElementById('d-author').textContent = b.a;
-  document.getElementById('d-note').textContent = b.note;
+
+  const noteEl = document.getElementById('d-note');
+  if (b.note) {
+    noteEl.textContent = b.note;
+    noteEl.hidden = false;
+  } else {
+    noteEl.textContent = '';
+    noteEl.hidden = true;
+  }
+
+  const reviewEl = document.getElementById('d-review');
+  const reviewBody = document.getElementById('d-review-body');
+  if (b.review) {
+    reviewBody.textContent = b.review;
+    reviewEl.hidden = false;
+  } else {
+    reviewBody.textContent = '';
+    reviewEl.hidden = true;
+  }
+
   document.getElementById('d-meta').textContent = b.reading ? 'Reading now' : `Finished ${b.fin}`;
   const bar = document.getElementById('d-bar');
   if (b.reading) {
@@ -1304,6 +1343,9 @@ function showDetail(b) {
   detail.classList.add('on');
 }
 function hideDetail() { detail.classList.remove('on'); }
+
+// Clicks on the panel (title link, scroll) must not hit the 3D click handler.
+detail.addEventListener('click', (e) => e.stopPropagation());
 
 function toggleCoverMode() {
   coverMode = !coverMode;

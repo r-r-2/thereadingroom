@@ -1,13 +1,21 @@
 // Fields per book:
-//   t, a          — title, author
-//   c, f          — fallback spine background / text colour (used before cover loads)
-//   th, h         — thickness and height in metres
-//   note          — the blurb shown in the detail panel
-//   isbn          — ISBN-13 (or ISBN-10), used to fetch the cover from Open Library
-//   fin / reading — finished date string OR reading progress 0-100
-//   spineC, spineF — (optional) cover-matched spine colours, computed once by
-//                    running the page and copying from the browser console.
-//                    When present, the image-sampling step is skipped entirely.
+//   t, a           — title, author (required)
+//   c, f           — fallback spine background / text colour before cover loads
+//   th, h          — thickness and height in metres
+//   isbn           — ISBN-13 preferred; Open Library cover + title link in the detail panel
+//   fin / reading  — finished date string ('Oct 2025') OR reading progress 0–100 (one of)
+//   note           — (optional) short detail-panel line; omit or '' to hide
+//   review         — (optional) longer personal review; panel section only if set
+//   spineC, spineF — (optional) cover-matched spine colours from the console
+//                    `[spine]` log after load; skips image-sampling when present
+//
+// Templates (append finished books at the end of the array):
+//   { t: 'Title', a: 'Author', c: '#1A1A1A', f: '#F0F0F0', th: .022, h: .216,
+//     note: '', isbn: '978XXXXXXXXXX', fin: 'Mon YYYY' },
+//   { t: 'Title', a: 'Author', c: '#1A1A1A', f: '#F0F0F0', th: .022, h: .216,
+//     isbn: '978XXXXXXXXXX', reading: 40, review: 'Optional longer review…' },
+//
+// See AGENTS.md § Adding a book for shelf order and verification.
 
 export default [
   { t: "Can't Hurt Me", a: 'David Goggins', c: '#1A2744', f: '#f0f0f0', th: .030, h: .229,
