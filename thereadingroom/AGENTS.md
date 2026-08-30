@@ -1,7 +1,7 @@
 # The Reading Room — agents guide
 
 A first-person walkable 3D room containing a bookshelf, built with Three.js.
-No build step, no framework, no bundler. Two files: `reading-room-v8.html`
+No build step, no framework, no bundler. Two files: `reading-room.html`
 (scene + logic) and `books.js` (book data). Three.js and lil-gui load from
 unpkg via an import map; cover images are fetched from Open Library on demand.
 
@@ -10,14 +10,14 @@ unpkg via an import map; cover images are fetched from Open Library on demand.
 ```
 python3 -m http.server
 ```
-then open `http://localhost:8000/reading-room-v8.html`.
+then open `http://localhost:8000/reading-room.html`.
 
 A local server is required — `books.js` is a relative ES module import and
 Chrome blocks those from `file://` URLs. No build step beyond that.
 
 ## Files
 
-- **`reading-room-v8.html`** — scene, lights, room, bookcase, decor,
+- **`reading-room.html`** — scene, lights, room, bookcase, decor,
   turntable, audio, controls, post-processing, animation loop.
 - **`books.js`** — exported array of book objects. Edit this to add or update
   books. Fields: `t` (title), `a` (author), `c` (spine colour), `f` (text
@@ -70,7 +70,7 @@ See `ARCHITECTURE.md` for the how and why of each section.
 
 ## Verifying a change
 
-1. Run `python3 -m http.server` and open `http://localhost:8000/reading-room-v8.html`.
+1. Run `python3 -m http.server` and open `http://localhost:8000/reading-room.html`.
 2. Click to enter, walk to the bookcase (WASD + mouse).
 3. Look at a spine — crosshair should turn gold and the prompt should appear.
 4. Click to pull it out; click again to put it back.
