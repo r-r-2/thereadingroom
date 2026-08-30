@@ -11,9 +11,9 @@
 
 export default [
   { t: "Can't Hurt Me", a: 'David Goggins', c: '#1A2744', f: '#f0f0f0', th: .030, h: .229,
-    note: '', isbn: '1544512260', fin: 'Jul 2025' },
+    note: '', isbn: '9781544507859', fin: 'Jul 2025' },
   { t: 'A Feast of Vultures', a: 'Josy Joseph', c: '#7A1A1A', f: '#F5E4DA', th: .024, h: .216,
-    note: '', isbn: '9789350297520', fin: 'Sep 2025' },
+    note: '', isbn: '9789350297513', fin: 'Sep 2025' },
   { t: 'Show Your Work!', a: 'Austin Kleon', c: '#1A1A1A', f: '#F0EEE8', th: .018, h: .178,
     note: '', isbn: '9780761178972', fin: 'Oct 2025' },
   { t: 'Steal Like an Artist', a: 'Austin Kleon', c: '#F0EBE1', f: '#1A1A1A', th: .014, h: .178,
