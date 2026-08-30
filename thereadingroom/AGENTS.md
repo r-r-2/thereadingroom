@@ -1,22 +1,34 @@
 # The Reading Room — agents guide
 
-A first-person walkable 3D room containing a bookshelf, built as a single
-self-contained HTML file using Three.js. No build step, no framework, no
-bundler. Three.js and lil-gui load from unpkg via an import map.
+A first-person walkable 3D room containing a bookshelf, built with Three.js.
+No build step, no framework, no bundler. Two files: `reading-room-v8.html`
+(scene + logic) and `books.js` (book data). Three.js and lil-gui load from
+unpkg via an import map; cover images are fetched from Open Library on demand.
 
 ## Running it
 
-Open `reading-room-v8.html` directly in a browser. No server required for
-local use — all assets are procedurally generated or loaded from a CDN via the
-import map. A server (e.g. `python3 -m http.server`) is only needed if you hit
-CORS restrictions from the CDN in strict mode.
+```
+python3 -m http.server
+```
+then open `http://localhost:8000/reading-room-v8.html`.
+
+A local server is required — `books.js` is a relative ES module import and
+Chrome blocks those from `file://` URLs. No build step beyond that.
+
+## Files
+
+- **`reading-room-v8.html`** — scene, lights, room, bookcase, decor,
+  turntable, audio, controls, post-processing, animation loop.
+- **`books.js`** — exported array of book objects. Edit this to add or update
+  books. Fields: `t` (title), `a` (author), `c` (spine colour), `f` (text
+  colour), `th` (thickness m), `h` (height m), `note`, `isbn`, and either
+  `fin` (finished date string) or `reading` (0–100 percent in progress).
 
 ## Script layout
 
-Everything lives in one `<script type="module">`. Sections in order:
+Everything in the HTML lives in one `<script type="module">`. Sections in order:
 
-1. **Book data** — `BOOKS` array. title, author, spine/text colour, thickness,
-   height, note, and either `fin` (date string) or `reading` (0–100 percent).
+1. **Imports** — Three.js addons, lil-gui, and `BOOKS` from `./books.js`.
 2. **Scene** — `THREE.Scene`, camera (eye at 1.62 m), renderer, ACES tone
    mapping, fog.
 3. **Lights** — ambient, key, fill, shelfWash, candleLight, playerLight.
@@ -24,8 +36,9 @@ Everything lives in one `<script type="module">`. Sections in order:
    a rug.
 5. **Bookcase frame** — back panel, sides, top, toe board, shelf boards at
    y = 0.42 / 0.90 / 1.38 / 1.86.
-6. **Book meshes** — `makeSpineTexture`, `makeCoverTexture`, `placeBooks()`.
-   The `interactables` array is declared here, before `placeBooks()` runs.
+6. **Book meshes** — `makeSpineTexture`, `makeCoverTexture`, `placeBooks()`,
+   `loadCover()`. The `interactables` array is declared here, before
+   `placeBooks()` runs.
 7. **Post-processing** — `EffectComposer` with bloom, vignette, output pass.
 8. **Design harness** — `SETTINGS` object and lil-gui panel.
 9. **Decor** — shelf props: succulents, candles, flat book stacks, framed
@@ -57,7 +70,7 @@ See `ARCHITECTURE.md` for the how and why of each section.
 
 ## Verifying a change
 
-1. Open the file in a browser (Chrome / Firefox / Safari desktop).
+1. Run `python3 -m http.server` and open `http://localhost:8000/reading-room-v8.html`.
 2. Click to enter, walk to the bookcase (WASD + mouse).
 3. Look at a spine — crosshair should turn gold and the prompt should appear.
 4. Click to pull it out; click again to put it back.
