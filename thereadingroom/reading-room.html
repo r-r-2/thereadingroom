@@ -410,7 +410,7 @@ function loadCover(mesh, b) {
   if (!b.isbn || mesh.userData.coverLoaded || mesh.userData.coverFailed) return;
   mesh.userData.coverLoaded = true;
   texLoader.load(
-    `https://covers.openlibrary.org/b/isbn/${b.isbn}-L.jpg`,
+    `https://covers.openlibrary.org/b/isbn/${b.isbn}-M.jpg`,
     (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       const coverMat = new THREE.MeshLambertMaterial({ map: tex });
