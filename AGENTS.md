@@ -37,8 +37,8 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
 5. **Bookcase frame** — back panel, sides, top, toe board, shelf boards at
    y = 0.42 / 0.90 / 1.38 / 1.86.
 6. **Book meshes** — `makeSpineTexture`, `makeCoverTexture`, `placeBooks()`,
-   `loadCover()`. The `interactables` array is declared here, before
-   `placeBooks()` runs.
+   `loadCover()`, cover-display switch. The `interactables` array is
+   declared here, before `placeBooks()` runs.
 7. **Post-processing** — `EffectComposer` with bloom, vignette, output pass.
 8. **Design harness** — `SETTINGS` object and lil-gui panel.
 9. **Decor** — shelf props: succulents, candles, flat book stacks, framed
@@ -48,10 +48,10 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
 11. **Music** — `Music` IIFE wrapping the Web Audio graph (pads, plucks,
     delay, vinyl hiss).
 12. **Controls** — `PointerLockControls`, keyboard map, velocity/collision.
-13. **Raycast interaction** — book pull-out animation, detail panel, record
-    toggle.
-14. **Animation loop** — movement, turntable rotation, arm travel, book
-    animation, `composer.render()`.
+13. **Raycast interaction** — book pull-out, cover-display switch, detail
+    panel, record toggle.
+14. **Animation loop** — movement, turntable rotation, arm travel, cover
+    mode / book animation, `composer.render()`.
 
 See `ARCHITECTURE.md` for the how and why of each section.
 
@@ -74,8 +74,14 @@ See `ARCHITECTURE.md` for the how and why of each section.
 2. Click to enter, walk to the bookcase (WASD + mouse).
 3. Look at a spine — crosshair should turn gold and the prompt should appear.
 4. Click to pull it out; click again to put it back.
-5. Walk to the turntable, click to stop/start the record.
-6. Press Esc, open the lil-gui panel, toggle post-processing off to see the
+5. Look at the switch on the right stile. Prompt should read
+   "Click to show covers". Click it — books should rotate face-out on
+   the left of the three lower shelves, clear of the decor. Flip it
+   back to spines.
+6. In both modes, pull a book out and put it back. Cover mode should
+   nudge forward only (no extra quarter-turn).
+7. Walk to the turntable, click to stop/start the record.
+8. Press Esc, open the lil-gui panel, toggle post-processing off to see the
    raw scene without bloom.
-7. Check the browser console for errors. The global `error` handler on the
+9. Check the browser console for errors. The global `error` handler on the
    loading div will surface module-level throws.

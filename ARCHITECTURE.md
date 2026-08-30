@@ -15,7 +15,8 @@ THREE.Scene
 ├── rug (Mesh)
 ├── shelfGroup (Group, z = -ROOM.d/2 + 0.19)
 │   ├── bookcase panels and shelf boards (Mesh ×9)
-│   ├── book meshes (Mesh ×17, added by placeBooks())
+│   ├── book meshes (Mesh ×N, added by placeBooks())
+│   ├── cover-display switch (plate + lever on the right stile)
 │   ├── decor objects (Groups and Meshes)
 │   └── candleLight (PointLight, parented to shelfGroup)
 └── player (Group, at far-right corner, rotated −π/2)
@@ -72,7 +73,10 @@ mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT]
 ```
 
 `+z` faces the room (spine), `±x` are the front and back covers, the
-remaining three faces are the page block.
+remaining three faces are the page block. A cover-display switch on the
+right stile lerps every book to a face-out rest pose (`rotation.y = −π/2`)
+so `+x` faces the room. Do not put the jacket texture on `+z` — that face
+is only 1.4–3 cm wide and would squash the cover.
 
 ### Spine texture (`makeSpineTexture`)
 
@@ -105,9 +109,16 @@ across SHELF_Y[2..0]). Each book is offset from the previous by its
 thickness plus a 4 mm gap. A small random Z-lean (`rotation.z ±0.015
 rad`) keeps them from looking machine-placed.
 
+Each mesh stores two rest poses: `spineHome` / `spineRotY = 0` (current
+row) and `faceHome` / `faceRotY = −π/2`. Face-out packs two covers per
+lower shelf on the left of the board so they clear the decor (usable
+left band is about 0.64 m). That is a hard cap of six face-out books;
+more than that will overlap on the bottom shelf.
+
 The `interactables` array is declared at module scope **before**
 `placeBooks()` is called. Each book mesh is pushed into it; the
-tonearm hit targets (record, platter, plinth) are pushed in later.
+cover-display switch and the tonearm hit targets (record, platter,
+plinth) are pushed in later.
 
 ## Interaction model
 
@@ -115,16 +126,19 @@ A `THREE.Raycaster` fires from normalised device coordinate (0, 0) —
 screen centre — every frame while the pointer is locked. `far` is 2.4 m.
 It tests only the `interactables` array (never the full scene graph).
 
-Each interactable carries `userData.type`: `'book'` or `'player'`.
+Each interactable carries `userData.type`: `'book'`, `'player'`, or
+`'switch'`.
 
 **Looking** at an object: crosshair scales up (`.hot` CSS class),
 prompt text appears.
 
 **Clicking** a book: sets `userData.out = true`. The animation loop
-lerps `userData.t` toward 1 over roughly 0.1 s:
-- `position.z += t × 0.17` (spine pulls toward viewer)
-- `position.y += t × 0.012` (slight lift)
-- `rotation.y = t × −0.95` (quarter-turn to left)
+lerps `userData.t` toward 1 over roughly 0.1 s, applied **on top of**
+the current rest pose (a blend of `spineHome` and `faceHome` by
+`coverT`):
+- Spine mode (`coverT ≈ 0`): `z + 0.17`, `y + 0.012`, `rotation.y += −0.95`
+- Cover mode (`coverT ≈ 1`): forward nudge only (`z + 0.06`). The jacket
+  already faces the room; another quarter-turn would hide it.
 
 Clicking again while looking at the open book closes it (`out = false`,
 `t` lerps back to 0). Clicking a different book while one is open first
@@ -132,6 +146,11 @@ closes the open one.
 
 **Clicking** the turntable (record, platter, or plinth): toggles
 `Music.toggle()`.
+
+**Clicking** the cover-display switch: toggles `coverMode`. Any open
+book is closed first so the two animations do not fight. The lever
+lerps with `coverT`. Prompts: `Click to show covers` /
+`Click to show spines`.
 
 ## Movement and collision
 
