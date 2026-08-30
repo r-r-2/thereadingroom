@@ -74,10 +74,11 @@ See `ARCHITECTURE.md` for the how and why of each section.
 2. Click to enter, walk to the bookcase (WASD + mouse).
 3. Look at a spine — crosshair should turn gold and the prompt should appear.
 4. Click to pull it out; click again to put it back.
-5. Look at the switch on the right stile. Prompt should read
-   "Click to show covers". Click it — books should rotate face-out on
-   the left of the three lower shelves, clear of the decor. Flip it
-   back to spines.
+5. Walk to the left stile. A plaque above the switch should read
+   "Click the switch / or press C / to flip covers". Look at the
+   switch — prompt should read "Click to show covers". Click it —
+   books should rotate face-out on the left of the three lower shelves,
+   clear of the decor. Press C to flip back to spines.
 6. In both modes, pull a book out and put it back. Cover mode should
    nudge forward only (no extra quarter-turn).
 7. Walk to the turntable, click to stop/start the record.

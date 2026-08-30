@@ -16,7 +16,8 @@ THREE.Scene
 ├── shelfGroup (Group, z = -ROOM.d/2 + 0.19)
 │   ├── bookcase panels and shelf boards (Mesh ×9)
 │   ├── book meshes (Mesh ×N, added by placeBooks())
-│   ├── cover-display switch (plate + lever on the right stile)
+│   ├── cover-display switch (plate + lever on the left stile)
+│   ├── instruction plaque above the switch
 │   ├── decor objects (Groups and Meshes)
 │   └── candleLight (PointLight, parented to shelfGroup)
 └── player (Group, at far-right corner, rotated −π/2)
@@ -74,7 +75,7 @@ mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT]
 
 `+z` faces the room (spine), `±x` are the front and back covers, the
 remaining three faces are the page block. A cover-display switch on the
-right stile lerps every book to a face-out rest pose (`rotation.y = −π/2`)
+left stile lerps every book to a face-out rest pose (`rotation.y = −π/2`)
 so `+x` faces the room. Do not put the jacket texture on `+z` — that face
 is only 1.4–3 cm wide and would squash the cover.
 
@@ -147,9 +148,12 @@ closes the open one.
 **Clicking** the turntable (record, platter, or plinth): toggles
 `Music.toggle()`.
 
-**Clicking** the cover-display switch: toggles `coverMode`. Any open
-book is closed first so the two animations do not fight. The lever
-lerps with `coverT`. Prompts: `Click to show covers` /
+**Clicking** the cover-display switch, or pressing **C** while the
+pointer is locked: calls `toggleCoverMode()`. Any open book is closed
+first so the two animations do not fight. The lever lerps with
+`coverT`. `keydown` ignores `e.repeat` so holding C does not flicker.
+A small plaque above the switch reads "Click the switch / or press C /
+to flip covers". Prompts: `Click to show covers` /
 `Click to show spines`.
 
 ## Movement and collision

@@ -76,7 +76,7 @@
     <h1>The Reading Room</h1>
     <p>A room with my books in it. Walk over to a shelf and look at a spine to pull it out. There’s a record playing in the corner.</p>
     <div class="keys">
-      <kbd>W A S D</kbd><kbd>Mouse to look</kbd><kbd>Click a book</kbd><kbd>Click the record to stop it</kbd><kbd>Esc to leave</kbd>
+      <kbd>W A S D</kbd><kbd>Mouse to look</kbd><kbd>Click a book</kbd><kbd>C covers</kbd><kbd>Click the record to stop it</kbd><kbd>Esc to leave</kbd>
     </div>
     <div class="cta">Click to enter</div>
   </div>
@@ -473,25 +473,57 @@ function loadCover(mesh, b) {
 // Start fetching all covers immediately in the background.
 books.forEach((m) => loadCover(m, m.userData.book));
 
-/* Cover-display switch on the right stile. MeshLambert only — a
+/* Cover-display switch on the left stile. MeshLambert only — a
    MeshBasicMaterial here would bloom and wash the room. */
 const SWITCH_PLATE = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
 const SWITCH_KNOB = new THREE.MeshLambertMaterial({ color: 0xC9A66B });
+const SWITCH_X = -CASE.w / 2;
 
 const switchPlate = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.068, 0.01), SWITCH_PLATE);
-switchPlate.position.set(CASE.w / 2, 1.2, CASE.d / 2 + 0.007);
+switchPlate.position.set(SWITCH_X, 1.2, CASE.d / 2 + 0.007);
 switchPlate.userData.type = 'switch';
 shelfGroup.add(switchPlate);
 interactables.push(switchPlate);
 
 const switchPivot = new THREE.Group();
-switchPivot.position.set(CASE.w / 2, 1.2, CASE.d / 2 + 0.016);
+switchPivot.position.set(SWITCH_X, 1.2, CASE.d / 2 + 0.016);
 shelfGroup.add(switchPivot);
 
 const switchLever = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.028, 0.008), SWITCH_KNOB);
 switchLever.position.y = 0.012;
 switchPivot.add(switchLever);
 switchPivot.rotation.x = -0.55;
+
+/* Instruction plaque above the switch. Not in interactables — only
+   the lever plate is clickable. */
+const plaqueCanvas = document.createElement('canvas');
+plaqueCanvas.width = 256;
+plaqueCanvas.height = 288;
+{
+  const x = plaqueCanvas.getContext('2d');
+  x.fillStyle = '#F7F1E7';
+  x.fillRect(0, 0, 256, 288);
+  x.fillStyle = '#5C4E40';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = '600 28px ui-sans-serif, system-ui, sans-serif';
+  const lines = ['Click the switch', 'or press C', 'to flip covers'];
+  lines.forEach((line, i) => x.fillText(line, 128, 84 + i * 44));
+}
+const plaqueTex = new THREE.CanvasTexture(plaqueCanvas);
+plaqueTex.colorSpace = THREE.SRGBColorSpace;
+const plaqueFrame = new THREE.Mesh(
+  new THREE.BoxGeometry(0.09, 0.11, 0.01),
+  new THREE.MeshLambertMaterial({ color: 0xC49A68 })
+);
+const plaqueArt = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.078, 0.096),
+  new THREE.MeshLambertMaterial({ map: plaqueTex })
+);
+plaqueArt.position.z = 0.006;
+plaqueFrame.add(plaqueArt);
+plaqueFrame.position.set(SWITCH_X, 1.38, CASE.d / 2 + 0.007);
+shelfGroup.add(plaqueFrame);
 
 /* ============================================================
    POST-PROCESSING
@@ -1244,6 +1276,23 @@ function showDetail(b) {
 }
 function hideDetail() { detail.classList.remove('on'); }
 
+function toggleCoverMode() {
+  coverMode = !coverMode;
+  if (opened) {
+    opened.userData.out = false;
+    opened = null;
+    hideDetail();
+  }
+  if (looked && looked.userData.type === 'switch') {
+    promptEl.textContent = coverMode ? 'Click to show spines' : 'Click to show covers';
+  }
+}
+
+addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyC' || e.repeat || !controls.isLocked) return;
+  toggleCoverMode();
+});
+
 document.addEventListener('click', () => {
   if (!controls.isLocked) return;
 
@@ -1254,13 +1303,7 @@ document.addEventListener('click', () => {
   }
 
   if (looked && looked.userData.type === 'switch') {
-    coverMode = !coverMode;
-    if (opened) {
-      opened.userData.out = false;
-      opened = null;
-      hideDetail();
-    }
-    promptEl.textContent = coverMode ? 'Click to show spines' : 'Click to show covers';
+    toggleCoverMode();
     return;
   }
 
