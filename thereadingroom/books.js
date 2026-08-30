@@ -1,3 +1,14 @@
+// Fields per book:
+//   t, a          — title, author
+//   c, f          — fallback spine background / text colour (used before cover loads)
+//   th, h         — thickness and height in metres
+//   note          — the blurb shown in the detail panel
+//   isbn          — ISBN-13, used to fetch the cover from Open Library
+//   fin / reading — finished date string OR reading progress 0-100
+//   spineC, spineF — (optional) cover-matched spine colours, computed once by
+//                    running the page and copying from the browser console.
+//                    When present, the image-sampling step is skipped entirely.
+
 export default [
   { t: 'The Left Hand of Darkness', a: 'Ursula K. Le Guin', c: '#20455F', f: '#E4F1F9', th: .030, h: .205,
     note: 'Ambassadorial sci-fi that spends its real energy on how a culture without fixed gender would actually think.',

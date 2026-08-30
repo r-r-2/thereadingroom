@@ -417,12 +417,21 @@ function loadCover(mesh, b) {
       mesh.material[0] = coverMat;
       mesh.material[1] = coverMat;
 
-      // Repaint the spine to match the cover's dominant colour.
-      const [r, g, bl] = dominantColor(tex.image);
-      const lum = 0.299 * r + 0.587 * g + 0.114 * bl;
-      const spineBook = { ...b, c: `rgb(${r},${g},${bl})`, f: lum > 140 ? '#111' : '#f0f0f0' };
+      // Use pre-computed spine colours from books.js if present; otherwise
+      // sample from the image and log values ready to paste into books.js.
+      let spineC = b.spineC, spineF = b.spineF;
+      if (!spineC) {
+        const [r, g, bl] = dominantColor(tex.image);
+        const lum = 0.299 * r + 0.587 * g + 0.114 * bl;
+        spineC = `rgb(${r},${g},${bl})`;
+        spineF = lum > 140 ? '#111' : '#f0f0f0';
+        console.log(`[spine] "${b.t}"\n  spineC: '${spineC}', spineF: '${spineF}'`);
+      }
+
       const oldSpineTex = mesh.material[4].map;
-      mesh.material[4] = new THREE.MeshLambertMaterial({ map: makeSpineTexture(spineBook) });
+      mesh.material[4] = new THREE.MeshLambertMaterial({
+        map: makeSpineTexture({ ...b, c: spineC, f: spineF })
+      });
       if (oldSpineTex) oldSpineTex.dispose();
     },
     undefined,
