@@ -211,33 +211,33 @@ renderer.toneMappingExposure = 1.05;
 document.body.appendChild(renderer.domElement);
 
 /* ---- lighting ----
-   No realtime shadows. The large left-wall window is the key: a
-   directional sunbeam plus a soft flood just inside the aperture
-   light the whole room. Ambient is sky bounce. Fixture accents
-   (shelf wash, candles, lamp, turntable) stay nearly off so the
-   space reads as daylit. Realtime shadows are a browser perf trap. */
-const ambient = new THREE.AmbientLight(0xfff2e8, 1.05);
+   No realtime shadows. Daylight is Directional + Hemisphere + Ambient
+   only — PointLights leave circular hotspots on the ceiling with
+   Lambert materials. The sun comes through the left-wall window;
+   fixtures are present as props but throw no light. */
+const ambient = new THREE.AmbientLight(0xfff2e8, 1.15);
 scene.add(ambient);
 
-// Soft sky / ground bounce — sells “outdoor daylight” without hotspots
-const hemi = new THREE.HemisphereLight(0xffe8d2, 0xd4c4a8, 0.55);
+const hemi = new THREE.HemisphereLight(0xffebd8, 0xcbb89a, 0.85);
 hemi.position.set(0, 2.5, 0);
 scene.add(hemi);
 
 // Main sun through the window (from outside, left wall). Named `key`
 // so the design harness still binds to it.
-const key = new THREE.DirectionalLight(0xffe6cc, 1.35);
-key.position.set(-7, 4.5, 0.2);
-key.target.position.set(1.0, 0.9, 0.2);
+const key = new THREE.DirectionalLight(0xffe8d0, 1.75);
+key.position.set(-6.5, 3.8, 0.4);
+key.target.position.set(1.2, 1.0, 0.1);
 scene.add(key);
 scene.add(key.target);
 
-// Soft bounce off the right / far walls
-const fill = new THREE.PointLight(0xfff6ec, 4.5, 14, 2);
-fill.position.set(2.4, 1.9, 0.8);
+// Soft bounce from the opposite wall (second directional, not a point)
+const fill = new THREE.DirectionalLight(0xfff4ea, 0.35);
+fill.position.set(4.5, 2.8, 1.5);
+fill.target.position.set(0, 1.2, 0);
 scene.add(fill);
+scene.add(fill.target);
 
-// Shelf wash off — daylight should carry the case
+// Kept for the design harness; intensity 0 so it never hotspots
 const shelfWash = new THREE.PointLight(0xffe8c8, 0, 3.5, 2);
 shelfWash.position.set(0, 1.95, -2.1);
 scene.add(shelfWash);
@@ -495,9 +495,9 @@ winBox(0.05, WIN.h, 0.055, WOOD_DARK, 0, winCy, 0.055);
 winBox(WIN.w, 0.045, 0.055, WOOD_DARK, 0, winCy, 0.055);
 winBox(WIN.w + 0.28, 0.06, 0.18, WOOD, 0, WIN.sill - 0.035, 0.11);
 
-/* Soft flood just inside the glass — fills the room from the aperture.
-   Kept away from the wall/ceiling so it does not blow out the frame. */
-const windowLight = new THREE.PointLight(0xffe8d0, 18, 14, 1.6);
+/* Window flood retired — PointLights hotspotted the ceiling. Daylight
+   is directional + hemi only; keep a zeroed light for the harness. */
+const windowLight = new THREE.PointLight(0xffe8d0, 0, 14, 1.6);
 windowLight.position.set(-ROOM.w / 2 + 1.4, 1.55, 0.1);
 scene.add(windowLight);
 
@@ -879,13 +879,13 @@ const SETTINGS = {
   vignetteDarkness: 0.75,
   fogNear: 10,
   fogFar: 22,
-  ambientIntensity: 1.05,
+  ambientIntensity: 1.15,
   ambientColor: '#fff2e8',
-  keyIntensity: 1.35,
-  keyColor: '#ffe6cc',
-  keyX: -7, keyY: 4.5, keyZ: 0.2,
-  fillIntensity: 4.5,
-  fillColor: '#fff6ec',
+  keyIntensity: 1.75,
+  keyColor: '#ffe8d0',
+  keyX: -6.5, keyY: 3.8, keyZ: 0.4,
+  fillIntensity: 0.35,
+  fillColor: '#fff4ea',
   washIntensity: 0,
   washColor: '#ffe8c8',
   moveSpeed: 22,
@@ -917,7 +917,7 @@ gLight.addColor(SETTINGS, 'keyColor').onChange((v) => key.color.set(v));
 gLight.add(SETTINGS, 'keyX', -12, 3.4, 0.1).onChange((v) => (key.position.x = v));
 gLight.add(SETTINGS, 'keyY', 0.2, 8, 0.1).onChange((v) => (key.position.y = v));
 gLight.add(SETTINGS, 'keyZ', -6, 6, 0.1).onChange((v) => (key.position.z = v));
-gLight.add(SETTINGS, 'fillIntensity', 0, 40, 0.5).onChange((v) => (fill.intensity = v));
+gLight.add(SETTINGS, 'fillIntensity', 0, 4, 0.05).onChange((v) => (fill.intensity = v));
 gLight.addColor(SETTINGS, 'fillColor').onChange((v) => fill.color.set(v));
 gLight.add(SETTINGS, 'washIntensity', 0, 40, 0.5).onChange((v) => (shelfWash.intensity = v));
 gLight.addColor(SETTINGS, 'washColor').onChange((v) => shelfWash.color.set(v));
@@ -959,7 +959,7 @@ const CERAMIC = new THREE.MeshLambertMaterial({ color: 0xF2E9DC });
 const CERAMIC_PINK = new THREE.MeshLambertMaterial({ color: 0xE6C9BE });
 const LEAF = new THREE.MeshLambertMaterial({ color: 0x6E8F52 });
 const LEAF_DARK = new THREE.MeshLambertMaterial({ color: 0x55743E });
-const FLAME = new THREE.MeshBasicMaterial({ color: 0xD9A86A });
+const FLAME = new THREE.MeshLambertMaterial({ color: 0xD9A86A });
 const PAPER = new THREE.MeshLambertMaterial({ color: 0xF6EFE4 });
 
 /* ---- small props ---- */
