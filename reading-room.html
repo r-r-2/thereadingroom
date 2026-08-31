@@ -381,20 +381,20 @@ function landscapeTexture() {
   const g = c.getContext('2d');
 
   const sky = g.createLinearGradient(0, 0, 0, 768);
-  sky.addColorStop(0, '#F3C9A4');
-  sky.addColorStop(0.38, '#E8B07A');
-  sky.addColorStop(0.62, '#C9896A');
-  sky.addColorStop(1, '#7A8B62');
+  sky.addColorStop(0, '#F8D9B0');
+  sky.addColorStop(0.35, '#F0C090');
+  sky.addColorStop(0.58, '#D49A72');
+  sky.addColorStop(1, '#8A9B6E');
   g.fillStyle = sky;
   g.fillRect(0, 0, 1024, 768);
 
-  g.fillStyle = 'rgba(255,236,210,0.55)';
+  g.fillStyle = 'rgba(255,248,230,0.7)';
   g.beginPath();
-  g.arc(780, 170, 54, 0, Math.PI * 2);
+  g.arc(780, 170, 58, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = 'rgba(255,220,170,0.35)';
+  g.fillStyle = 'rgba(255,230,180,0.4)';
   g.beginPath();
-  g.arc(780, 170, 78, 0, Math.PI * 2);
+  g.arc(780, 170, 88, 0, Math.PI * 2);
   g.fill();
 
   function mountain(pts, color) {
