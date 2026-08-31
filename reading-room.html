@@ -293,11 +293,68 @@ rug.rotation.x = -Math.PI / 2;
 rug.position.set(0, 0.005, 0.7);
 scene.add(rug);
 
-/* ============================================================
-   BOOKCASE
-   ============================================================ */
+/* Shared wood materials used by the door, window, bookcase, and decor. */
 const WOOD = new THREE.MeshLambertMaterial({ color: 0xC49A68 });
 const WOOD_DARK = new THREE.MeshLambertMaterial({ color: 0x9E7546 });
+
+/* ============================================================
+   DOOR — closed, on the front wall opposite the bookcase
+   ============================================================ */
+const DOOR = { w: 0.92, h: 2.12 };
+const DOOR_WOOD = new THREE.MeshLambertMaterial({ color: 0xA87A4A });
+const DOOR_PANEL = new THREE.MeshLambertMaterial({ color: 0x8F6640 });
+const DOOR_TRIM = new THREE.MeshLambertMaterial({ color: 0xB68C5C });
+const DOOR_METAL = new THREE.MeshLambertMaterial({ color: 0x8A7A58 });
+
+const doorGroup = new THREE.Group();
+doorGroup.position.set(0, 0, ROOM.d / 2);
+doorGroup.rotation.y = Math.PI; // face into the room
+scene.add(doorGroup);
+
+function doorBox(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  doorGroup.add(m);
+  return m;
+}
+
+const doorCy = DOOR.h / 2;
+const casingT = 0.08;
+const casingD = 0.10;
+// outer casing
+doorBox(casingT, DOOR.h + casingT, casingD, DOOR_TRIM, -DOOR.w / 2 - casingT / 2, doorCy, 0.05);
+doorBox(casingT, DOOR.h + casingT, casingD, DOOR_TRIM, DOOR.w / 2 + casingT / 2, doorCy, 0.05);
+doorBox(DOOR.w + casingT * 2, casingT, casingD, DOOR_TRIM, 0, DOOR.h + casingT / 2, 0.05);
+// threshold
+doorBox(DOOR.w + casingT * 2, 0.04, 0.12, WOOD_DARK, 0, 0.02, 0.06);
+// door slab (closed)
+doorBox(DOOR.w, DOOR.h, 0.045, DOOR_WOOD, 0, doorCy, 0.04);
+// recessed panels — two over two, classic interior door
+const panelInset = 0.012;
+const panelW = DOOR.w * 0.36;
+const panelGapX = DOOR.w * 0.08;
+const panelX = panelW / 2 + panelGapX / 2;
+const topPanelH = 0.72;
+const botPanelH = 0.78;
+const midRailY = 1.05;
+doorBox(panelW, topPanelH, panelInset, DOOR_PANEL, -panelX, midRailY + 0.12 + topPanelH / 2, 0.066);
+doorBox(panelW, topPanelH, panelInset, DOOR_PANEL, panelX, midRailY + 0.12 + topPanelH / 2, 0.066);
+doorBox(panelW, botPanelH, panelInset, DOOR_PANEL, -panelX, 0.22 + botPanelH / 2, 0.066);
+doorBox(panelW, botPanelH, panelInset, DOOR_PANEL, panelX, 0.22 + botPanelH / 2, 0.066);
+// stile / rail accents (raised slightly so the panels read as recessed)
+doorBox(0.06, DOOR.h - 0.12, 0.01, DOOR_TRIM, 0, doorCy, 0.064);
+doorBox(DOOR.w - 0.14, 0.06, 0.01, DOOR_TRIM, 0, midRailY, 0.064);
+doorBox(DOOR.w - 0.14, 0.06, 0.01, DOOR_TRIM, 0, DOOR.h - 0.12, 0.064);
+doorBox(DOOR.w - 0.14, 0.06, 0.01, DOOR_TRIM, 0, 0.14, 0.064);
+// knob + backplate on the right stile
+doorBox(0.04, 0.09, 0.008, DOOR_METAL, DOOR.w / 2 - 0.1, 1.02, 0.068);
+const knob = new THREE.Mesh(new THREE.SphereGeometry(0.028, 12, 10), DOOR_METAL);
+knob.position.set(DOOR.w / 2 - 0.1, 1.02, 0.095);
+doorGroup.add(knob);
+const knobStem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.03, 8), DOOR_METAL);
+knobStem.rotation.x = Math.PI / 2;
+knobStem.position.set(DOOR.w / 2 - 0.1, 1.02, 0.075);
+doorGroup.add(knobStem);
 
 /* ============================================================
    WINDOW — left wall, facing the turntable
@@ -424,6 +481,9 @@ const windowLight = new THREE.PointLight(0xffd4a8, 5.5, 4.2, 2);
 windowLight.position.set(-ROOM.w / 2 + 0.45, winCy, -0.4);
 scene.add(windowLight);
 
+/* ============================================================
+   BOOKCASE
+   ============================================================ */
 const shelfGroup = new THREE.Group();
 shelfGroup.position.set(0, 0, -ROOM.d / 2 + 0.19);
 scene.add(shelfGroup);

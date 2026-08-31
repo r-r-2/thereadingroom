@@ -106,7 +106,8 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
 3. **Lights** — ambient, key, fill, shelfWash, windowLight, candleLight,
    lampLight, playerLight.
 4. **Room shell** — floor with procedural plank texture, ceiling, four walls,
-   a rug, left-wall nature window (canvas view, frame, sill, mullion).
+   a rug, closed door on the front wall (opposite the bookcase), left-wall
+   nature window (canvas view, frame, sill, mullion).
 5. **Bookcase frame** — back panel, sides, top, toe board, shelf boards at
    y = 0.42 / 0.90 / 1.38 / 1.86.
 6. **Book meshes** — `makeSpineTexture`, `makeCoverTexture`, `placeBooks()`,
@@ -167,16 +168,18 @@ See `ARCHITECTURE.md` for the how and why of each section.
    `reading` entries exist) should stay on the table, lying cover-up.
 9. Face the left wall: a large framed window should show a stylized
    landscape (mountains, trees, plants) across from the turntable.
-10. Walk left of the bookcase: a wooden reading table with a lamp and
+10. Face the wall opposite the bookcase: a closed paneled wooden door with
+    casing and a knob should sit centered on that wall.
+11. Walk left of the bookcase: a wooden reading table with a lamp and
     plant. You should not be able to walk through it.
-11. Walk to the turntable, click to stop/start the record.
-12. Check the browser console for errors. The global `error` handler on the
+12. Walk to the turntable, click to stop/start the record.
+13. Check the browser console for errors. The global `error` handler on the
     loading div will surface module-level throws.
-13. On a phone (or DevTools device mode): the gate should list drag / stick /
+14. On a phone (or DevTools device mode): the gate should list drag / stick /
     tap, not WASD. Tap to enter — a walk stick, Covers, and Leave appear.
     Drag looks around; the stick walks; tap a book to pull it out; Leave
     returns to the gate without re-entering from the same tap.
-14. The Look / lil-gui panel must be absent on the default URL. Open
+15. The Look / lil-gui panel must be absent on the default URL. Open
     `reading-room.html?edit=1`, press Esc (or stay on the gate): the panel
     should appear. Toggle post-processing off to see the raw scene without
     bloom. Without the query param, leaving the room must not show it.
