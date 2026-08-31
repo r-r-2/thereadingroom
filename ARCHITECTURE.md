@@ -14,7 +14,7 @@ THREE.Scene
 ├── ceiling (Mesh)
 ├── four wall planes (Mesh ×4)
 ├── rug (Mesh)
-├── doorGroup (Group, front wall opposite bookcase, rotated π)
+├── doorGroup (Group, front wall left side, opposite bookcase, rotated π)
 │   ├── casing, threshold, closed slab, recessed panels
 │   └── knob (sphere + stem + backplate)
 ├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.4)

@@ -307,7 +307,9 @@ const DOOR_TRIM = new THREE.MeshLambertMaterial({ color: 0xB68C5C });
 const DOOR_METAL = new THREE.MeshLambertMaterial({ color: 0xC4A35A });
 
 const doorGroup = new THREE.Group();
-doorGroup.position.set(0, 0, ROOM.d / 2);
+/* Off to the left of the front wall, clear of the turntable on the right. */
+const doorX = -ROOM.w / 2 + DOOR.w / 2 + 0.55;
+doorGroup.position.set(doorX, 0, ROOM.d / 2);
 doorGroup.rotation.y = Math.PI; // face into the room
 scene.add(doorGroup);
 

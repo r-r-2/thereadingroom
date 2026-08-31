@@ -169,7 +169,7 @@ See `ARCHITECTURE.md` for the how and why of each section.
 9. Face the left wall: a large framed window should show a stylized
    landscape (mountains, trees, plants) across from the turntable.
 10. Face the wall opposite the bookcase: a closed paneled wooden door with
-    casing and a knob should sit centered on that wall.
+    casing and a knob should sit on the left side of that wall.
 11. Walk left of the bookcase: a wooden reading table with a lamp and
     plant. You should not be able to walk through it.
 12. Walk to the turntable, click to stop/start the record.
