@@ -6,7 +6,7 @@
 <title>The Reading Room</title>
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;height:100dvh;overflow:hidden;background:#2a2119;
+  html,body{margin:0;height:100%;height:100dvh;overflow:hidden;background:#c9b8a0;
     font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;color:#EDE3D4;
     touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;
     -webkit-tap-highlight-color:transparent}
@@ -192,8 +192,8 @@ function pixelRatio() {
    SCENE
    ============================================================ */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2a2119);
-scene.fog = new THREE.Fog(0x2a2119, 7, 17);
+scene.background = new THREE.Color(0xc9b8a0);
+scene.fog = new THREE.Fog(0xc9b8a0, 10, 22);
 
 const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.05, 60);
 camera.position.set(0, 1.62, 2.6);
@@ -207,26 +207,38 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
    changes the look substantially: highlights roll off instead of
    blowing out to flat white. */
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.92;
+renderer.toneMappingExposure = 1.05;
 document.body.appendChild(renderer.domElement);
 
 /* ---- lighting ----
-   No realtime shadows. A warm key from the lamp side, a cool fill
-   from the window side, and a low ambient. Two lights and an ambient
-   is enough when the room is small; realtime shadows in a browser are
-   a performance trap for very little gain at this scale. */
-const ambient = new THREE.AmbientLight(0xffeaCF, 0.62);
+   No realtime shadows. Daylight is Directional + Hemisphere + Ambient
+   only — PointLights leave circular hotspots on the ceiling with
+   Lambert materials. The sun comes through the left-wall window;
+   fixtures are present as props but throw no light. */
+const ambient = new THREE.AmbientLight(0xfff2e8, 1.15);
 scene.add(ambient);
 
-const key = new THREE.PointLight(0xffc078, 19, 10, 2);
-key.position.set(2.1, 1.75, 1.4);
+const hemi = new THREE.HemisphereLight(0xffebd8, 0xcbb89a, 0.85);
+hemi.position.set(0, 2.5, 0);
+scene.add(hemi);
+
+// Main sun through the window (from outside, left wall). Named `key`
+// so the design harness still binds to it.
+const key = new THREE.DirectionalLight(0xffe8d0, 1.75);
+key.position.set(-6.5, 3.8, 0.4);
+key.target.position.set(1.2, 1.0, 0.1);
 scene.add(key);
+scene.add(key.target);
 
-const fill = new THREE.PointLight(0xd8cbb4, 7, 12, 2);
-fill.position.set(-2.4, 2.1, -1.0);
+// Soft bounce from the opposite wall (second directional, not a point)
+const fill = new THREE.DirectionalLight(0xfff4ea, 0.35);
+fill.position.set(4.5, 2.8, 1.5);
+fill.target.position.set(0, 1.2, 0);
 scene.add(fill);
+scene.add(fill.target);
 
-const shelfWash = new THREE.PointLight(0xffd9a0, 7, 4.6, 2);
+// Kept for the design harness; intensity 0 so it never hotspots
+const shelfWash = new THREE.PointLight(0xffe8c8, 0, 3.5, 2);
 shelfWash.position.set(0, 1.95, -2.1);
 scene.add(shelfWash);
 
@@ -369,20 +381,20 @@ function landscapeTexture() {
   const g = c.getContext('2d');
 
   const sky = g.createLinearGradient(0, 0, 0, 768);
-  sky.addColorStop(0, '#F3C9A4');
-  sky.addColorStop(0.38, '#E8B07A');
-  sky.addColorStop(0.62, '#C9896A');
-  sky.addColorStop(1, '#7A8B62');
+  sky.addColorStop(0, '#F8D9B0');
+  sky.addColorStop(0.35, '#F0C090');
+  sky.addColorStop(0.58, '#D49A72');
+  sky.addColorStop(1, '#8A9B6E');
   g.fillStyle = sky;
   g.fillRect(0, 0, 1024, 768);
 
-  g.fillStyle = 'rgba(255,236,210,0.55)';
+  g.fillStyle = 'rgba(255,248,230,0.7)';
   g.beginPath();
-  g.arc(780, 170, 54, 0, Math.PI * 2);
+  g.arc(780, 170, 58, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = 'rgba(255,220,170,0.35)';
+  g.fillStyle = 'rgba(255,230,180,0.4)';
   g.beginPath();
-  g.arc(780, 170, 78, 0, Math.PI * 2);
+  g.arc(780, 170, 88, 0, Math.PI * 2);
   g.fill();
 
   function mountain(pts, color) {
@@ -452,21 +464,23 @@ function landscapeTexture() {
   return t;
 }
 
-const WIN = { w: 2.4, h: 1.7, sill: 0.75 };
+/* Tall picture window — nearly wall-height so daylight floods the room. */
+const WIN = { w: 4.2, h: 2.4, sill: 0.28 };
 const windowGroup = new THREE.Group();
-windowGroup.position.set(-ROOM.w / 2, 0, -0.4);
+windowGroup.position.set(-ROOM.w / 2, 0, -0.15);
 windowGroup.rotation.y = Math.PI / 2;
 scene.add(windowGroup);
 
 const view = new THREE.Mesh(
   new THREE.PlaneGeometry(WIN.w, WIN.h),
-  new THREE.MeshLambertMaterial({ map: landscapeTexture() })
+  /* Basic so the exterior stays bright regardless of indoor lights. */
+  new THREE.MeshBasicMaterial({ map: landscapeTexture() })
 );
 view.position.set(0, WIN.sill + WIN.h / 2, 0.02);
 windowGroup.add(view);
 
-const FRAME_T = 0.07;
-const FRAME_D = 0.09;
+const FRAME_T = 0.08;
+const FRAME_D = 0.10;
 const winCy = WIN.sill + WIN.h / 2;
 function winBox(w, h, d, mat, x, y, z) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -477,11 +491,14 @@ winBox(FRAME_T, WIN.h + FRAME_T * 2, FRAME_D, WOOD, -WIN.w / 2 - FRAME_T / 2, wi
 winBox(FRAME_T, WIN.h + FRAME_T * 2, FRAME_D, WOOD, WIN.w / 2 + FRAME_T / 2, winCy, 0.05);
 winBox(WIN.w + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, WIN.sill + WIN.h + FRAME_T / 2, 0.05);
 winBox(WIN.w + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, WIN.sill - FRAME_T / 2, 0.05);
-winBox(0.045, WIN.h, 0.05, WOOD_DARK, 0, winCy, 0.055);
-winBox(WIN.w + 0.22, 0.055, 0.16, WOOD, 0, WIN.sill - 0.03, 0.10);
+winBox(0.05, WIN.h, 0.055, WOOD_DARK, 0, winCy, 0.055);
+winBox(WIN.w, 0.045, 0.055, WOOD_DARK, 0, winCy, 0.055);
+winBox(WIN.w + 0.28, 0.06, 0.18, WOOD, 0, WIN.sill - 0.035, 0.11);
 
-const windowLight = new THREE.PointLight(0xffd4a8, 5.5, 4.2, 2);
-windowLight.position.set(-ROOM.w / 2 + 0.45, winCy, -0.4);
+/* Window flood retired — PointLights hotspotted the ceiling. Daylight
+   is directional + hemi only; keep a zeroed light for the harness. */
+const windowLight = new THREE.PointLight(0xffe8d0, 0, 14, 1.6);
+windowLight.position.set(-ROOM.w / 2 + 1.4, 1.55, 0.1);
 scene.add(windowLight);
 
 /* ============================================================
@@ -853,24 +870,24 @@ composer.addPass(new OutputPass());
    the numbers you liked into the source.
    ============================================================ */
 const SETTINGS = {
-  exposure: 0.92,
+  exposure: 1.05,
   effects: true,
-  bloomStrength: 0.16,
+  bloomStrength: 0.14,
   bloomRadius: 0.45,
-  bloomThreshold: 0.90,
-  vignetteOffset: 0.95,
-  vignetteDarkness: 1.05,
-  fogNear: 6,
-  fogFar: 15,
-  ambientIntensity: 0.5,
-  ambientColor: '#ffeedd',
-  keyIntensity: 22,
-  keyColor: '#ffcb8a',
-  keyX: 2.1, keyY: 1.75, keyZ: 1.4,
-  fillIntensity: 9,
-  fillColor: '#9fc4e8',
-  washIntensity: 7,
-  washColor: '#ffe0b0',
+  bloomThreshold: 0.92,
+  vignetteOffset: 1.05,
+  vignetteDarkness: 0.75,
+  fogNear: 10,
+  fogFar: 22,
+  ambientIntensity: 1.15,
+  ambientColor: '#fff2e8',
+  keyIntensity: 1.75,
+  keyColor: '#ffe8d0',
+  keyX: -6.5, keyY: 3.8, keyZ: 0.4,
+  fillIntensity: 0.35,
+  fillColor: '#fff4ea',
+  washIntensity: 0,
+  washColor: '#ffe8c8',
   moveSpeed: 22,
   fov: 68,
   volume: 0.34
@@ -895,12 +912,12 @@ gGrade.add(SETTINGS, 'vignetteDarkness', 0, 3, 0.01).onChange((v) => (vignette.u
 const gLight = gui.addFolder('Lighting');
 gLight.add(SETTINGS, 'ambientIntensity', 0, 2, 0.01).onChange((v) => (ambient.intensity = v));
 gLight.addColor(SETTINGS, 'ambientColor').onChange((v) => ambient.color.set(v));
-gLight.add(SETTINGS, 'keyIntensity', 0, 60, 0.5).onChange((v) => (key.intensity = v));
+gLight.add(SETTINGS, 'keyIntensity', 0, 4, 0.05).onChange((v) => (key.intensity = v));
 gLight.addColor(SETTINGS, 'keyColor').onChange((v) => key.color.set(v));
-gLight.add(SETTINGS, 'keyX', -3.4, 3.4, 0.05).onChange((v) => (key.position.x = v));
-gLight.add(SETTINGS, 'keyY', 0.2, 2.8, 0.05).onChange((v) => (key.position.y = v));
-gLight.add(SETTINGS, 'keyZ', -3, 3, 0.05).onChange((v) => (key.position.z = v));
-gLight.add(SETTINGS, 'fillIntensity', 0, 40, 0.5).onChange((v) => (fill.intensity = v));
+gLight.add(SETTINGS, 'keyX', -12, 3.4, 0.1).onChange((v) => (key.position.x = v));
+gLight.add(SETTINGS, 'keyY', 0.2, 8, 0.1).onChange((v) => (key.position.y = v));
+gLight.add(SETTINGS, 'keyZ', -6, 6, 0.1).onChange((v) => (key.position.z = v));
+gLight.add(SETTINGS, 'fillIntensity', 0, 4, 0.05).onChange((v) => (fill.intensity = v));
 gLight.addColor(SETTINGS, 'fillColor').onChange((v) => fill.color.set(v));
 gLight.add(SETTINGS, 'washIntensity', 0, 40, 0.5).onChange((v) => (shelfWash.intensity = v));
 gLight.addColor(SETTINGS, 'washColor').onChange((v) => shelfWash.color.set(v));
@@ -930,12 +947,10 @@ gui.add({
 
 
 /* ============================================================
-   SHELF LIGHTING + DECOR
-   The reference image is carried almost entirely by light tucked
-   into the shelf edges — warm strips hidden under each board,
-   washing down over the books. The strips are MeshBasicMaterial
-   so they ignore scene lighting and read as emissive, and the
-   bloom pass turns them into a glow for free.
+   SHELF DECOR
+   Props sit to the right of the books on each shelf. Candles keep
+   a small flame mesh for bloom, but no longer throw PointLights —
+   daylight from the window carries the case.
    ============================================================ */
 const GLASS = new THREE.MeshLambertMaterial({
   color: 0xd8e2e0, transparent: true, opacity: 0.42
@@ -944,7 +959,7 @@ const CERAMIC = new THREE.MeshLambertMaterial({ color: 0xF2E9DC });
 const CERAMIC_PINK = new THREE.MeshLambertMaterial({ color: 0xE6C9BE });
 const LEAF = new THREE.MeshLambertMaterial({ color: 0x6E8F52 });
 const LEAF_DARK = new THREE.MeshLambertMaterial({ color: 0x55743E });
-const FLAME = new THREE.MeshBasicMaterial({ color: 0xD9A86A });
+const FLAME = new THREE.MeshLambertMaterial({ color: 0xD9A86A });
 const PAPER = new THREE.MeshLambertMaterial({ color: 0xF6EFE4 });
 
 /* ---- small props ---- */
@@ -1171,10 +1186,8 @@ framedPrint(0.18, SHELF_Y[0] + 0.018, Z - 0.02, 'romanticize\nyour life');
 flatStack(0.40, SHELF_Y[0] + 0.018, Z, 4);
 potPlant(0.58, SHELF_Y[0] + 0.018, Z, 0.9);
 
-// two small warm sources so the candles actually throw light
-const candleLight = new THREE.PointLight(0xffb765, 0.9, 1.1, 2);
-candleLight.position.set(0.30, SHELF_Y[3] + 0.10, Z);
-shelfGroup.add(candleLight);
+// No candle PointLight — daylight carries the shelves
+
 
 
 /* ============================================================
@@ -1203,7 +1216,7 @@ const legInsetZ = TABLE.d / 2 - 0.05;
   tableBox(0.045, TABLE.h - 0.04, 0.045, WOOD_DARK, sx * legInsetX, (TABLE.h - 0.04) / 2, sz * legInsetZ);
 });
 
-const SHADE = new THREE.MeshBasicMaterial({ color: 0xF2D7A6 });
+const SHADE = new THREE.MeshLambertMaterial({ color: 0xF2D7A6 });
 const BRASS = new THREE.MeshLambertMaterial({ color: 0xC9A66B });
 const lamp = new THREE.Group();
 const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.02, 16), BRASS);
@@ -1215,16 +1228,11 @@ lamp.add(lampStem);
 const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.12, 16, 1, true), SHADE);
 lampShade.position.y = 0.34;
 lamp.add(lampShade);
-const lampGlow = new THREE.Mesh(
-  new THREE.SphereGeometry(0.04, 8, 8),
-  new THREE.MeshBasicMaterial({ color: 0xFFE6B0 })
-);
-lampGlow.position.y = 0.32;
-lamp.add(lampGlow);
 lamp.position.set(0.40, TABLE.h, -0.12);
 tableGroup.add(lamp);
 
-const lampLight = new THREE.PointLight(0xffc98a, 1.4, 1.6, 2);
+// Lamp is off — present as decor only under daylight
+const lampLight = new THREE.PointLight(0xffc98a, 0, 1.4, 2);
 lampLight.position.set(0.40, TABLE.h + 0.32, -0.12);
 tableGroup.add(lampLight);
 
@@ -1381,7 +1389,7 @@ arm.rotation.y = ARM_PARK;
 let armTravel = 0;         // 0 at the outer groove, 1 at the inner
 
 // a small warm light so the corner reads
-const playerLight = new THREE.PointLight(0xffc98a, 3.2, 2.4, 2);
+const playerLight = new THREE.PointLight(0xffc98a, 0, 2.0, 2);
 playerLight.position.set(ROOM.w / 2 - 0.9, 1.25, -0.4);
 scene.add(playerLight);
 
