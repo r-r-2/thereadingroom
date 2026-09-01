@@ -171,7 +171,10 @@ See `ARCHITECTURE.md` for the how and why of each section.
 10. Face the wall opposite the bookcase: a closed paneled wooden door with
     casing and a knob should sit on the left side of that wall.
 11. Walk left of the bookcase: a wooden reading table with a lamp and
-    plant. You should not be able to walk through it.
+    plant. You should not be able to walk through it. Each `reading`
+    book should show a burgundy ribbon bookmark in the pages, at a
+    depth matching its progress; pull it out and the ribbon stays put.
+    Cover-mode should leave table books (and their ribbons) alone.
 12. Walk to the turntable, click to stop/start the record.
 13. Check the browser console for errors. The global `error` handler on the
     loading div will surface module-level throws.
