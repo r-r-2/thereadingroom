@@ -128,6 +128,9 @@ only. Books with `reading` lie cover-up on the reading table to the left
 of the bookcase (`placeTableBooks`). The first four sit in a row on the
 tabletop; further titles stack on the leftmost book, each still its own
 interactable. Cover-mode does not stand them up or send them to a shelf.
+Each table book gets a burgundy ribbon child (`addBookmark`) inserted
+through the page block at `reading / 100` and sticking out of the
+table-front edge; it is posed once and rides with pull-out.
 
 Each shelf book is offset from the previous by its thickness plus a 4 mm
 gap. A small random Z-lean (`rotation.z ±0.015 rad`) keeps them from

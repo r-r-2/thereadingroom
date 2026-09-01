@@ -1238,6 +1238,27 @@ tableGroup.add(lampLight);
 
 succulent(0.42, TABLE.h, 0.14, 0, 1.05, tableGroup);
 
+/* Ribbon tucked into the page block of a cover-up table book.
+   Posed once from `reading` (0–100); a child of the mesh so pull-out
+   carries it. Local −Y is the table-front edge after z = −π/2. */
+const BOOKMARK_MAT = new THREE.MeshLambertMaterial({ color: 0x8B3A3A });
+
+function addBookmark(mesh, b) {
+  const depth = mesh.userData.depth;
+  const p = Math.min(100, Math.max(0, b.reading)) / 100;
+  const half = b.th / 2;
+  const inset = 0.002;
+  const tab = 0.025;
+  const len = 0.055;
+  const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.002, len, 0.018), BOOKMARK_MAT);
+  ribbon.position.set(
+    (half - inset) * (1 - p) + (-half + inset) * p,
+    -b.h / 2 - tab + len / 2,
+    depth * 0.22
+  );
+  mesh.add(ribbon);
+}
+
 function placeTableBooks() {
   const reading = BOOKS.filter((b) => b.reading);
   const LAYER = 4;
@@ -1249,6 +1270,7 @@ function placeTableBooks() {
 
   reading.forEach((b, i) => {
     const mesh = makeBookMesh(b);
+    addBookmark(mesh, b);
     const d = mesh.userData.depth;
     const nest = new THREE.Group();
     mesh.rotation.z = -Math.PI / 2;
