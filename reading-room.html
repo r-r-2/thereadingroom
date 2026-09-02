@@ -1365,19 +1365,36 @@ const standPanelZ = carcassD / 2 + 0.01;
 // back panel so the stand doesn't read hollow from behind
 standBox(carcassW - 0.02, STAND_BODY_H - 0.04, 0.015, WOOD_DARK, 0, standPanelY, -carcassD / 2 - 0.005);
 
-// tapered splayed legs — taller and more open, classic mid-century
-const standLegInsetX = STAND.w / 2 - 0.07;
-const standLegInsetZ = STAND.d / 2 - 0.06;
-const standSplay = 0.16; // ~9°
+/* Tapered splayed legs. Pivot from the TOP under each carcass corner
+   so the feet kick out without leaving a gap at the join. A small
+   mounting block ties each leg into the underside. */
+const standSplay = 0.12; // ~7°
+const legMountX = carcassW / 2 - 0.03;
+const legMountZ = carcassD / 2 - 0.03;
 [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
-  const leg = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.024, 0.012, STAND_LEG_H, 8),
+  const mount = new THREE.Group();
+  mount.position.set(sx * legMountX, STAND_LEG_H, sz * legMountZ);
+  // splay: foot swings outward; top stays put
+  mount.rotation.z = -sx * standSplay;
+  mount.rotation.x = sz * standSplay;
+
+  const block = new THREE.Mesh(
+    new THREE.BoxGeometry(0.055, 0.035, 0.055),
     WOOD_DARK
   );
-  leg.position.set(sx * standLegInsetX, STAND_LEG_H / 2, sz * standLegInsetZ);
-  leg.rotation.z = -sx * standSplay;
-  leg.rotation.x = sz * standSplay;
-  player.add(leg);
+  // sits mostly into the carcass so the join reads solid
+  block.position.y = 0.008;
+  mount.add(block);
+
+  const leg = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.022, 0.011, STAND_LEG_H + 0.02, 8),
+    WOOD_DARK
+  );
+  // top of cylinder buried into the block/carcass
+  leg.position.y = -(STAND_LEG_H + 0.02) / 2 + 0.012;
+  mount.add(leg);
+
+  player.add(mount);
 });
 
 // LP sleeve stack beside the plinth (local +X)
