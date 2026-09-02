@@ -1321,10 +1321,79 @@ const PLINTH = new THREE.MeshLambertMaterial({ color: 0xB68C5C });
 const METAL = new THREE.MeshLambertMaterial({ color: 0x9a9691 });
 const FELT = new THREE.MeshLambertMaterial({ color: 0x2b2a2e });
 
-// credenza it sits on
-const credenza = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.72, 0.46), PLINTH);
-credenza.position.set(0, 0.36, 0);
-player.add(credenza);
+/* Mid-century console stand. Top surface stays at 0.72 so the plinth,
+   platter, and tonearm geometry above it need no retuning. */
+const STAND = { w: 1.15, d: 0.46, h: 0.72 };
+const STAND_LEG_H = 0.14;
+const STAND_BODY_H = STAND.h - 0.04 - STAND_LEG_H;
+
+function standBox(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  player.add(m);
+  return m;
+}
+
+// top slab with a slight overhang
+standBox(STAND.w + 0.04, 0.04, STAND.d + 0.04, WOOD, 0, STAND.h - 0.02, 0);
+
+// carcass inset to leave room for splayed legs
+const carcassW = STAND.w - 0.12;
+const carcassD = STAND.d - 0.08;
+standBox(carcassW, STAND_BODY_H, carcassD, WOOD_DARK, 0, STAND_LEG_H + STAND_BODY_H / 2, 0);
+
+// three drawer fronts on the room-facing side (+Z)
+const panelGap = 0.012;
+const panelW = (carcassW - 0.06 - panelGap * 2) / 3;
+const panelH = STAND_BODY_H - 0.08;
+const panelY = STAND_LEG_H + STAND_BODY_H / 2;
+const panelZ = carcassD / 2 + 0.008;
+[-1, 0, 1].forEach((i) => {
+  const px = i * (panelW + panelGap);
+  standBox(panelW, panelH, 0.02, WOOD, px, panelY, panelZ);
+  // brass bar pull
+  const pull = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.006, 0.008), BRASS);
+  pull.position.set(px, panelY, panelZ + 0.014);
+  player.add(pull);
+});
+// thin vertical gaps between drawers
+[-0.5, 0.5].forEach((i) => {
+  standBox(0.006, panelH + 0.02, 0.01, WOOD_DARK, i * (panelW + panelGap), panelY, panelZ + 0.002);
+});
+
+// back panel so the stand doesn't read hollow from behind
+standBox(carcassW - 0.02, STAND_BODY_H - 0.04, 0.015, WOOD_DARK, 0, panelY, -carcassD / 2 - 0.005);
+
+// tapered splayed legs
+const legInsetX = STAND.w / 2 - 0.06;
+const legInsetZ = STAND.d / 2 - 0.05;
+const splay = 0.12; // ~7°
+[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+  const leg = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.022, 0.015, STAND_LEG_H, 6),
+    WOOD_DARK
+  );
+  leg.position.set(sx * legInsetX, STAND_LEG_H / 2, sz * legInsetZ);
+  leg.rotation.z = -sx * splay;
+  leg.rotation.x = sz * splay;
+  player.add(leg);
+});
+
+// LP sleeve stack beside the plinth (local +X)
+const SLEEVE = [
+  { c: 0x2A3A4A, y: 0 },
+  { c: 0x5C3A2E, y: 0.012 },
+  { c: 0x3A4A3A, y: 0.024 },
+];
+SLEEVE.forEach(({ c, y }) => {
+  const sleeve = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.01, 0.28),
+    new THREE.MeshLambertMaterial({ color: c })
+  );
+  sleeve.position.set(0.42, STAND.h + 0.005 + y, 0.02);
+  sleeve.rotation.y = 0.08 + y * 2;
+  player.add(sleeve);
+});
 
 // plinth
 const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.09, 0.42), PLINTH);
