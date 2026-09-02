@@ -1369,19 +1369,22 @@ standBox(carcassW - 0.02, STAND_BODY_H - 0.04, 0.015, WOOD_DARK, 0, standPanelY,
    No taper, no splay: vertical posts under each corner. */
 const apronH = 0.05;
 const apronY = STAND_LEG_H - apronH / 2;
-standBox(carcassW, apronH, 0.04, WOOD_DARK, 0, apronY, carcassD / 2 - 0.015);
-standBox(carcassW, apronH, 0.04, WOOD_DARK, 0, apronY, -carcassD / 2 + 0.015);
-standBox(0.04, apronH, carcassD - 0.04, WOOD_DARK, carcassW / 2 - 0.015, apronY, 0);
-standBox(0.04, apronH, carcassD - 0.04, WOOD_DARK, -carcassW / 2 + 0.015, apronY, 0);
-
 const legW = 0.048;
 const standLegInsetX = carcassW / 2 - legW / 2 - 0.01;
 const standLegInsetZ = carcassD / 2 - legW / 2 - 0.01;
+// apron rails sit BETWEEN the legs so corners stay a single clean post
+const apronSpanX = standLegInsetX * 2 - legW - 0.01;
+const apronSpanZ = standLegInsetZ * 2 - legW - 0.01;
+standBox(apronSpanX, apronH, 0.035, WOOD_DARK, 0, apronY, carcassD / 2 - 0.015);
+standBox(apronSpanX, apronH, 0.035, WOOD_DARK, 0, apronY, -carcassD / 2 + 0.015);
+standBox(0.035, apronH, apronSpanZ, WOOD_DARK, carcassW / 2 - 0.015, apronY, 0);
+standBox(0.035, apronH, apronSpanZ, WOOD_DARK, -carcassW / 2 + 0.015, apronY, 0);
+
 [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
-  // full height from floor into the apron/carcass so the join is solid
+  // full height from floor into the carcass so the join is solid
   standBox(
-    legW, STAND_LEG_H + 0.02, legW, WOOD_DARK,
-    sx * standLegInsetX, (STAND_LEG_H + 0.02) / 2 - 0.005, sz * standLegInsetZ
+    legW, STAND_LEG_H + 0.025, legW, WOOD_DARK,
+    sx * standLegInsetX, (STAND_LEG_H + 0.025) / 2 - 0.005, sz * standLegInsetZ
   );
 });
 
