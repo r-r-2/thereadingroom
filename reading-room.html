@@ -1351,10 +1351,10 @@ const standPanelZ = carcassD / 2 + 0.01;
 [-1, 0, 1].forEach((i) => {
   const px = i * (standPanelW + standPanelGap);
   standBox(standPanelW, standPanelH, 0.022, WOOD, px, standPanelY, standPanelZ);
-  // brass bar pull
-  const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.07, 8), BRASS);
+  // brass bar pull — sized to read at room distance
+  const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.09, 8), BRASS);
   pull.rotation.z = Math.PI / 2;
-  pull.position.set(px, standPanelY + standPanelH * 0.12, standPanelZ + 0.016);
+  pull.position.set(px, standPanelY + standPanelH * 0.18, standPanelZ + 0.018);
   player.add(pull);
 });
 // thin vertical gaps between drawers
