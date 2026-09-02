@@ -1365,35 +1365,36 @@ const standPanelZ = carcassD / 2 + 0.01;
 // back panel so the stand doesn't read hollow from behind
 standBox(carcassW - 0.02, STAND_BODY_H - 0.04, 0.015, WOOD_DARK, 0, standPanelY, -carcassD / 2 - 0.005);
 
-/* Tapered splayed legs. Pivot from the TOP under each carcass corner
-   so the feet kick out without leaving a gap at the join. A small
-   mounting block ties each leg into the underside. */
-const standSplay = 0.12; // ~7°
-const legMountX = carcassW / 2 - 0.03;
-const legMountZ = carcassD / 2 - 0.03;
+/* Legs + apron. Corner blocks and apron stay flush with the carcass;
+   only the tapered shafts splay, pivoting from the block so the join
+   never opens a gap. */
+const apronY = STAND_LEG_H - 0.015;
+standBox(carcassW - 0.02, 0.04, 0.035, WOOD_DARK, 0, apronY, carcassD / 2 - 0.01);
+standBox(carcassW - 0.02, 0.04, 0.035, WOOD_DARK, 0, apronY, -carcassD / 2 + 0.01);
+standBox(0.035, 0.04, carcassD - 0.02, WOOD_DARK, carcassW / 2 - 0.01, apronY, 0);
+standBox(0.035, 0.04, carcassD - 0.02, WOOD_DARK, -carcassW / 2 + 0.01, apronY, 0);
+
+const standSplay = 0.10; // ~6°
+const legMountX = carcassW / 2 - 0.028;
+const legMountZ = carcassD / 2 - 0.028;
 [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+  // unrotated block — flush under the carcass corner
+  standBox(0.06, 0.045, 0.06, WOOD_DARK, sx * legMountX, STAND_LEG_H - 0.005, sz * legMountZ);
+
   const mount = new THREE.Group();
-  mount.position.set(sx * legMountX, STAND_LEG_H, sz * legMountZ);
-  // splay: foot swings outward; top stays put
+  // pivot at the underside of the block
+  mount.position.set(sx * legMountX, STAND_LEG_H - 0.02, sz * legMountZ);
   mount.rotation.z = -sx * standSplay;
   mount.rotation.x = sz * standSplay;
 
-  const block = new THREE.Mesh(
-    new THREE.BoxGeometry(0.055, 0.035, 0.055),
-    WOOD_DARK
-  );
-  // sits mostly into the carcass so the join reads solid
-  block.position.y = 0.008;
-  mount.add(block);
-
+  const shaftH = STAND_LEG_H - 0.01;
   const leg = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.022, 0.011, STAND_LEG_H + 0.02, 8),
+    new THREE.CylinderGeometry(0.02, 0.01, shaftH, 8),
     WOOD_DARK
   );
-  // top of cylinder buried into the block/carcass
-  leg.position.y = -(STAND_LEG_H + 0.02) / 2 + 0.012;
+  // bury the top into the block so the shaft reads continuous
+  leg.position.y = -shaftH / 2 + 0.015;
   mount.add(leg);
-
   player.add(mount);
 });
 
