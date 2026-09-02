@@ -1365,37 +1365,24 @@ const standPanelZ = carcassD / 2 + 0.01;
 // back panel so the stand doesn't read hollow from behind
 standBox(carcassW - 0.02, STAND_BODY_H - 0.04, 0.015, WOOD_DARK, 0, standPanelY, -carcassD / 2 - 0.005);
 
-/* Legs + apron. Corner blocks and apron stay flush with the carcass;
-   only the tapered shafts splay, pivoting from the block so the join
-   never opens a gap. */
-const apronY = STAND_LEG_H - 0.015;
-standBox(carcassW - 0.02, 0.04, 0.035, WOOD_DARK, 0, apronY, carcassD / 2 - 0.01);
-standBox(carcassW - 0.02, 0.04, 0.035, WOOD_DARK, 0, apronY, -carcassD / 2 + 0.01);
-standBox(0.035, 0.04, carcassD - 0.02, WOOD_DARK, carcassW / 2 - 0.01, apronY, 0);
-standBox(0.035, 0.04, carcassD - 0.02, WOOD_DARK, -carcassW / 2 + 0.01, apronY, 0);
+/* Straight square legs + apron — same vocabulary as the reading table.
+   No taper, no splay: vertical posts under each corner. */
+const apronH = 0.05;
+const apronY = STAND_LEG_H - apronH / 2;
+standBox(carcassW, apronH, 0.04, WOOD_DARK, 0, apronY, carcassD / 2 - 0.015);
+standBox(carcassW, apronH, 0.04, WOOD_DARK, 0, apronY, -carcassD / 2 + 0.015);
+standBox(0.04, apronH, carcassD - 0.04, WOOD_DARK, carcassW / 2 - 0.015, apronY, 0);
+standBox(0.04, apronH, carcassD - 0.04, WOOD_DARK, -carcassW / 2 + 0.015, apronY, 0);
 
-const standSplay = 0.10; // ~6°
-const legMountX = carcassW / 2 - 0.028;
-const legMountZ = carcassD / 2 - 0.028;
+const legW = 0.048;
+const standLegInsetX = carcassW / 2 - legW / 2 - 0.01;
+const standLegInsetZ = carcassD / 2 - legW / 2 - 0.01;
 [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
-  // unrotated block — flush under the carcass corner
-  standBox(0.06, 0.045, 0.06, WOOD_DARK, sx * legMountX, STAND_LEG_H - 0.005, sz * legMountZ);
-
-  const mount = new THREE.Group();
-  // pivot at the underside of the block
-  mount.position.set(sx * legMountX, STAND_LEG_H - 0.02, sz * legMountZ);
-  mount.rotation.z = -sx * standSplay;
-  mount.rotation.x = sz * standSplay;
-
-  const shaftH = STAND_LEG_H - 0.01;
-  const leg = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.02, 0.01, shaftH, 8),
-    WOOD_DARK
+  // full height from floor into the apron/carcass so the join is solid
+  standBox(
+    legW, STAND_LEG_H + 0.02, legW, WOOD_DARK,
+    sx * standLegInsetX, (STAND_LEG_H + 0.02) / 2 - 0.005, sz * standLegInsetZ
   );
-  // bury the top into the block so the shaft reads continuous
-  leg.position.y = -shaftH / 2 + 0.015;
-  mount.add(leg);
-  player.add(mount);
 });
 
 // LP sleeve stack beside the plinth (local +X)
