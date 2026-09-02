@@ -1343,39 +1343,39 @@ const carcassD = STAND.d - 0.08;
 standBox(carcassW, STAND_BODY_H, carcassD, WOOD_DARK, 0, STAND_LEG_H + STAND_BODY_H / 2, 0);
 
 // three drawer fronts on the room-facing side (+Z)
-const panelGap = 0.012;
-const panelW = (carcassW - 0.06 - panelGap * 2) / 3;
-const panelH = STAND_BODY_H - 0.08;
-const panelY = STAND_LEG_H + STAND_BODY_H / 2;
-const panelZ = carcassD / 2 + 0.008;
+const standPanelGap = 0.012;
+const standPanelW = (carcassW - 0.06 - standPanelGap * 2) / 3;
+const standPanelH = STAND_BODY_H - 0.08;
+const standPanelY = STAND_LEG_H + STAND_BODY_H / 2;
+const standPanelZ = carcassD / 2 + 0.008;
 [-1, 0, 1].forEach((i) => {
-  const px = i * (panelW + panelGap);
-  standBox(panelW, panelH, 0.02, WOOD, px, panelY, panelZ);
+  const px = i * (standPanelW + standPanelGap);
+  standBox(standPanelW, standPanelH, 0.02, WOOD, px, standPanelY, standPanelZ);
   // brass bar pull
   const pull = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.006, 0.008), BRASS);
-  pull.position.set(px, panelY, panelZ + 0.014);
+  pull.position.set(px, standPanelY, standPanelZ + 0.014);
   player.add(pull);
 });
 // thin vertical gaps between drawers
 [-0.5, 0.5].forEach((i) => {
-  standBox(0.006, panelH + 0.02, 0.01, WOOD_DARK, i * (panelW + panelGap), panelY, panelZ + 0.002);
+  standBox(0.006, standPanelH + 0.02, 0.01, WOOD_DARK, i * (standPanelW + standPanelGap), standPanelY, standPanelZ + 0.002);
 });
 
 // back panel so the stand doesn't read hollow from behind
-standBox(carcassW - 0.02, STAND_BODY_H - 0.04, 0.015, WOOD_DARK, 0, panelY, -carcassD / 2 - 0.005);
+standBox(carcassW - 0.02, STAND_BODY_H - 0.04, 0.015, WOOD_DARK, 0, standPanelY, -carcassD / 2 - 0.005);
 
 // tapered splayed legs
-const legInsetX = STAND.w / 2 - 0.06;
-const legInsetZ = STAND.d / 2 - 0.05;
-const splay = 0.12; // ~7°
+const standLegInsetX = STAND.w / 2 - 0.06;
+const standLegInsetZ = STAND.d / 2 - 0.05;
+const standSplay = 0.12; // ~7°
 [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
   const leg = new THREE.Mesh(
     new THREE.CylinderGeometry(0.022, 0.015, STAND_LEG_H, 6),
     WOOD_DARK
   );
-  leg.position.set(sx * legInsetX, STAND_LEG_H / 2, sz * legInsetZ);
-  leg.rotation.z = -sx * splay;
-  leg.rotation.x = sz * splay;
+  leg.position.set(sx * standLegInsetX, STAND_LEG_H / 2, sz * standLegInsetZ);
+  leg.rotation.z = -sx * standSplay;
+  leg.rotation.x = sz * standSplay;
   player.add(leg);
 });
 
