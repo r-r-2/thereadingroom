@@ -20,7 +20,7 @@ THREE.Scene
 ├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.15) — book nook
 │   ├── landscape view plane (canvas texture) + wood frame / mullion
 │   ├── bench base, drawers, cushion, pillows, throw
-│   ├── flanking book towers (shelves, LED lip strips, prop books, decor)
+│   ├── flanking curio towers (framed art, ceramics, sculptures; books as accents)
 │   ├── brass sconces (×2)
 │   └── (windowLight is scene-parented, not in this group)
 ├── wallSwitch (Group, back wall left of the bookcase)

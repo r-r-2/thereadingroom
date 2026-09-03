@@ -567,7 +567,10 @@ throwG.position.set(0.88, cushTop + 0.02, NOOK.seatD * 0.55);
 throwG.rotation.y = 0.55;
 windowGroup.add(throwG);
 
-/* ---- flanking book towers ---- */
+/* ---- flanking towers as curio cabinets ----
+   Books only as small accents; shelves hold framed art, ceramics,
+   sculptures, and keepsakes so the bay does not read as a second
+   bookcase. */
 function nookPropBook(parent, x, y, z, th, h, depth, color, upright = true) {
   const mat = new THREE.MeshLambertMaterial({ color });
   if (upright) {
@@ -575,6 +578,103 @@ function nookPropBook(parent, x, y, z, th, h, depth, color, upright = true) {
   } else {
     nookBox(h, th, depth, mat, x, y + th / 2, z, parent);
   }
+}
+
+function nookFrame(parent, x, y, z, w, h, bg, ink, lines) {
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, 0.014),
+    new THREE.MeshLambertMaterial({ color: 0xD8CBB8 })
+  );
+  g.add(frame);
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 160;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 128, 160);
+  ctx.fillStyle = ink;
+  ctx.font = 'italic 300 18px Georgia, serif';
+  ctx.textAlign = 'center';
+  lines.forEach((line, i) => ctx.fillText(line, 64, 70 + i * 24));
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const art = new THREE.Mesh(
+    new THREE.PlaneGeometry(w * 0.82, h * 0.82),
+    new THREE.MeshLambertMaterial({ map: tex })
+  );
+  art.position.z = 0.008;
+  g.add(art);
+  g.position.set(x, y + h / 2, z);
+  g.rotation.y = -0.08;
+  parent.add(g);
+  return g;
+}
+
+function nookCeramic(parent, x, y, z, r, hh, color) {
+  const pot = new THREE.Mesh(
+    new THREE.CylinderGeometry(r * 0.85, r, hh, 12),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  pot.position.set(x, y + hh / 2, z);
+  parent.add(pot);
+  return pot;
+}
+
+function nookSculpture(parent, x, y, z, kind) {
+  const g = new THREE.Group();
+  if (kind === 'bust') {
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.034, 0.02, 10), NOOK_BRASS);
+    base.position.y = 0.01;
+    g.add(base);
+    const torso = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.022, 0.032, 0.05, 10),
+      new THREE.MeshLambertMaterial({ color: 0xD2C4B0 })
+    );
+    torso.position.y = 0.045;
+    g.add(torso);
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.028, 12, 10),
+      new THREE.MeshLambertMaterial({ color: 0xDDD0BC })
+    );
+    head.position.y = 0.09;
+    g.add(head);
+  } else if (kind === 'orb') {
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.028, 0.025, 10), NOOK_BRASS);
+    stand.position.y = 0.012;
+    g.add(stand);
+    const orb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.04, 14, 12),
+      new THREE.MeshLambertMaterial({ color: 0x8A9E8A })
+    );
+    orb.position.y = 0.065;
+    g.add(orb);
+  } else {
+    nookBox(0.06, 0.04, 0.05, new THREE.MeshLambertMaterial({ color: 0xB8A48E }), 0, 0.02, 0, g);
+    nookBox(0.04, 0.05, 0.04, new THREE.MeshLambertMaterial({ color: 0x9A8B78 }), 0.01, 0.065, 0, g);
+  }
+  g.position.set(x, y, z);
+  parent.add(g);
+  return g;
+}
+
+function nookCandle(parent, x, y, z, hh = 0.08) {
+  const g = new THREE.Group();
+  const wax = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.018, 0.02, hh, 10),
+    new THREE.MeshLambertMaterial({ color: 0xF2E6D0 })
+  );
+  wax.position.y = hh / 2;
+  g.add(wax);
+  const flame = new THREE.Mesh(
+    new THREE.SphereGeometry(0.008, 6, 6),
+    new THREE.MeshBasicMaterial({ color: 0xFFCC88 })
+  );
+  flame.scale.set(1, 1.6, 1);
+  flame.position.y = hh + 0.01;
+  g.add(flame);
+  g.position.set(x, y, z);
+  parent.add(g);
+  return g;
 }
 
 function buildNookTower(side) {
@@ -605,69 +705,90 @@ function buildNookTower(side) {
     nookBox(NOOK.towerW - 0.12, 0.006, 0.012, stripMat, 0, y + 0.018, NOOK.towerD - 0.04, g);
   });
 
-  /* Fill open shelves: upright row + a short horizontal stack */
-  const bookZ = NOOK.towerD * 0.62;
-  const bookD = 0.14;
-  shelfYs.forEach((y, si) => {
-    if (si === shelfYs.length - 1) return;
-    const boardTop = y + 0.014;
-    let cx = -NOOK.towerW / 2 + 0.10;
-    const endX = NOOK.towerW / 2 - 0.22;
-    let i = 0;
-    while (cx < endX - 0.02) {
-      const th = 0.016 + (i % 4) * 0.004;
-      const hh = 0.15 + ((i + si * 2) % 5) * 0.016;
-      nookPropBook(g, cx + th / 2, boardTop, bookZ, th, hh, bookD,
-        NOOK_SPINE[(i * 3 + si * 2 + (side > 0 ? 4 : 0)) % NOOK_SPINE.length]);
-      cx += th + 0.003;
-      i++;
-    }
-    const stackX = NOOK.towerW / 2 - 0.14;
-    for (let k = 0; k < 2 + (si % 2); k++) {
-      nookPropBook(g, stackX, boardTop + k * 0.022, bookZ, 0.02, 0.13, bookD - 0.02,
-        NOOK_SPINE[(si + k + 6) % NOOK_SPINE.length], false);
-    }
-  });
+  const z = NOOK.towerD * 0.62;
+  const y0 = shelfYs[0] + 0.014;
+  const y1 = shelfYs[1] + 0.014;
+  const y2 = shelfYs[2] + 0.014;
+  const y3 = shelfYs[3] + 0.014;
 
-  /* Small props on the top open shelf */
-  const topY = shelfYs[shelfYs.length - 1] + 0.014;
   if (side < 0) {
+    /* Left curio: framed art, bust, candles, globe */
+    nookFrame(g, -0.12, y0, z, 0.16, 0.20, '#F4EFE6', '#7A6A58', ['slow', 'mornings']);
+    nookCeramic(g, 0.18, y0, z, 0.04, 0.055, 0xC9B8A0);
+
+    nookSculpture(g, -0.14, y1, z, 'bust');
+    nookPropBook(g, 0.10, y1, z, 0.02, 0.15, 0.12, NOOK_SPINE[2]);
+    nookPropBook(g, 0.13, y1, z, 0.018, 0.13, 0.12, NOOK_SPINE[6]);
+
+    nookCandle(g, -0.16, y2, z, 0.09);
+    nookCandle(g, -0.06, y2, z, 0.06);
+    nookCeramic(g, 0.16, y2, z, 0.035, 0.07, 0x8A9A7A);
+    const leafL = new THREE.Mesh(
+      new THREE.SphereGeometry(0.025, 8, 6),
+      new THREE.MeshLambertMaterial({ color: 0x5A7A48 })
+    );
+    leafL.position.set(0.16, y2 + 0.09, z);
+    leafL.scale.set(1, 0.7, 1);
+    g.add(leafL);
+
     const globe = new THREE.Group();
     const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.028, 0.02, 10), NOOK_BRASS);
     stand.position.y = 0.01;
     globe.add(stand);
     const ball = new THREE.Mesh(
-      new THREE.SphereGeometry(0.045, 14, 12),
+      new THREE.SphereGeometry(0.05, 14, 12),
       new THREE.MeshLambertMaterial({ color: 0x6A8A9A })
     );
-    ball.position.y = 0.06;
+    ball.position.y = 0.065;
     globe.add(ball);
-    globe.position.set(-0.14, topY, bookZ);
+    globe.position.set(-0.08, y3, z);
     g.add(globe);
-    nookPropBook(g, 0.10, topY, bookZ, 0.02, 0.15, bookD, NOOK_SPINE[1]);
-    nookPropBook(g, 0.13, topY, bookZ, 0.018, 0.13, bookD, NOOK_SPINE[5]);
-    nookPropBook(g, 0.16, topY, bookZ, 0.022, 0.17, bookD, NOOK_SPINE[8]);
+    nookPropBook(g, 0.16, y3, z, 0.02, 0.14, 0.11, NOOK_SPINE[1], false);
   } else {
+    /* Right curio: frame, vase, sculpture, clock */
+    nookFrame(g, 0.10, y0, z, 0.15, 0.18, '#E8F0EA', '#5A6A58', ['open', 'windows']);
+    nookPropBook(g, -0.20, y0, z, 0.02, 0.14, 0.12, NOOK_SPINE[4]);
+    nookPropBook(g, -0.17, y0, z, 0.018, 0.16, 0.12, NOOK_SPINE[0]);
+
+    const vaseR = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.028, 0.022, 0.11, 12),
+      new THREE.MeshLambertMaterial({ color: 0xB8C4C8 })
+    );
+    vaseR.position.set(-0.14, y1 + 0.055, z);
+    g.add(vaseR);
+    for (let i = 0; i < 5; i++) {
+      const blossom = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 8, 6),
+        new THREE.MeshLambertMaterial({ color: i % 2 ? 0xE9AFA0 : 0xF0C3B4 })
+      );
+      blossom.position.set(
+        -0.14 + (i - 2) * 0.012,
+        y1 + 0.12 + (i % 3) * 0.01,
+        z + (i % 2) * 0.01
+      );
+      g.add(blossom);
+    }
+    nookSculpture(g, 0.16, y1, z, 'blocks');
+
+    nookSculpture(g, -0.14, y2, z, 'orb');
+    nookCandle(g, 0.08, y2, z, 0.07);
+    nookCeramic(g, 0.20, y2, z, 0.03, 0.05, 0xD4C2A8);
+
     const clock = new THREE.Mesh(
       new THREE.CylinderGeometry(0.055, 0.055, 0.03, 16),
       NOOK_BRASS
     );
     clock.rotation.x = Math.PI / 2;
-    clock.position.set(-0.16, topY + 0.055, bookZ);
+    clock.position.set(-0.12, y3 + 0.055, z);
     g.add(clock);
     const face = new THREE.Mesh(
       new THREE.CircleGeometry(0.045, 16),
       new THREE.MeshLambertMaterial({ color: 0xF5F0E6 })
     );
-    face.position.set(-0.16, topY + 0.055, bookZ + 0.016);
+    face.position.set(-0.12, y3 + 0.055, z + 0.016);
     g.add(face);
-    const vase = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.025, 0.032, 0.12, 10),
-      new THREE.MeshLambertMaterial({ color: 0xC9B8A0 })
-    );
-    vase.position.set(0.14, topY + 0.06, bookZ);
-    g.add(vase);
-    nookPropBook(g, 0.22, topY, bookZ, 0.018, 0.14, bookD, NOOK_SPINE[3], false);
+    nookPropBook(g, 0.14, y3, z, 0.02, 0.13, 0.11, NOOK_SPINE[7], false);
+    nookPropBook(g, 0.14, y3 + 0.022, z, 0.018, 0.12, 0.11, NOOK_SPINE[3], false);
   }
 
   windowGroup.add(g);
