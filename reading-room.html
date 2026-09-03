@@ -567,17 +567,6 @@ throwG.position.set(0.88, cushTop + 0.02, NOOK.seatD * 0.55);
 throwG.rotation.y = 0.55;
 windowGroup.add(throwG);
 
-/* Open book prop on the cushion (decor only) */
-const openBook = new THREE.Group();
-const PAGE = new THREE.MeshLambertMaterial({ color: 0xF4F0E6 });
-const COVER_DK = new THREE.MeshLambertMaterial({ color: 0x2C3A4A });
-nookBox(0.18, 0.01, 0.24, PAGE, 0, 0.005, 0, openBook);
-nookBox(0.085, 0.01, 0.23, COVER_DK, -0.048, 0.016, 0, openBook);
-nookBox(0.085, 0.01, 0.23, COVER_DK, 0.048, 0.016, 0, openBook);
-openBook.position.set(0.05, cushTop + 0.01, NOOK.seatD * 0.52);
-openBook.rotation.y = -0.65;
-windowGroup.add(openBook);
-
 /* ---- flanking book towers ---- */
 function nookPropBook(parent, x, y, z, th, h, depth, color, upright = true) {
   const mat = new THREE.MeshLambertMaterial({ color });

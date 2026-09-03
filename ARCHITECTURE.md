@@ -19,7 +19,7 @@ THREE.Scene
 │   └── knob (sphere + stem + backplate)
 ├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.15) — book nook
 │   ├── landscape view plane (canvas texture) + wood frame / mullion
-│   ├── bench base, drawers, cushion, pillows, throw, open-book prop
+│   ├── bench base, drawers, cushion, pillows, throw
 │   ├── flanking book towers (shelves, LED lip strips, prop books, decor)
 │   ├── brass sconces (×2)
 │   └── (windowLight is scene-parented, not in this group)
