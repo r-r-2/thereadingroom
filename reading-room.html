@@ -888,7 +888,7 @@ const SETTINGS = {
   fillColor: '#fff4ea',
   washIntensity: 0,
   washColor: '#ffe8c8',
-  moveSpeed: 22,
+  moveSpeed: 2.4,
   fov: 68,
   volume: 0.34
 };
@@ -929,7 +929,7 @@ gRoom.add(SETTINGS, 'fov', 45, 100, 1).onChange((v) => {
   camera.fov = v;
   camera.updateProjectionMatrix();
 });
-gRoom.add(SETTINGS, 'moveSpeed', 5, 50, 1);
+gRoom.add(SETTINGS, 'moveSpeed', 0.5, 8, 0.1);
 
 const gSound = gui.addFolder('Sound');
 gSound.add(SETTINGS, 'volume', 0, 1, 0.01).onChange((v) => Music.setVolume(v));
@@ -1809,7 +1809,13 @@ addEventListener('keydown', (e) => { keys[e.code] = true; });
 addEventListener('keyup', (e) => { keys[e.code] = false; });
 
 const velocity = new THREE.Vector3();
+const wishVel = new THREE.Vector3();
 const dir = new THREE.Vector3();
+const moveBefore = new THREE.Vector3();
+const moveIntended = new THREE.Vector3();
+const moveDelta = new THREE.Vector3();
+const moveRightAxis = new THREE.Vector3();
+const moveFwdAxis = new THREE.Vector3();
 const lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 const LOOK_SENS = 0.0048;
 const TAP_PX = 14;
@@ -1909,9 +1915,8 @@ addEventListener('touchmove', (e) => {
   e.preventDefault();
 }, { passive: false });
 
-// acceleration, driven by the tweak panel
-const SPEED = 22;
-const DAMP = 9;        // friction
+// Wish-velocity smoothing: ACCEL is the approach rate toward SETTINGS.moveSpeed.
+const ACCEL = 12;
 const EYE = 1.62;
 
 /* Collision is deliberately crude: keep the player inside the room and
@@ -2094,9 +2099,6 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
 
   if (inRoom) {
-    velocity.x -= velocity.x * DAMP * dt;
-    velocity.z -= velocity.z * DAMP * dt;
-
     /* NOTE: use explicit ternaries, not Number(). keys[code] is undefined
        until that key is first pressed, and Number(undefined) is NaN — which
        propagates into velocity and then into camera.position, permanently
@@ -2108,13 +2110,37 @@ function animate() {
     dir.set(right - left + stickX, 0, fwd - back + stickY);
     if (dir.lengthSq() > 0) dir.normalize();
 
-    if (dir.z) velocity.z -= dir.z * SETTINGS.moveSpeed * dt;
-    if (dir.x) velocity.x -= dir.x * SETTINGS.moveSpeed * dt;
+    wishVel.set(dir.x, 0, dir.z).multiplyScalar(SETTINGS.moveSpeed);
+    const k = 1 - Math.exp(-ACCEL * dt);
+    velocity.x += (wishVel.x - velocity.x) * k;
+    velocity.z += (wishVel.z - velocity.z) * k;
 
     if (!Number.isFinite(velocity.x) || !Number.isFinite(velocity.z)) velocity.set(0, 0, 0);
+
+    moveBefore.copy(camera.position);
     controls.moveRight(-velocity.x * dt);
     controls.moveForward(-velocity.z * dt);
+    moveIntended.copy(camera.position);
     collide(camera.position);
+
+    /* If the AABB clamp corrected position, rebuild local velocity from the
+       movement that actually happened so we slide along walls instead of
+       fighting residual speed into them. */
+    if (
+      Math.abs(camera.position.x - moveIntended.x) > 1e-7 ||
+      Math.abs(camera.position.z - moveIntended.z) > 1e-7
+    ) {
+      moveDelta.subVectors(camera.position, moveBefore);
+      moveDelta.y = 0;
+      moveRightAxis.setFromMatrixColumn(camera.matrix, 0);
+      moveRightAxis.y = 0;
+      if (moveRightAxis.lengthSq() > 0) moveRightAxis.normalize();
+      moveFwdAxis.crossVectors(camera.up, moveRightAxis);
+      if (dt > 1e-8) {
+        velocity.x = -moveDelta.dot(moveRightAxis) / dt;
+        velocity.z = -moveDelta.dot(moveFwdAxis) / dt;
+      }
+    }
 
     // what am I looking at
     raycaster.setFromCamera(CENTER, camera);

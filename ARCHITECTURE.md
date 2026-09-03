@@ -202,12 +202,15 @@ touch laptop/iPad — drag on the canvas yaws/pitches the camera (`YXZ`
 Euler) and a virtual stick on the left feeds the same `dir` vector as
 WASD. `inRoom` gates movement and interaction in both modes.
 
-Movement uses an explicit velocity vector with exponential damping each frame:
+Movement approaches a wish velocity with exponential smoothing each frame
+(`ACCEL = 12`). `SETTINGS.moveSpeed` is the max local speed in m/s
+(default `2.4`, matching the old steady-state of accel `22` / damp `9`):
 
 ```js
-velocity.x -= velocity.x * DAMP * dt;     // DAMP = 9
-velocity.z -= velocity.z * DAMP * dt;
-// ...then add dir * SETTINGS.moveSpeed * dt
+wishVel.set(dir.x, 0, dir.z).multiplyScalar(SETTINGS.moveSpeed);
+const k = 1 - Math.exp(-ACCEL * dt);
+velocity.x += (wishVel.x - velocity.x) * k;
+velocity.z += (wishVel.z - velocity.z) * k;
 ```
 
 Key state is read with explicit ternaries, never `Number(keysMap[code])`.
@@ -223,6 +226,10 @@ Collision is a bounding-box clamp in `collide()`:
    nearest face so the player can walk around it but not through it.
 4. Eye height: `position.y` is always reset to 1.62. There is no
    gravity and no jumping.
+
+When the clamp corrects position, local velocity is rebuilt from the
+actual world delta projected onto the camera's right/forward axes so the
+player slides along surfaces instead of fighting leftover speed into them.
 
 ## Turntable
 
