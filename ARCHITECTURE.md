@@ -16,9 +16,11 @@ THREE.Scene
 ├── doorGroup (Group, front wall left side, opposite bookcase, rotated π)
 │   ├── casing, threshold, closed slab, recessed panels
 │   └── knob (sphere + stem + backplate)
-├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.4)
-│   ├── landscape view plane (canvas texture)
-│   ├── frame rails, mullion, sill
+├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.15) — book nook
+│   ├── landscape view plane (canvas texture) + wood frame / mullion
+│   ├── bench base, drawers, cushion, pillows, throw
+│   ├── flanking curio towers (framed art, ceramics, sculptures; books as accents)
+│   ├── brass sconces (×2)
 │   └── (windowLight is scene-parented, not in this group)
 ├── wallSwitch (Group, back wall left of the bookcase)
 │   ├── lever plate, bezel, pivot, arm, knob
@@ -223,7 +225,10 @@ Collision is a bounding-box clamp in `collide()`:
    tries to move past `CASE_MAX_Z`, clamp z to that boundary.
 3. Reading table AABB: if inside the table's x/z box, push to the
    nearest face so the player can walk around it but not through it.
-4. Eye height: `position.y` is always reset to 1.62. There is no
+4. Book nook AABB: if inside the left-wall bay (bench + flanking
+   towers), push to the nearest face so the seat cannot be walked
+   through.
+5. Eye height: `position.y` is always reset to 1.62. There is no
    gravity and no jumping.
 
 When the clamp corrects position, local velocity is rebuilt from the

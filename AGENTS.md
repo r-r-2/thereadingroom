@@ -107,7 +107,7 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
    lampLight, playerLight.
 4. **Room shell** — floor with procedural plank texture, ceiling, four walls,
    closed door on the front wall (opposite the bookcase), left-wall
-   nature window (canvas view, frame, sill, mullion).
+   book nook (landscape window, bench seat, flanking curio shelves, decor).
 5. **Bookcase frame** — back panel, sides, top, toe board, shelf boards at
    y = 0.42 / 0.90 / 1.38 / 1.86.
 6. **Book meshes** — `makeSpineTexture`, `makeCoverTexture`, `placeBooks()`,
@@ -166,8 +166,10 @@ See `ARCHITECTURE.md` for the how and why of each section.
 8. In both modes, pull a book out and put it back. Cover mode should
    nudge forward only (no extra quarter-turn). Table books (if any
    `reading` entries exist) should stay on the table, lying cover-up.
-9. Face the left wall: a large framed window should show a stylized
-   landscape (mountains, trees, plants) across from the turntable.
+9. Face the left wall: a built-in book nook — large landscape window over a
+   cushioned bench with pillows, flanked by wood curio towers (framed art,
+   ceramics, sculptures; books only as accents) and brass sconces — across
+   from the turntable. You should not be able to walk through the bench.
 10. Face the wall opposite the bookcase: a closed paneled wooden door with
     casing and a knob should sit on the left side of that wall.
 11. Walk left of the bookcase: a wooden reading table with a lamp and
