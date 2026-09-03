@@ -155,7 +155,8 @@ finished.
 
 ---
 
-## 8. Dead `SPEED` constant
+## 8. Dead `SPEED` constant (resolved)
 
-`const SPEED = 22;` is declared at the top of the controls section but is
-never used. The loop reads `SETTINGS.moveSpeed` instead. Safe to remove.
+`const SPEED = 22;` used to sit unused next to `SETTINGS.moveSpeed`. It was
+removed when movement switched to wish-velocity smoothing (`moveSpeed` is
+now max speed in m/s, default `2.4`).
