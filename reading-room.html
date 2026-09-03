@@ -480,11 +480,12 @@ function makeLandscape() {
 
   function drawTree(spec, t) {
     const { tx, baseY, h, colors, phase, fork } = spec;
-    const sway = Math.sin(t * 0.85 + phase) * h * 0.032;
-    const trunkH = h * 0.36;
-    const baseW = h * 0.052;
-    const topW = h * 0.026;
-    const trunkSway = sway * 0.16;
+    const gust = Math.sin(t * 0.9 + phase) * 0.72 + Math.sin(t * 0.33 + phase * 0.4) * 0.28;
+    const sway = gust * h * 0.07;
+    const trunkH = h * 0.38;
+    const baseW = h * 0.055;
+    const topW = h * 0.024;
+    const trunkSway = sway * 0.18;
 
     g.fillStyle = '#4A3528';
     g.beginPath();
@@ -507,19 +508,20 @@ function makeLandscape() {
     }
 
     const cy = baseY - h * 0.52;
+    const tilt = sway * 0.012;
+    /* One wide crown plus side/top lobes — reads as a tree, not stacked balls. */
     const blobs = [
-      [0, -h * 0.08, h * 0.24, h * 0.20, colors[1], 0.75],
-      [-h * 0.16, -h * 0.14, h * 0.18, h * 0.16, colors[0], 0.7],
-      [h * 0.16, -h * 0.12, h * 0.17, h * 0.15, colors[2], 0.72],
-      [-h * 0.05, -h * 0.36, h * 0.16, h * 0.15, colors[0], 1.1],
-      [h * 0.08, -h * 0.32, h * 0.15, h * 0.14, colors[1], 1.05],
-      [0, -h * 0.22, h * 0.20, h * 0.16, colors[2], 0.9],
-      [h * 0.03, -h * 0.28, h * 0.10, h * 0.08, colors[3], 1.0],
+      [0, -h * 0.16, h * 0.30, h * 0.22, colors[1], 0.82],
+      [-h * 0.20, -h * 0.12, h * 0.18, h * 0.17, colors[0], 0.7],
+      [h * 0.20, -h * 0.10, h * 0.17, h * 0.16, colors[2], 0.74],
+      [0.02 * h, -h * 0.36, h * 0.18, h * 0.14, colors[1], 1.15],
+      [-h * 0.08, -h * 0.02, h * 0.18, h * 0.11, colors[0], 0.6],
+      [h * 0.12, -h * 0.28, h * 0.11, h * 0.09, colors[3], 1.08],
     ];
     for (const [ox, oy, rx, ry, color, k] of blobs) {
       g.fillStyle = color;
       g.beginPath();
-      g.ellipse(tx + ox + sway * k, cy + oy, rx, ry, sway * 0.01, 0, Math.PI * 2);
+      g.ellipse(tx + ox + sway * k, cy + oy, rx, ry, tilt, 0, Math.PI * 2);
       g.fill();
     }
   }
@@ -527,7 +529,7 @@ function makeLandscape() {
   function paint(t) {
     g.drawImage(bg, 0, 0);
 
-    g.fillStyle = 'rgba(255,244,228,0.32)';
+    g.fillStyle = 'rgba(255,248,236,0.52)';
     for (const cl of clouds) {
       const span = W + cl.rx * 4;
       const x = ((cl.x + t * cl.speed) % span + span) % span - cl.rx * 2;
@@ -544,7 +546,7 @@ function makeLandscape() {
 
     for (const spec of trees) drawTree(spec, t);
 
-    const lean = Math.sin(t * 1.05) * 0.16;
+    const lean = Math.sin(t * 1.05) * 0.22;
     g.fillStyle = '#4A7A3A';
     for (let i = 0; i < 18; i++) {
       const px = 40 + i * 55 + (i % 3) * 12;
@@ -579,7 +581,6 @@ function makeLandscape() {
 
   return { map, update };
 }
-
 
 /* ============================================================
    BOOK NOOK — built-in window seat on the left wall
