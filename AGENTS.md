@@ -106,7 +106,7 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
 3. **Lights** — ambient, key, fill, shelfWash, windowLight, candleLight,
    lampLight, playerLight.
 4. **Room shell** — floor with procedural plank texture, ceiling, four walls,
-   a rug, closed door on the front wall (opposite the bookcase), left-wall
+   closed door on the front wall (opposite the bookcase), left-wall
    nature window (canvas view, frame, sill, mullion).
 5. **Bookcase frame** — back panel, sides, top, toe board, shelf boards at
    y = 0.42 / 0.90 / 1.38 / 1.86.

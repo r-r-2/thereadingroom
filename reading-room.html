@@ -296,15 +296,6 @@ wall(ROOM.w, ROOM.h, 0xE4DACB, [0, Math.PI, 0], [0, ROOM.h / 2, ROOM.d / 2]);   
 wall(ROOM.d, ROOM.h, 0xE7DDCE, [0, Math.PI / 2, 0], [-ROOM.w / 2, ROOM.h / 2, 0]); // left
 wall(ROOM.d, ROOM.h, 0xE1D7C7, [0, -Math.PI / 2, 0], [ROOM.w / 2, ROOM.h / 2, 0]); // right
 
-/* ---- rug, for a bit of floor interest ---- */
-const rug = new THREE.Mesh(
-  new THREE.PlaneGeometry(3.0, 2.2),
-  new THREE.MeshLambertMaterial({ color: 0xD9CDBA })
-);
-rug.rotation.x = -Math.PI / 2;
-rug.position.set(0, 0.005, 0.7);
-scene.add(rug);
-
 /* Shared wood materials used by the door, window, bookcase, and decor. */
 const WOOD = new THREE.MeshLambertMaterial({ color: 0xC49A68 });
 const WOOD_DARK = new THREE.MeshLambertMaterial({ color: 0x9E7546 });
