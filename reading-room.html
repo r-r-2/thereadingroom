@@ -464,42 +464,259 @@ function landscapeTexture() {
   return t;
 }
 
-/* Tall picture window — nearly wall-height so daylight floods the room. */
-const WIN = { w: 4.2, h: 2.4, sill: 0.28 };
+/* ============================================================
+   BOOK NOOK — built-in window seat on the left wall
+   Inspired by a classic reading bay (bench + flanking shelves),
+   adapted to this room's warm wood language rather than white
+   millwork. Local axes after π/2 yaw: +X along the wall (world −Z),
+   +Z into the room (world +X).
+   ============================================================ */
+const NOOK = {
+  winW: 2.55,
+  winH: 1.92,
+  sill: 0.50,
+  seatW: 2.55,
+  seatD: 0.58,
+  seatH: 0.42,
+  cushionH: 0.07,
+  towerW: 0.70,
+  towerD: 0.32,
+  towerH: 2.55,
+  cabH: 0.78,
+};
 const windowGroup = new THREE.Group();
 windowGroup.position.set(-ROOM.w / 2, 0, -0.15);
 windowGroup.rotation.y = Math.PI / 2;
 scene.add(windowGroup);
 
-const view = new THREE.Mesh(
-  new THREE.PlaneGeometry(WIN.w, WIN.h),
-  /* Basic so the exterior stays bright regardless of indoor lights. */
-  new THREE.MeshBasicMaterial({ map: landscapeTexture() })
-);
-view.position.set(0, WIN.sill + WIN.h / 2, 0.02);
-windowGroup.add(view);
+const NOOK_FABRIC = new THREE.MeshLambertMaterial({ color: 0xE8DFD0 });
+const NOOK_SAGE = new THREE.MeshLambertMaterial({ color: 0x8A9A7A });
+const NOOK_CREAM = new THREE.MeshLambertMaterial({ color: 0xF2EBE0 });
+const NOOK_METAL = new THREE.MeshLambertMaterial({ color: 0x5A5248 });
+const NOOK_BRASS = new THREE.MeshLambertMaterial({ color: 0xC9A66B });
+const NOOK_SPINE = [
+  0x3D2C29, 0x5C4033, 0x2F3A4A, 0x6B4E3D, 0x4A5A48,
+  0x8B6B4A, 0x2A2A2A, 0x7A5C4E, 0x3E4A5C, 0x5A6B52,
+];
 
-const FRAME_T = 0.08;
-const FRAME_D = 0.10;
-const winCy = WIN.sill + WIN.h / 2;
-function winBox(w, h, d, mat, x, y, z) {
+function nookBox(w, h, d, mat, x, y, z, parent = windowGroup) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x, y, z);
-  windowGroup.add(m);
+  parent.add(m);
+  return m;
 }
-winBox(FRAME_T, WIN.h + FRAME_T * 2, FRAME_D, WOOD, -WIN.w / 2 - FRAME_T / 2, winCy, 0.05);
-winBox(FRAME_T, WIN.h + FRAME_T * 2, FRAME_D, WOOD, WIN.w / 2 + FRAME_T / 2, winCy, 0.05);
-winBox(WIN.w + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, WIN.sill + WIN.h + FRAME_T / 2, 0.05);
-winBox(WIN.w + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, WIN.sill - FRAME_T / 2, 0.05);
-winBox(0.05, WIN.h, 0.055, WOOD_DARK, 0, winCy, 0.055);
-winBox(WIN.w, 0.045, 0.055, WOOD_DARK, 0, winCy, 0.055);
-winBox(WIN.w + 0.28, 0.06, 0.18, WOOD, 0, WIN.sill - 0.035, 0.11);
 
-/* Window flood retired — PointLights hotspotted the ceiling. Daylight
-   is directional + hemi only; keep a zeroed light for the harness. */
+/* Landscape still fills the bay — Basic so daylight stays bright. */
+const view = new THREE.Mesh(
+  new THREE.PlaneGeometry(NOOK.winW, NOOK.winH),
+  new THREE.MeshBasicMaterial({ map: landscapeTexture() })
+);
+view.position.set(0, NOOK.sill + NOOK.winH / 2, 0.02);
+windowGroup.add(view);
+
+const FRAME_T = 0.07;
+const FRAME_D = 0.09;
+const winCy = NOOK.sill + NOOK.winH / 2;
+nookBox(FRAME_T, NOOK.winH + FRAME_T * 2, FRAME_D, WOOD, -NOOK.winW / 2 - FRAME_T / 2, winCy, 0.05);
+nookBox(FRAME_T, NOOK.winH + FRAME_T * 2, FRAME_D, WOOD, NOOK.winW / 2 + FRAME_T / 2, winCy, 0.05);
+nookBox(NOOK.winW + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, NOOK.sill + NOOK.winH + FRAME_T / 2, 0.05);
+nookBox(NOOK.winW + FRAME_T * 2, FRAME_T, FRAME_D, WOOD, 0, NOOK.sill - FRAME_T / 2, 0.05);
+/* Light mullion grid — 2×2 panes, not a dense farmhouse sash. */
+nookBox(0.035, NOOK.winH, 0.04, WOOD_DARK, 0, winCy, 0.05);
+nookBox(NOOK.winW, 0.035, 0.04, WOOD_DARK, 0, winCy, 0.05);
+
+/* ---- bench base + drawers ---- */
+const seatTopY = NOOK.seatH;
+nookBox(NOOK.seatW + 0.04, seatTopY, NOOK.seatD, WOOD, 0, seatTopY / 2, NOOK.seatD / 2);
+nookBox(NOOK.seatW + 0.08, 0.04, NOOK.seatD + 0.02, WOOD_DARK, 0, seatTopY + 0.01, NOOK.seatD / 2 + 0.005);
+/* Three drawer faces under the seat */
+const drawerW = (NOOK.seatW - 0.08) / 3;
+for (let i = 0; i < 3; i++) {
+  const dx = -NOOK.seatW / 2 + 0.04 + drawerW / 2 + i * drawerW;
+  nookBox(drawerW - 0.02, seatTopY - 0.10, 0.02, WOOD_DARK, dx, seatTopY / 2 - 0.02, NOOK.seatD + 0.005);
+  nookBox(0.10, 0.012, 0.018, NOOK_METAL, dx, seatTopY / 2 - 0.02, NOOK.seatD + 0.02);
+}
+
+/* Cushion */
+nookBox(NOOK.seatW - 0.06, NOOK.cushionH, NOOK.seatD - 0.06, NOOK_FABRIC,
+  0, seatTopY + 0.02 + NOOK.cushionH / 2, NOOK.seatD / 2 + 0.01);
+
+/* Throw pillows — three, loosely arranged */
+function nookPillow(w, h, d, mat, x, y, z, yaw = 0, roll = 0) {
+  const p = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  p.position.set(x, y, z);
+  p.rotation.y = yaw;
+  p.rotation.z = roll;
+  windowGroup.add(p);
+}
+const cushY = seatTopY + 0.02 + NOOK.cushionH + 0.09;
+nookPillow(0.32, 0.28, 0.12, NOOK_CREAM, -0.72, cushY, NOOK.seatD * 0.62, 0.18, 0.05);
+nookPillow(0.28, 0.26, 0.11, NOOK_SAGE, -0.42, cushY - 0.01, NOOK.seatD * 0.58, -0.25, -0.04);
+nookPillow(0.30, 0.24, 0.10, NOOK_CREAM, 0.78, cushY - 0.02, NOOK.seatD * 0.55, -0.35, 0.08);
+
+/* Folded throw on the right end of the bench */
+const throwG = new THREE.Group();
+nookBox(0.38, 0.045, 0.22, NOOK_CREAM, 0, 0.03, 0, throwG);
+nookBox(0.36, 0.035, 0.20, NOOK_FABRIC, 0.01, 0.065, 0.01, throwG);
+nookBox(0.08, 0.01, 0.18, NOOK_CREAM, -0.22, 0.02, 0.12, throwG);
+nookBox(0.08, 0.01, 0.18, NOOK_CREAM, -0.22, 0.02, -0.12, throwG);
+throwG.position.set(0.95, seatTopY + 0.02 + NOOK.cushionH, NOOK.seatD * 0.45);
+throwG.rotation.y = 0.4;
+windowGroup.add(throwG);
+
+/* Open book prop on the cushion (decor only) */
+const openBook = new THREE.Group();
+nookBox(0.16, 0.012, 0.22, new THREE.MeshLambertMaterial({ color: 0xF4F0E6 }), 0, 0.006, 0, openBook);
+nookBox(0.078, 0.008, 0.21, new THREE.MeshLambertMaterial({ color: 0x2C3A4A }), -0.042, 0.014, 0, openBook);
+nookBox(0.078, 0.008, 0.21, new THREE.MeshLambertMaterial({ color: 0x2C3A4A }), 0.042, 0.014, 0, openBook);
+openBook.position.set(0.12, seatTopY + 0.02 + NOOK.cushionH, NOOK.seatD * 0.48);
+openBook.rotation.y = -0.55;
+windowGroup.add(openBook);
+
+/* ---- flanking book towers ---- */
+function nookPropBook(parent, x, y, z, th, h, depth, color, upright = true) {
+  const mat = new THREE.MeshLambertMaterial({ color });
+  if (upright) {
+    nookBox(th, h, depth, mat, x, y + h / 2, z, parent);
+  } else {
+    nookBox(h, th, depth, mat, x, y + th / 2, z, parent);
+  }
+}
+
+function buildNookTower(side) {
+  const g = new THREE.Group();
+  const sx = side * (NOOK.winW / 2 + FRAME_T + NOOK.towerW / 2 + 0.02);
+  g.position.set(sx, 0, 0);
+
+  /* Carcass */
+  nookBox(NOOK.towerW, NOOK.towerH, 0.03, WOOD_DARK, 0, NOOK.towerH / 2, 0.015, g);
+  nookBox(0.04, NOOK.towerH, NOOK.towerD, WOOD, -NOOK.towerW / 2 + 0.02, NOOK.towerH / 2, NOOK.towerD / 2, g);
+  nookBox(0.04, NOOK.towerH, NOOK.towerD, WOOD, NOOK.towerW / 2 - 0.02, NOOK.towerH / 2, NOOK.towerD / 2, g);
+  nookBox(NOOK.towerW, 0.04, NOOK.towerD, WOOD, 0, NOOK.towerH - 0.02, NOOK.towerD / 2, g);
+  nookBox(NOOK.towerW, 0.04, NOOK.towerD, WOOD, 0, 0.02, NOOK.towerD / 2, g);
+
+  /* Base cabinet door */
+  nookBox(NOOK.towerW - 0.08, NOOK.cabH - 0.08, 0.02, WOOD, 0, NOOK.cabH / 2, NOOK.towerD + 0.005, g);
+  nookBox(0.09, 0.012, 0.016, NOOK_METAL, side * 0.18, NOOK.cabH / 2, NOOK.towerD + 0.02, g);
+
+  /* Open shelf boards above the cabinet */
+  const shelfYs = [NOOK.cabH, 1.22, 1.66, 2.10];
+  shelfYs.forEach((y) => {
+    nookBox(NOOK.towerW - 0.06, 0.028, NOOK.towerD - 0.02, WOOD, 0, y, NOOK.towerD / 2, g);
+  });
+
+  /* Stylized shelf-lip glow strips (emissive, bloom-friendly) */
+  const stripMat = new THREE.MeshBasicMaterial({ color: 0xFFE2B8 });
+  shelfYs.forEach((y) => {
+    nookBox(NOOK.towerW - 0.12, 0.006, 0.012, stripMat, 0, y + 0.018, NOOK.towerD - 0.04, g);
+  });
+
+  /* Decorative upright + stacked books on each open shelf */
+  const depths = NOOK.towerD * 0.55;
+  shelfYs.forEach((y, si) => {
+    if (si === shelfYs.length - 1) return; // top shelf gets objects below
+    const boardTop = y + 0.014;
+    let cx = -NOOK.towerW / 2 + 0.12;
+    const count = 4 + (si % 2);
+    for (let i = 0; i < count; i++) {
+      const th = 0.018 + (i % 3) * 0.004;
+      const hh = 0.16 + ((i + si) % 4) * 0.018;
+      nookPropBook(g, cx + th / 2, boardTop, depths, th, hh, 0.12,
+        NOOK_SPINE[(i * 3 + si * 2 + (side > 0 ? 4 : 0)) % NOOK_SPINE.length]);
+      cx += th + 0.004;
+    }
+    /* One horizontal stack on the right of each shelf */
+    const stackX = NOOK.towerW / 2 - 0.18;
+    for (let k = 0; k < 2 + (si % 2); k++) {
+      nookPropBook(g, stackX, boardTop + k * 0.024, depths, 0.022, 0.14, 0.11,
+        NOOK_SPINE[(si + k + 6) % NOOK_SPINE.length], false);
+    }
+  });
+
+  /* Small props on the top open shelf */
+  const topY = shelfYs[shelfYs.length - 1] + 0.014;
+  if (side < 0) {
+    /* Tiny globe */
+    const globe = new THREE.Group();
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.028, 0.02, 10), NOOK_BRASS);
+    stand.position.y = 0.01;
+    globe.add(stand);
+    const ball = new THREE.Mesh(
+      new THREE.SphereGeometry(0.045, 14, 12),
+      new THREE.MeshLambertMaterial({ color: 0x6A8A9A })
+    );
+    ball.position.y = 0.06;
+    globe.add(ball);
+    globe.position.set(-0.12, topY, depths);
+    g.add(globe);
+    nookPropBook(g, 0.14, topY, depths, 0.02, 0.15, 0.11, NOOK_SPINE[1]);
+    nookPropBook(g, 0.17, topY, depths, 0.018, 0.13, 0.11, NOOK_SPINE[5]);
+  } else {
+    /* Clock + small vase silhouette */
+    const clock = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.055, 0.055, 0.03, 16),
+      NOOK_BRASS
+    );
+    clock.rotation.x = Math.PI / 2;
+    clock.position.set(-0.14, topY + 0.055, depths);
+    g.add(clock);
+    const face = new THREE.Mesh(
+      new THREE.CircleGeometry(0.045, 16),
+      new THREE.MeshLambertMaterial({ color: 0xF5F0E6 })
+    );
+    face.position.set(-0.14, topY + 0.055, depths + 0.016);
+    g.add(face);
+    const vase = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.025, 0.032, 0.12, 10),
+      new THREE.MeshLambertMaterial({ color: 0xC9B8A0 })
+    );
+    vase.position.set(0.16, topY + 0.06, depths);
+    g.add(vase);
+  }
+
+  windowGroup.add(g);
+  return g;
+}
+buildNookTower(-1);
+buildNookTower(1);
+
+/* Brass reading sconces between window and towers */
+function nookSconce(side) {
+  const g = new THREE.Group();
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.012, 12), NOOK_BRASS);
+  plate.rotation.x = Math.PI / 2;
+  g.add(plate);
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 8), NOOK_BRASS);
+  arm.rotation.z = Math.PI / 2;
+  arm.position.set(side * 0.05, 0, 0.04);
+  g.add(arm);
+  const shade = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.02, 0.055, 0.09, 12, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0xE8D4B0, side: THREE.DoubleSide })
+  );
+  shade.position.set(side * 0.09, -0.04, 0.08);
+  g.add(shade);
+  g.position.set(
+    side * (NOOK.winW / 2 + FRAME_T + 0.08),
+    1.55,
+    0.12
+  );
+  windowGroup.add(g);
+}
+nookSconce(-1);
+nookSconce(1);
+
+/* Kept for the design harness; intensity 0 — daylight is directional + hemi. */
 const windowLight = new THREE.PointLight(0xffe8d0, 0, 14, 1.6);
 windowLight.position.set(-ROOM.w / 2 + 1.4, 1.55, 0.1);
 scene.add(windowLight);
+
+/* World-space footprint used by collide() — bench + towers. */
+const NOOK_WORLD_Z = -0.15;
+const NOOK_TOTAL_W = NOOK.winW + FRAME_T * 2 + NOOK.towerW * 2 + 0.08;
+const NOOK_MAX_X = -ROOM.w / 2 + Math.max(NOOK.seatD, NOOK.towerD) + 0.38;
+const NOOK_MIN_Z = NOOK_WORLD_Z - NOOK_TOTAL_W / 2 - 0.06;
+const NOOK_MAX_Z = NOOK_WORLD_Z + NOOK_TOTAL_W / 2 + 0.06;
 
 /* ============================================================
    BOOKCASE
@@ -1920,8 +2137,7 @@ const ACCEL = 12;
 const EYE = 1.62;
 
 /* Collision is deliberately crude: keep the player inside the room and
-   outside the bookcase's footprint. A physics engine would be overkill
-   for a box in a box. */
+   outside the bookcase, reading table, and book-nook footprints. */
 const CASE_MIN_X = -CASE.w / 2 - 0.08;
 const CASE_MAX_X = CASE.w / 2 + 0.08;
 const CASE_MAX_Z = -ROOM.d / 2 + 0.19 + CASE.d / 2 + 0.42; // + personal space
@@ -1948,6 +2164,16 @@ function collide(pos) {
     else if (nearest === dxMax) pos.x = TABLE_MAX_X;
     else if (nearest === dzMin) pos.z = TABLE_MIN_Z;
     else pos.z = TABLE_MAX_Z;
+  }
+  /* Book nook: push out of the bench + flanking towers on the left wall. */
+  if (pos.x < NOOK_MAX_X && pos.z > NOOK_MIN_Z && pos.z < NOOK_MAX_Z) {
+    const dx = NOOK_MAX_X - pos.x;
+    const dzMin = pos.z - NOOK_MIN_Z;
+    const dzMax = NOOK_MAX_Z - pos.z;
+    const nearest = Math.min(dx, dzMin, dzMax);
+    if (nearest === dx) pos.x = NOOK_MAX_X;
+    else if (nearest === dzMin) pos.z = NOOK_MIN_Z;
+    else pos.z = NOOK_MAX_Z;
   }
   pos.y = EYE;
 }
