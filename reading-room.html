@@ -296,15 +296,6 @@ wall(ROOM.w, ROOM.h, 0xE4DACB, [0, Math.PI, 0], [0, ROOM.h / 2, ROOM.d / 2]);   
 wall(ROOM.d, ROOM.h, 0xE7DDCE, [0, Math.PI / 2, 0], [-ROOM.w / 2, ROOM.h / 2, 0]); // left
 wall(ROOM.d, ROOM.h, 0xE1D7C7, [0, -Math.PI / 2, 0], [ROOM.w / 2, ROOM.h / 2, 0]); // right
 
-/* ---- rug, for a bit of floor interest ---- */
-const rug = new THREE.Mesh(
-  new THREE.PlaneGeometry(3.0, 2.2),
-  new THREE.MeshLambertMaterial({ color: 0xD9CDBA })
-);
-rug.rotation.x = -Math.PI / 2;
-rug.position.set(0, 0.005, 0.7);
-scene.add(rug);
-
 /* Shared wood materials used by the door, window, bookcase, and decor. */
 const WOOD = new THREE.MeshLambertMaterial({ color: 0xC49A68 });
 const WOOD_DARK = new THREE.MeshLambertMaterial({ color: 0x9E7546 });
@@ -1839,6 +1830,81 @@ scene.add(playerLight);
   m.userData.type = 'player';
   interactables.push(m);
 });
+
+/* ============================================================
+   GALLERY WALL — right wall, behind the turntable
+   Seven vintage reading prints in a tight 3-over-4 grid.
+   Both rows share the same outer edges and a constant gap so
+   the wall reads as one organised salon, not a scatter.
+   Thin light-oak frames; art loads from ./posters/.
+   ============================================================ */
+const GALLERY_FRAME = new THREE.MeshLambertMaterial({ color: 0xC9B48A });
+const GALLERY_REBATE = new THREE.MeshLambertMaterial({ color: 0x8F7350 });
+
+function hangPoster(url, w, h, y, z) {
+  const group = new THREE.Group();
+  const rail = 0.016;
+  const depth = 0.014;
+
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(w + rail * 2, h + rail * 2, depth),
+    GALLERY_FRAME
+  );
+  const rebate = new THREE.Mesh(
+    new THREE.BoxGeometry(w + 0.003, h + 0.003, 0.003),
+    GALLERY_REBATE
+  );
+  rebate.position.z = depth / 2 - 0.0005;
+
+  const art = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshLambertMaterial({ color: 0xE6D8C4 })
+  );
+  art.position.z = depth / 2 + 0.0015;
+
+  texLoader.load(url, (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    art.material.map = tex;
+    art.material.color.set(0xffffff);
+    art.material.needsUpdate = true;
+  });
+
+  group.add(frame, rebate, art);
+  // Right wall faces −X; sit just off the plaster
+  group.position.set(ROOM.w / 2 - 0.012, y, z);
+  group.rotation.y = -Math.PI / 2;
+  scene.add(group);
+}
+
+{
+  const GAP = 0.075;
+  const TOP_W = 0.64;
+  const TOP_H = TOP_W * 4 / 3;
+  const TOTAL_W = TOP_W * 3 + GAP * 2;
+  const BOT_W = (TOTAL_W - GAP * 3) / 4;
+  const BOT_H = BOT_W * 4 / 3;
+  const cz = player.position.z;
+  const botY0 = 0.98;
+  const topY = botY0 + BOT_H + GAP + TOP_H / 2;
+  const botY = botY0 + BOT_H / 2;
+  const topZs = [-1, 0, 1].map((i) => cz + i * (TOP_W + GAP));
+  const botLeft = cz - TOTAL_W / 2 + BOT_W / 2;
+  const botZs = [0, 1, 2, 3].map((i) => botLeft + i * (BOT_W + GAP));
+
+  [
+    './posters/books-are-my-therapy.jpg',
+    './posters/just-one-more-chapter.jpg',
+    './posters/read-more-books.jpg',
+  ].forEach((url, i) => hangPoster(url, TOP_W, TOP_H, topY, topZs[i]));
+
+  [
+    './posters/books-are-my-safe-space.jpg',
+    './posters/between-the-pages.jpg',
+    './posters/reading-fills-my-soul.jpg',
+    './posters/so-many-books.jpg',
+  ].forEach((url, i) => hangPoster(url, BOT_W, BOT_H, botY, botZs[i]));
+}
 
 /* ============================================================
    GENERATIVE MUSIC
