@@ -423,17 +423,17 @@ function makeLandscape() {
     const fromLeft = bird.lastFromLeft == null ? Math.random() < 0.5 : !bird.lastFromLeft;
     bird.lastFromLeft = fromLeft;
     bird.x = fromLeft ? rand(70, 280) : rand(740, 960);
-    let y = rand(190, 285);
-    if (bird.lastY != null && Math.abs(y - bird.lastY) < 40) y = y < 240 ? y + 55 : y - 55;
+    let y = rand(125, 210);
+    if (bird.lastY != null && Math.abs(y - bird.lastY) < 35) y = y < 170 ? y + 50 : y - 50;
     bird.lastY = y;
     bird.y = y;
-    bird.scale = rand(9, 12);
-    const tx = rand(380, 680);
-    const ty = rand(115, 200);
+    bird.scale = rand(18, 26);
+    const tx = rand(400, 660);
+    const ty = rand(85, 150);
     const dur = rand(14, 22);
     bird.vx = (tx - bird.x) / dur;
     bird.vy = (ty - bird.y) / dur;
-    bird.shrink = (bird.scale - rand(3.2, 4.0)) / dur;
+    bird.shrink = (bird.scale - rand(6, 8)) / dur;
     bird.delay = 0;
     bird.flap = rand(7, 11);
     bird.phase = rand(0, Math.PI * 2);
@@ -455,7 +455,7 @@ function makeLandscape() {
       bird.x += bird.vx * dt;
       bird.y += bird.vy * dt;
       bird.scale -= bird.shrink * dt;
-      if (bird.scale < 3.5 || bird.y < 95 || bird.x < -20 || bird.x > W + 20) {
+      if (bird.scale < 6.2 || bird.y < 70 || bird.x < -30 || bird.x > W + 30) {
         bird.delay = 1.6 + Math.random() * 4.2;
         bird.scale = 0;
       }
@@ -463,12 +463,12 @@ function makeLandscape() {
   }
 
   function drawBird(bird, t) {
-    if (bird.delay > 0 || bird.scale < 3.4) return;
+    if (bird.delay > 0 || bird.scale < 6) return;
     const s = bird.scale;
     const flap = Math.sin(t * bird.flap + bird.phase);
     const wing = s * (0.9 + flap * 0.32);
     const lift = s * (0.22 + flap * 0.32);
-    const a = 0.28 + 0.18 * Math.min(1, (s - 3.5) / 8);
+    const a = 0.38 + 0.18 * Math.min(1, (s - 6) / 16);
     g.strokeStyle = `rgba(58,50,40,${a})`;
     g.lineWidth = Math.max(0.7, s * 0.11);
     g.lineCap = 'round';
