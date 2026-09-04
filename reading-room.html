@@ -365,8 +365,8 @@ doorGroup.add(knobStem);
 /* ============================================================
    WINDOW — left wall, facing the turntable
    ============================================================ */
-/* Sky / mountains / hill baked once. Clouds, deciduous trees, and grass
-   redraw at ~13 Hz so the view can sway without a full-scene paint. */
+/* Sky / sun / mountains baked once. Original triangle trees, hill,
+   and grass redraw at ~13 Hz with a small sway. */
 function makeLandscape() {
   const W = 1024;
   const H = 768;
@@ -393,85 +393,24 @@ function makeLandscape() {
   b.arc(780, 170, 88, 0, Math.PI * 2);
   b.fill();
 
-  function mountain(ridge, color) {
+  function mountain(pts, color) {
     b.fillStyle = color;
     b.beginPath();
-    b.moveTo(0, H);
-    b.lineTo(ridge[0], ridge[1]);
-    for (let i = 0; i < ridge.length - 2; i += 2) {
-      const x0 = ridge[i], y0 = ridge[i + 1];
-      const x1 = ridge[i + 2], y1 = ridge[i + 3];
-      b.quadraticCurveTo(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
-    }
-    const lx = ridge[ridge.length - 2], ly = ridge[ridge.length - 1];
-    b.quadraticCurveTo(lx, ly, lx, ly);
-    b.lineTo(W, H);
+    b.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) b.lineTo(pts[i], pts[i + 1]);
     b.closePath();
     b.fill();
   }
-  mountain([0, 520, 90, 390, 210, 450, 340, 280, 470, 410, 580, 330, 720, 430, 860, 300, 1024, 420], '#6D5A70');
-  mountain([0, 560, 140, 430, 280, 500, 420, 360, 560, 470, 700, 380, 850, 500, 1024, 410], '#4F5A4A');
+  mountain([0, 520, 90, 390, 210, 450, 340, 280, 470, 410, 580, 330, 720, 430, 860, 300, 1024, 420, 1024, 768, 0, 768], '#6D5A70');
+  mountain([0, 560, 140, 430, 280, 500, 420, 360, 560, 470, 700, 380, 850, 500, 1024, 410, 1024, 768, 0, 768], '#4F5A4A');
+  mountain([0, 620, 180, 500, 320, 560, 500, 440, 680, 540, 840, 470, 1024, 560, 1024, 768, 0, 768], '#3E4A38');
 
-  const haze = b.createLinearGradient(0, 260, 0, 620);
-  haze.addColorStop(0, 'rgba(248,200,150,0)');
-  haze.addColorStop(0.55, 'rgba(236,176,128,0.10)');
-  haze.addColorStop(1, 'rgba(196,156,110,0.16)');
-  b.fillStyle = haze;
-  b.fillRect(0, 220, W, 420);
-
-  mountain([0, 620, 180, 500, 320, 560, 500, 440, 680, 540, 840, 470, 1024, 560], '#3E4A38');
-
-  function distantTree(tx, baseY, h) {
-    b.fillStyle = '#3A3228';
-    b.fillRect(tx - h * 0.04, baseY - h * 0.28, h * 0.08, h * 0.3);
-    b.fillStyle = '#2C3A28';
-    b.beginPath();
-    b.ellipse(tx, baseY - h * 0.48, h * 0.22, h * 0.28, 0, 0, Math.PI * 2);
-    b.fill();
-    b.fillStyle = '#354628';
-    b.beginPath();
-    b.ellipse(tx - h * 0.1, baseY - h * 0.4, h * 0.16, h * 0.18, -0.2, 0, Math.PI * 2);
-    b.fill();
-    b.beginPath();
-    b.ellipse(tx + h * 0.1, baseY - h * 0.38, h * 0.15, h * 0.16, 0.2, 0, Math.PI * 2);
-    b.fill();
-  }
-  [[210, 548, 52], [390, 500, 44], [610, 518, 48], [780, 508, 40],
-   [150, 575, 38], [860, 555, 42], [470, 530, 36], [950, 545, 34]].forEach(([tx, y, h]) => {
-    distantTree(tx, y, h);
-  });
-
-  b.fillStyle = '#35522E';
-  b.beginPath();
-  b.moveTo(0, 700);
-  b.bezierCurveTo(180, 640, 360, 720, 540, 660);
-  b.bezierCurveTo(720, 610, 880, 700, 1024, 650);
-  b.lineTo(W, H);
-  b.lineTo(0, H);
-  b.closePath();
-  b.fill();
-
-  const greens = [
-    ['#2A3E24', '#334A2C', '#3E5A34', 'rgba(110,140,70,0.4)'],
-    ['#2F4A2A', '#3A5A32', '#4A6A38', 'rgba(120,150,80,0.38)'],
-    ['#243820', '#2E4828', '#3A5830', 'rgba(100,130,65,0.36)'],
-    ['#35522C', '#426438', '#4E7040', 'rgba(130,155,85,0.35)'],
-  ];
+  const canopies = ['#2F4A2A', '#3A5A32', '#4A6A38', '#2A3E24'];
   const trees = [
-    [70, 688, 210, 0], [155, 672, 175, 1], [245, 700, 230, 2],
-    [335, 668, 165, 3], [425, 682, 200, 0], [530, 658, 155, 1],
-    [620, 698, 220, 2], [730, 664, 170, 3], [820, 686, 195, 0],
-    [915, 660, 160, 1], [110, 710, 125, 2], [470, 705, 135, 3],
-    [690, 708, 130, 0], [870, 702, 120, 1],
-  ].map(([tx, baseY, h, gi], i) => ({
-    tx, baseY, h, colors: greens[gi], phase: i * 0.73, fork: i % 3 === 1,
-  }));
-
-  const clouds = [
-    { x: 160, y: 88, rx: 72, ry: 22, speed: 8.5 },
-    { x: 410, y: 64, rx: 96, ry: 26, speed: 6.2 },
-    { x: 690, y: 108, rx: 64, ry: 18, speed: 7.4 },
-  ];
+    [80, 210], [160, 170], [250, 230], [340, 160], [430, 200], [540, 150],
+    [630, 220], [740, 165], [830, 195], [920, 155], [120, 140], [480, 130],
+    [700, 140], [880, 125],
+  ].map(([tx, h], i) => ({ tx, h, canopy: canopies[i % canopies.length], phase: i * 0.73 }));
 
   const live = document.createElement('canvas');
   live.width = W;
@@ -479,87 +418,56 @@ function makeLandscape() {
   const g = live.getContext('2d');
 
   function drawTree(spec, t) {
-    const { tx, baseY, h, colors, phase, fork } = spec;
-    const gust = Math.sin(t * 0.9 + phase) * 0.72 + Math.sin(t * 0.33 + phase * 0.4) * 0.28;
-    const sway = gust * h * 0.07;
-    const trunkH = h * 0.38;
-    const baseW = h * 0.055;
-    const topW = h * 0.024;
-    const trunkSway = sway * 0.18;
+    const { tx, h, canopy, phase } = spec;
+    const baseY = 640;
+    const sway = Math.sin(t * 0.7 + phase) * h * 0.026;
 
     g.fillStyle = '#4A3528';
+    g.fillRect(tx - h * 0.035 + sway * 0.12, baseY - h * 0.28, h * 0.07, h * 0.3);
+
+    g.fillStyle = canopy;
     g.beginPath();
-    g.moveTo(tx - baseW, baseY);
-    g.lineTo(tx + baseW, baseY);
-    g.lineTo(tx + topW + trunkSway, baseY - trunkH);
-    g.lineTo(tx - topW + trunkSway, baseY - trunkH);
+    g.moveTo(tx + sway, baseY - h);
+    g.lineTo(tx + h * 0.32 + sway * 0.35, baseY - h * 0.22);
+    g.lineTo(tx - h * 0.32 + sway * 0.35, baseY - h * 0.22);
     g.closePath();
     g.fill();
-
-    if (fork) {
-      const fy = baseY - trunkH * 0.58;
-      g.beginPath();
-      g.moveTo(tx + trunkSway * 0.5 - h * 0.012, fy);
-      g.lineTo(tx + trunkSway * 0.5 + h * 0.01, fy + h * 0.02);
-      g.lineTo(tx + h * 0.13 + sway * 0.3, fy - h * 0.16);
-      g.lineTo(tx + h * 0.1 + sway * 0.3, fy - h * 0.2);
-      g.closePath();
-      g.fill();
-    }
-
-    const cy = baseY - h * 0.52;
-    const tilt = sway * 0.012;
-    /* One wide crown plus side/top lobes — reads as a tree, not stacked balls. */
-    const blobs = [
-      [0, -h * 0.16, h * 0.30, h * 0.22, colors[1], 0.82],
-      [-h * 0.20, -h * 0.12, h * 0.18, h * 0.17, colors[0], 0.7],
-      [h * 0.20, -h * 0.10, h * 0.17, h * 0.16, colors[2], 0.74],
-      [0.02 * h, -h * 0.36, h * 0.18, h * 0.14, colors[1], 1.15],
-      [-h * 0.08, -h * 0.02, h * 0.18, h * 0.11, colors[0], 0.6],
-      [h * 0.12, -h * 0.28, h * 0.11, h * 0.09, colors[3], 1.08],
-    ];
-    for (const [ox, oy, rx, ry, color, k] of blobs) {
-      g.fillStyle = color;
-      g.beginPath();
-      g.ellipse(tx + ox + sway * k, cy + oy, rx, ry, tilt, 0, Math.PI * 2);
-      g.fill();
-    }
+    g.beginPath();
+    g.moveTo(tx + sway * 0.6, baseY - h * 0.72);
+    g.lineTo(tx + h * 0.26 + sway * 0.22, baseY - h * 0.12);
+    g.lineTo(tx - h * 0.26 + sway * 0.22, baseY - h * 0.12);
+    g.closePath();
+    g.fill();
   }
 
   function paint(t) {
     g.drawImage(bg, 0, 0);
-
-    g.fillStyle = 'rgba(255,248,236,0.52)';
-    for (const cl of clouds) {
-      const span = W + cl.rx * 4;
-      const x = ((cl.x + t * cl.speed) % span + span) % span - cl.rx * 2;
-      g.beginPath();
-      g.ellipse(x, cl.y, cl.rx, cl.ry, 0, 0, Math.PI * 2);
-      g.fill();
-      g.beginPath();
-      g.ellipse(x + cl.rx * 0.55, cl.y + 5, cl.rx * 0.68, cl.ry * 0.82, 0, 0, Math.PI * 2);
-      g.fill();
-      g.beginPath();
-      g.ellipse(x - cl.rx * 0.48, cl.y + 6, cl.rx * 0.52, cl.ry * 0.7, 0, 0, Math.PI * 2);
-      g.fill();
-    }
-
     for (const spec of trees) drawTree(spec, t);
 
-    const lean = Math.sin(t * 1.05) * 0.22;
+    g.fillStyle = '#35522E';
+    g.beginPath();
+    g.moveTo(0, 700);
+    g.bezierCurveTo(180, 640, 360, 720, 540, 660);
+    g.bezierCurveTo(720, 610, 880, 700, 1024, 650);
+    g.lineTo(W, H);
+    g.lineTo(0, H);
+    g.closePath();
+    g.fill();
+
+    const lean = Math.sin(t * 0.9) * 0.08;
     g.fillStyle = '#4A7A3A';
     for (let i = 0; i < 18; i++) {
       const px = 40 + i * 55 + (i % 3) * 12;
       const ph = 40 + (i % 5) * 14;
       g.beginPath();
-      g.ellipse(px + lean * 10, 730, 16 + (i % 4) * 4, ph, -0.2 + lean, 0, Math.PI * 2);
+      g.ellipse(px + lean * 6, 730, 16 + (i % 4) * 4, ph, -0.2 + lean, 0, Math.PI * 2);
       g.fill();
     }
     g.fillStyle = '#6B8F4A';
     for (let i = 0; i < 12; i++) {
       const px = 70 + i * 80;
       g.beginPath();
-      g.ellipse(px + lean * 7, 748, 22, 28 + (i % 3) * 8, 0.15 + lean * 0.6, 0, Math.PI * 2);
+      g.ellipse(px + lean * 4, 748, 22, 28 + (i % 3) * 8, 0.15 + lean * 0.5, 0, Math.PI * 2);
       g.fill();
     }
   }
