@@ -427,13 +427,13 @@ function makeLandscape() {
     if (bird.lastY != null && Math.abs(y - bird.lastY) < 35) y = y < 170 ? y + 50 : y - 50;
     bird.lastY = y;
     bird.y = y;
-    bird.scale = rand(18, 26);
+    bird.scale = rand(28, 38);
     const tx = rand(400, 660);
-    const ty = rand(85, 150);
-    const dur = rand(14, 22);
+    const ty = rand(80, 145);
+    const dur = rand(16, 24);
     bird.vx = (tx - bird.x) / dur;
     bird.vy = (ty - bird.y) / dur;
-    bird.shrink = (bird.scale - rand(6, 8)) / dur;
+    bird.shrink = (bird.scale - rand(8, 11)) / dur;
     bird.delay = 0;
     bird.flap = rand(7, 11);
     bird.phase = rand(0, Math.PI * 2);
@@ -441,7 +441,7 @@ function makeLandscape() {
 
   const birds = [
     { delay: 0, lastFromLeft: null, lastY: null },
-    { delay: 5.5, lastFromLeft: true, lastY: null },
+    { delay: 2.8, lastFromLeft: true, lastY: null },
   ];
   spawnBird(birds[0]);
 
@@ -455,22 +455,22 @@ function makeLandscape() {
       bird.x += bird.vx * dt;
       bird.y += bird.vy * dt;
       bird.scale -= bird.shrink * dt;
-      if (bird.scale < 6.2 || bird.y < 70 || bird.x < -30 || bird.x > W + 30) {
-        bird.delay = 1.6 + Math.random() * 4.2;
+      if (bird.scale < 8 || bird.y < 65 || bird.x < -40 || bird.x > W + 40) {
+        bird.delay = 0.8 + Math.random() * 2.2;
         bird.scale = 0;
       }
     }
   }
 
   function drawBird(bird, t) {
-    if (bird.delay > 0 || bird.scale < 6) return;
+    if (bird.delay > 0 || bird.scale < 8) return;
     const s = bird.scale;
     const flap = Math.sin(t * bird.flap + bird.phase);
-    const wing = s * (0.9 + flap * 0.32);
-    const lift = s * (0.22 + flap * 0.32);
-    const a = 0.38 + 0.18 * Math.min(1, (s - 6) / 16);
-    g.strokeStyle = `rgba(58,50,40,${a})`;
-    g.lineWidth = Math.max(0.7, s * 0.11);
+    const wing = s * (0.95 + flap * 0.28);
+    const lift = s * (0.28 + flap * 0.28);
+    const a = 0.48 + 0.18 * Math.min(1, (s - 8) / 24);
+    g.strokeStyle = `rgba(48,40,32,${a})`;
+    g.lineWidth = Math.max(2.2, s * 0.16);
     g.lineCap = 'round';
     g.lineJoin = 'round';
     g.beginPath();
