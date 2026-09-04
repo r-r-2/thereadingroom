@@ -365,94 +365,129 @@ doorGroup.add(knobStem);
 /* ============================================================
    WINDOW — left wall, facing the turntable
    ============================================================ */
-function landscapeTexture() {
-  const c = document.createElement('canvas');
-  c.width = 1024;
-  c.height = 768;
-  const g = c.getContext('2d');
+/* Sky / sun / mountains baked once. Original triangle trees, hill,
+   and grass redraw at ~13 Hz with a small sway. */
+function makeLandscape() {
+  const W = 1024;
+  const H = 768;
 
-  const sky = g.createLinearGradient(0, 0, 0, 768);
+  const bg = document.createElement('canvas');
+  bg.width = W;
+  bg.height = H;
+  const b = bg.getContext('2d');
+
+  const sky = b.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, '#F8D9B0');
   sky.addColorStop(0.35, '#F0C090');
   sky.addColorStop(0.58, '#D49A72');
   sky.addColorStop(1, '#8A9B6E');
-  g.fillStyle = sky;
-  g.fillRect(0, 0, 1024, 768);
+  b.fillStyle = sky;
+  b.fillRect(0, 0, W, H);
 
-  g.fillStyle = 'rgba(255,248,230,0.7)';
-  g.beginPath();
-  g.arc(780, 170, 58, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = 'rgba(255,230,180,0.4)';
-  g.beginPath();
-  g.arc(780, 170, 88, 0, Math.PI * 2);
-  g.fill();
+  b.fillStyle = 'rgba(255,248,230,0.7)';
+  b.beginPath();
+  b.arc(780, 170, 58, 0, Math.PI * 2);
+  b.fill();
+  b.fillStyle = 'rgba(255,230,180,0.4)';
+  b.beginPath();
+  b.arc(780, 170, 88, 0, Math.PI * 2);
+  b.fill();
 
   function mountain(pts, color) {
-    g.fillStyle = color;
-    g.beginPath();
-    g.moveTo(pts[0], pts[1]);
-    for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]);
-    g.closePath();
-    g.fill();
+    b.fillStyle = color;
+    b.beginPath();
+    b.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) b.lineTo(pts[i], pts[i + 1]);
+    b.closePath();
+    b.fill();
   }
   mountain([0, 520, 90, 390, 210, 450, 340, 280, 470, 410, 580, 330, 720, 430, 860, 300, 1024, 420, 1024, 768, 0, 768], '#6D5A70');
   mountain([0, 560, 140, 430, 280, 500, 420, 360, 560, 470, 700, 380, 850, 500, 1024, 410, 1024, 768, 0, 768], '#4F5A4A');
   mountain([0, 620, 180, 500, 320, 560, 500, 440, 680, 540, 840, 470, 1024, 560, 1024, 768, 0, 768], '#3E4A38');
 
-  function tree(tx, baseY, h, canopy) {
+  const canopies = ['#2F4A2A', '#3A5A32', '#4A6A38', '#2A3E24'];
+  const trees = [
+    [80, 210], [160, 170], [250, 230], [340, 160], [430, 200], [540, 150],
+    [630, 220], [740, 165], [830, 195], [920, 155], [120, 140], [480, 130],
+    [700, 140], [880, 125],
+  ].map(([tx, h], i) => ({ tx, h, canopy: canopies[i % canopies.length], phase: i * 0.73 }));
+
+  const live = document.createElement('canvas');
+  live.width = W;
+  live.height = H;
+  const g = live.getContext('2d');
+
+  function drawTree(spec, t) {
+    const { tx, h, canopy, phase } = spec;
+    const baseY = 640;
+    const sway = Math.sin(t * 0.7 + phase) * h * 0.026;
+
     g.fillStyle = '#4A3528';
-    g.fillRect(tx - h * 0.035, baseY - h * 0.28, h * 0.07, h * 0.3);
+    g.fillRect(tx - h * 0.035 + sway * 0.12, baseY - h * 0.28, h * 0.07, h * 0.3);
+
     g.fillStyle = canopy;
     g.beginPath();
-    g.moveTo(tx, baseY - h);
-    g.lineTo(tx + h * 0.32, baseY - h * 0.22);
-    g.lineTo(tx - h * 0.32, baseY - h * 0.22);
+    g.moveTo(tx + sway, baseY - h);
+    g.lineTo(tx + h * 0.32 + sway * 0.35, baseY - h * 0.22);
+    g.lineTo(tx - h * 0.32 + sway * 0.35, baseY - h * 0.22);
     g.closePath();
     g.fill();
     g.beginPath();
-    g.moveTo(tx, baseY - h * 0.72);
-    g.lineTo(tx + h * 0.26, baseY - h * 0.12);
-    g.lineTo(tx - h * 0.26, baseY - h * 0.12);
+    g.moveTo(tx + sway * 0.6, baseY - h * 0.72);
+    g.lineTo(tx + h * 0.26 + sway * 0.22, baseY - h * 0.12);
+    g.lineTo(tx - h * 0.26 + sway * 0.22, baseY - h * 0.12);
     g.closePath();
     g.fill();
   }
-  const canopies = ['#2F4A2A', '#3A5A32', '#4A6A38', '#2A3E24'];
-  [[80, 210], [160, 170], [250, 230], [340, 160], [430, 200], [540, 150],
-   [630, 220], [740, 165], [830, 195], [920, 155], [120, 140], [480, 130],
-   [700, 140], [880, 125]].forEach(([tx, h], i) => {
-    tree(tx, 640, h, canopies[i % canopies.length]);
-  });
 
-  g.fillStyle = '#35522E';
-  g.beginPath();
-  g.moveTo(0, 700);
-  g.bezierCurveTo(180, 640, 360, 720, 540, 660);
-  g.bezierCurveTo(720, 610, 880, 700, 1024, 650);
-  g.lineTo(1024, 768);
-  g.lineTo(0, 768);
-  g.closePath();
-  g.fill();
+  function paint(t) {
+    g.drawImage(bg, 0, 0);
+    for (const spec of trees) drawTree(spec, t);
 
-  g.fillStyle = '#4A7A3A';
-  for (let i = 0; i < 18; i++) {
-    const px = 40 + i * 55 + (i % 3) * 12;
-    const ph = 40 + (i % 5) * 14;
+    g.fillStyle = '#35522E';
     g.beginPath();
-    g.ellipse(px, 730, 16 + (i % 4) * 4, ph, -0.2, 0, Math.PI * 2);
+    g.moveTo(0, 700);
+    g.bezierCurveTo(180, 640, 360, 720, 540, 660);
+    g.bezierCurveTo(720, 610, 880, 700, 1024, 650);
+    g.lineTo(W, H);
+    g.lineTo(0, H);
+    g.closePath();
     g.fill();
-  }
-  g.fillStyle = '#6B8F4A';
-  for (let i = 0; i < 12; i++) {
-    const px = 70 + i * 80;
-    g.beginPath();
-    g.ellipse(px, 748, 22, 28 + (i % 3) * 8, 0.15, 0, Math.PI * 2);
-    g.fill();
+
+    const lean = Math.sin(t * 0.9) * 0.08;
+    g.fillStyle = '#4A7A3A';
+    for (let i = 0; i < 18; i++) {
+      const px = 40 + i * 55 + (i % 3) * 12;
+      const ph = 40 + (i % 5) * 14;
+      g.beginPath();
+      g.ellipse(px + lean * 6, 730, 16 + (i % 4) * 4, ph, -0.2 + lean, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = '#6B8F4A';
+    for (let i = 0; i < 12; i++) {
+      const px = 70 + i * 80;
+      g.beginPath();
+      g.ellipse(px + lean * 4, 748, 22, 28 + (i % 3) * 8, 0.15 + lean * 0.5, 0, Math.PI * 2);
+      g.fill();
+    }
   }
 
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+  paint(0);
+
+  const map = new THREE.CanvasTexture(live);
+  map.colorSpace = THREE.SRGBColorSpace;
+
+  let lastPaint = -1;
+  const INTERVAL = 1 / 13;
+  function update(elapsed) {
+    if (document.hidden) return;
+    if (elapsed - lastPaint < INTERVAL) return;
+    lastPaint = elapsed;
+    paint(elapsed);
+    map.needsUpdate = true;
+  }
+
+  return { map, update };
 }
 
 /* ============================================================
@@ -499,9 +534,10 @@ function nookBox(w, h, d, mat, x, y, z, parent = windowGroup) {
 }
 
 /* Landscape still fills the bay — Basic so daylight stays bright. */
+const landscape = makeLandscape();
 const view = new THREE.Mesh(
   new THREE.PlaneGeometry(NOOK.winW, NOOK.winH),
-  new THREE.MeshBasicMaterial({ map: landscapeTexture() })
+  new THREE.MeshBasicMaterial({ map: landscape.map })
 );
 view.position.set(0, NOOK.sill + NOOK.winH / 2, 0.02);
 windowGroup.add(view);
@@ -2608,6 +2644,8 @@ function animate() {
       m.rotation.y = restRotY + u.t * -0.95 * (1 - ct);
     }
   }
+
+  landscape.update(clock.elapsedTime);
 
   composer.render();
   requestAnimationFrame(animate);

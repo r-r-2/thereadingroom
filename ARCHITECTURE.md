@@ -17,7 +17,7 @@ THREE.Scene
 │   ├── casing, threshold, closed slab, recessed panels
 │   └── knob (sphere + stem + backplate)
 ├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.15) — book nook
-│   ├── landscape view plane (canvas texture) + wood frame / mullion
+│   ├── landscape view plane (animated canvas: sky/mountains baked; original trees/grass sway) + wood frame / mullion
 │   ├── bench base, drawers, cushion, pillows, throw
 │   ├── flanking curio towers (framed art, ceramics, sculptures; books as accents)
 │   ├── brass sconces (×2)
