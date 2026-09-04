@@ -2570,8 +2570,8 @@ function animate() {
     if (!Number.isFinite(velocity.x) || !Number.isFinite(velocity.z)) velocity.set(0, 0, 0);
 
     moveBefore.copy(camera.position);
-    controls.moveRight(-velocity.x * dt);
-    controls.moveForward(-velocity.z * dt);
+    controls.moveRight(velocity.x * dt);
+    controls.moveForward(velocity.z * dt);
     moveIntended.copy(camera.position);
     collide(camera.position);
 
@@ -2589,8 +2589,8 @@ function animate() {
       if (moveRightAxis.lengthSq() > 0) moveRightAxis.normalize();
       moveFwdAxis.crossVectors(camera.up, moveRightAxis);
       if (dt > 1e-8) {
-        velocity.x = -moveDelta.dot(moveRightAxis) / dt;
-        velocity.z = -moveDelta.dot(moveFwdAxis) / dt;
+        velocity.x = moveDelta.dot(moveRightAxis) / dt;
+        velocity.z = moveDelta.dot(moveFwdAxis) / dt;
       }
     }
 
