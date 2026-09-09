@@ -366,7 +366,7 @@ doorGroup.add(knobStem);
    WINDOW — left wall, facing the turntable
    ============================================================ */
 /* Sky / sun / mountains baked once. Original triangle trees, hill,
-   grass, and two receding birds redraw at ~13 Hz. */
+   grass, and one receding flock of 1-3 birds redraw at ~13 Hz. */
 function makeLandscape() {
   const W = 1024;
   const H = 768;
@@ -419,53 +419,63 @@ function makeLandscape() {
 
   function rand(a, b) { return a + Math.random() * (b - a); }
 
-  function spawnBird(bird) {
-    const fromLeft = bird.lastFromLeft == null ? Math.random() < 0.5 : !bird.lastFromLeft;
-    bird.lastFromLeft = fromLeft;
-    bird.x = fromLeft ? rand(70, 280) : rand(740, 960);
+  /* One flock at a time, 1-3 birds on a single shared heading. The
+     leader carries the trajectory; members hold a fixed echelon offset
+     measured in leader-scale units, so the formation tightens as the
+     flock recedes. */
+  function spawnFlock(flock) {
+    const fromLeft = flock.lastFromLeft == null ? Math.random() < 0.5 : !flock.lastFromLeft;
+    flock.lastFromLeft = fromLeft;
+    flock.x = fromLeft ? rand(70, 280) : rand(740, 960);
     let y = rand(125, 210);
-    if (bird.lastY != null && Math.abs(y - bird.lastY) < 35) y = y < 170 ? y + 50 : y - 50;
-    bird.lastY = y;
-    bird.y = y;
-    bird.scale = rand(28, 38);
+    if (flock.lastY != null && Math.abs(y - flock.lastY) < 35) y = y < 170 ? y + 50 : y - 50;
+    flock.lastY = y;
+    flock.y = y;
+    flock.scale = rand(28, 38);
     const tx = rand(400, 660);
     const ty = rand(80, 145);
     const dur = rand(16, 24);
-    bird.vx = (tx - bird.x) / dur;
-    bird.vy = (ty - bird.y) / dur;
-    bird.shrink = (bird.scale - rand(8, 11)) / dur;
-    bird.delay = 0;
-    bird.flap = rand(7, 11);
-    bird.phase = rand(0, Math.PI * 2);
-  }
+    flock.vx = (tx - flock.x) / dur;
+    flock.vy = (ty - flock.y) / dur;
+    flock.shrink = (flock.scale - rand(8, 11)) / dur;
+    flock.delay = 0;
 
-  const birds = [
-    { delay: 0, lastFromLeft: null, lastY: null },
-    { delay: 2.8, lastFromLeft: true, lastY: null },
-  ];
-  spawnBird(birds[0]);
-
-  function stepBirds(dt) {
-    for (const bird of birds) {
-      if (bird.delay > 0) {
-        bird.delay -= dt;
-        if (bird.delay <= 0) spawnBird(bird);
-        continue;
-      }
-      bird.x += bird.vx * dt;
-      bird.y += bird.vy * dt;
-      bird.scale -= bird.shrink * dt;
-      if (bird.scale < 8 || bird.y < 65 || bird.x < -40 || bird.x > W + 40) {
-        bird.delay = 0.8 + Math.random() * 2.2;
-        bird.scale = 0;
-      }
+    const count = 1 + Math.floor(Math.random() * 3);
+    const flap = rand(7, 11);
+    const phase = rand(0, Math.PI * 2);
+    const side = Math.random() < 0.5 ? 1 : -1;
+    flock.members = [];
+    for (let i = 0; i < count; i++) {
+      flock.members.push({
+        back: i * rand(1.5, 1.9),
+        side: i * side * rand(0.4, 0.7),
+        sizeK: Math.pow(0.94, i) * rand(0.96, 1.04),
+        flap: flap * rand(0.97, 1.03),
+        phase: phase + i * rand(0.15, 0.4),
+      });
     }
   }
 
-  function drawBird(bird, t) {
-    if (bird.delay > 0 || bird.scale < 8) return;
-    const s = bird.scale;
-    const flap = Math.sin(t * bird.flap + bird.phase);
+  const flock = { delay: 0, members: [], lastFromLeft: null, lastY: null };
+  spawnFlock(flock);
+
+  function stepBirds(dt) {
+    if (flock.delay > 0) {
+      flock.delay -= dt;
+      if (flock.delay <= 0) spawnFlock(flock);
+      return;
+    }
+    flock.x += flock.vx * dt;
+    flock.y += flock.vy * dt;
+    flock.scale -= flock.shrink * dt;
+    if (flock.scale < 8 || flock.y < 65 || flock.x < -40 || flock.x > W + 40) {
+      flock.delay = 1.2 + Math.random() * 2.6;
+      flock.scale = 0;
+    }
+  }
+
+  function drawBird(x, y, s, flapRate, phase, t) {
+    const flap = Math.sin(t * flapRate + phase);
     const wing = s * (0.95 + flap * 0.28);
     const lift = s * (0.28 + flap * 0.28);
     const a = 0.48 + 0.18 * Math.min(1, (s - 8) / 24);
@@ -474,10 +484,25 @@ function makeLandscape() {
     g.lineCap = 'round';
     g.lineJoin = 'round';
     g.beginPath();
-    g.moveTo(bird.x - wing, bird.y + lift * 0.15);
-    g.quadraticCurveTo(bird.x - s * 0.12, bird.y - lift, bird.x, bird.y);
-    g.quadraticCurveTo(bird.x + s * 0.12, bird.y - lift, bird.x + wing, bird.y + lift * 0.15);
+    g.moveTo(x - wing, y + lift * 0.15);
+    g.quadraticCurveTo(x - s * 0.12, y - lift, x, y);
+    g.quadraticCurveTo(x + s * 0.12, y - lift, x + wing, y + lift * 0.15);
     g.stroke();
+  }
+
+  function drawFlock(t) {
+    if (flock.delay > 0 || flock.scale < 8) return;
+    const len = Math.hypot(flock.vx, flock.vy) || 1;
+    const hx = flock.vx / len;
+    const hy = flock.vy / len;
+    for (const m of flock.members) {
+      const gap = flock.scale;
+      const x = flock.x - hx * m.back * gap - hy * m.side * gap;
+      const y = flock.y - hy * m.back * gap + hx * m.side * gap;
+      const s = flock.scale * m.sizeK;
+      if (s < 8) continue;
+      drawBird(x, y, s, m.flap, m.phase, t);
+    }
   }
 
   function drawTree(spec, t) {
@@ -505,7 +530,7 @@ function makeLandscape() {
 
   function paint(t) {
     g.drawImage(bg, 0, 0);
-    for (const bird of birds) drawBird(bird, t);
+    drawFlock(t);
     for (const spec of trees) drawTree(spec, t);
 
     g.fillStyle = '#35522E';
