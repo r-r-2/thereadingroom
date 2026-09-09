@@ -422,7 +422,8 @@ function makeLandscape() {
   /* One flock at a time, 1-3 birds on a single shared heading. The
      leader carries the trajectory; members hold a fixed echelon offset
      measured in leader-scale units, so the formation tightens as the
-     flock recedes. */
+     flock recedes. A drawn bird spans 2.46x its scale wing tip to wing
+     tip, so `back` has to clear that or neighbours overlap. */
   function spawnFlock(flock) {
     const fromLeft = flock.lastFromLeft == null ? Math.random() < 0.5 : !flock.lastFromLeft;
     flock.lastFromLeft = fromLeft;
@@ -447,8 +448,8 @@ function makeLandscape() {
     flock.members = [];
     for (let i = 0; i < count; i++) {
       flock.members.push({
-        back: i * rand(1.5, 1.9),
-        side: i * side * rand(0.4, 0.7),
+        back: i * rand(3.4, 4.1),
+        side: i * side * rand(0.8, 1.2),
         sizeK: Math.pow(0.94, i) * rand(0.96, 1.04),
         flap: flap * rand(0.97, 1.03),
         phase: phase + i * rand(0.15, 0.4),
