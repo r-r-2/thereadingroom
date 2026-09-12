@@ -167,6 +167,11 @@
 }
 </script>
 
+<script>
+if (/(?:^|\/)reading-room\.html$/.test(location.pathname)) {
+  history.replaceState(null, '', location.pathname.replace(/[^/]+$/, '') + location.search + location.hash);
+}
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
