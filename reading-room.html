@@ -25,6 +25,10 @@
     border-radius:5px;padding:5px 10px;font:inherit;font-size:12px;color:#D6C8B6}
   #gate .cta{display:inline-block;background:#E8D9C0;color:#241d16;font-weight:600;
     font-size:14px;padding:11px 26px;border-radius:999px}
+  #gate .byline{position:absolute;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));
+    margin:0;text-align:center;font-size:12px;letter-spacing:.04em;color:#8A7C70;cursor:default}
+  #gate .byline a{color:#C4B5A4;text-decoration:none}
+  #gate .byline a:hover{color:#EDE3D4;text-decoration:underline;text-underline-offset:3px}
   #gate.hidden{display:none}
 
   /* ---- hud ---- */
@@ -66,53 +70,65 @@
   .dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
   @keyframes dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
 
-  /* ---- guestbook panel ---- */
+  /* ---- guestbook: leather cover + cream spread over the live room ---- */
+  #gb-dim{position:fixed;inset:0;z-index:14;background:rgba(36,29,22,.58);cursor:pointer}
+  #gb-dim[hidden]{display:none!important}
+
   #guestbook{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:440px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 40px);overflow-y:auto;
+    width:min(860px,calc(100vw - 36px));max-height:calc(100dvh - 40px);overflow-y:auto;
     z-index:15;pointer-events:auto;touch-action:pan-y;
-    background:rgba(24,19,15,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-    border:1px solid rgba(220,196,158,.24);border-radius:12px;padding:22px 24px 20px;
-    -webkit-user-select:text;user-select:text}
+    background:#5A3A2A;border:1px solid #3d261c;
+    border-radius:7px 11px 9px 7px;padding:10px 12px 12px;
+    box-shadow:0 22px 60px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,220,180,.14),inset 0 -3px 10px rgba(0,0,0,.28);
+    color:#3A3F5C;-webkit-user-select:text;user-select:text}
   #guestbook[hidden]{display:none}
-  #guestbook .gb-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
-  #guestbook h2{margin:0;font-size:20px;font-weight:600;letter-spacing:.01em}
-  #guestbook .gb-intro{margin:0 0 14px;font-size:13px;line-height:1.55;color:#A8998A}
-  #guestbook button{font:inherit;cursor:pointer;border-radius:999px;border:1px solid rgba(220,196,158,.3);
-    background:transparent;color:#EDE3D4;padding:8px 14px;font-size:13px}
-  #guestbook button:hover{background:rgba(220,196,158,.1)}
+  #guestbook .gb-head{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:0 0 8px}
+  #guestbook h2,#guestbook .gb-script{margin:0 0 2px;
+    font:700 28px 'Snell Roundhand','Apple Chancery','Segoe Script','URW Chancery L',cursive;
+    letter-spacing:.01em;color:#3A3F5C}
+  #guestbook .gb-sub,#guestbook .gb-intro{margin:0 0 14px;font:italic 400 14px Georgia,serif;
+    line-height:1.5;color:rgba(58,63,92,.62)}
+  #guestbook .gb-spread{display:grid;grid-template-columns:1fr 1fr;min-height:400px;
+    background:#F5EEDF;border-radius:2px 3px 2px 2px;position:relative}
+  #guestbook .gb-spread::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:80px;margin-left:-40px;
+    pointer-events:none;background:linear-gradient(90deg,transparent,rgba(0,0,0,.14),transparent)}
+  #guestbook .gb-page{padding:22px 26px 24px;position:relative;z-index:1;display:flex;flex-direction:column;min-width:0}
+  #guestbook .gb-page-foot{margin-top:auto;padding-top:16px}
+  #guestbook button{font:inherit;cursor:pointer;border-radius:999px;border:1px solid rgba(90,70,50,.28);
+    background:transparent;color:#3A3F5C;padding:8px 14px;font-size:13px}
+  #guestbook button:hover{background:rgba(90,70,50,.08)}
   #guestbook button:disabled{opacity:.45;cursor:default}
   #guestbook .gb-primary{background:#E8D9C0;color:#241d16;font-weight:600;border-color:transparent;padding:10px 20px}
   #guestbook .gb-primary:hover{background:#F0E4CE}
-  #guestbook .gb-x{padding:4px 10px;font-size:12px;color:#A8998A}
-  #guestbook .gb-entries{margin-top:16px}
-  #guestbook .gb-sec{margin:14px 0 6px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
-  #guestbook .gb-e{padding:8px 0;border-top:1px solid rgba(220,196,158,.1);font-size:13px;line-height:1.45}
+  #guestbook .gb-x{padding:4px 10px;font-size:12px;color:#E8D9C0;border-color:rgba(232,217,192,.32)}
+  #guestbook .gb-x:hover{background:rgba(232,217,192,.12)}
+  #guestbook .gb-entries{margin-top:4px}
+  #guestbook .gb-e{padding:8px 0;border-top:1px solid rgba(90,70,50,.14);font:400 14px Georgia,serif;line-height:1.45}
   #guestbook .gb-e b{font-weight:600}
-  #guestbook .gb-e .who{color:#A8998A}
-  #guestbook .gb-e .why{margin:3px 0 0;color:#CFC1AE;font-size:12.5px}
+  #guestbook .gb-e .who{color:rgba(58,63,92,.55)}
+  #guestbook .gb-e .why{margin:3px 0 0;color:rgba(58,63,92,.78);font-size:13px}
   #guestbook .gb-e.wait{opacity:.7}
-  #guestbook .gb-empty{font-size:13px;color:#8C7D6E;padding:10px 0}
-  #guestbook label{display:block;margin:0 0 10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8C7D6E}
+  #guestbook .gb-empty{font:italic 400 14px Georgia,serif;color:rgba(58,63,92,.42);margin:0 0 6px}
+  #guestbook label{display:block;margin:0 0 10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:rgba(58,63,92,.5)}
   #guestbook input,#guestbook textarea{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;
-    color:#EDE3D4;background:rgba(255,245,230,.05);border:1px solid rgba(220,196,158,.22);border-radius:8px;
+    color:#3A3F5C;background:rgba(255,255,255,.5);border:1px solid rgba(90,70,50,.22);border-radius:8px;
     padding:9px 11px;outline:none;-webkit-user-select:text;user-select:text}
-  #guestbook input:focus,#guestbook textarea:focus{border-color:rgba(232,217,192,.6)}
+  #guestbook input:focus,#guestbook textarea:focus{border-color:rgba(90,70,50,.5)}
   #guestbook textarea{resize:vertical;min-height:64px}
   #guestbook .gb-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
   #guestbook .gb-matches{display:flex;flex-direction:column;gap:6px;margin:-4px 0 12px}
   #guestbook .gb-match{display:flex;align-items:center;gap:10px;text-align:left;border-radius:8px;padding:6px 8px;
-    border:1px solid rgba(220,196,158,.16);background:rgba(255,245,230,.03)}
-  #guestbook .gb-match img{width:28px;height:42px;object-fit:cover;border-radius:2px;background:#3a2f26;flex:none}
+    border:1px solid rgba(90,70,50,.16);background:rgba(255,255,255,.35);color:#3A3F5C}
+  #guestbook .gb-match img{width:28px;height:42px;object-fit:cover;border-radius:2px;background:#c4b39a;flex:none}
   #guestbook .gb-match .m-t{font-size:13px;line-height:1.3}
-  #guestbook .gb-match .m-a{font-size:11.5px;color:#A8998A}
-  #guestbook .gb-match.on{border-color:#E0B36B;background:rgba(224,179,107,.1)}
-  #guestbook .gb-matchhint{font-size:11.5px;color:#8C7D6E;margin:-4px 0 12px}
+  #guestbook .gb-match .m-a{font-size:11.5px;color:rgba(58,63,92,.55)}
+  #guestbook .gb-match.on{border-color:#C4A15A;background:rgba(224,179,107,.2)}
+  #guestbook .gb-matchhint{font-size:11.5px;color:rgba(58,63,92,.45);margin:-4px 0 12px}
   #guestbook .gb-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:6px}
-  #guestbook .gb-status{margin:12px 0 0;font-size:13px;line-height:1.5;color:#CFC1AE;min-height:1em}
-  #guestbook .gb-status.err{color:#E5A08A}
-  #guestbook .gb-status.ok{color:#D9C48F}
-  #guestbook .gb-meta{margin:8px 0 0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
-  #guestbook .gb-return{margin-top:14px;text-align:center}
+  #guestbook .gb-status{margin:12px 0 0;font-size:13px;line-height:1.5;color:rgba(58,63,92,.78);min-height:1em}
+  #guestbook .gb-status.err{color:#9A4030}
+  #guestbook .gb-status.ok{color:#6A5A30}
+  #guestbook .gb-meta{margin:8px 0 0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(58,63,92,.45)}
   #guestbook .gb-done-actions{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-top:18px}
   #guestbook .gb-done-actions .gb-primary{width:100%;text-align:center}
 
@@ -171,7 +187,9 @@
     left:0;right:0;top:auto;bottom:0;width:auto;max-width:none;
     transform:none;border-radius:16px 16px 0 0;
     max-height:min(88dvh,calc(100dvh - env(safe-area-inset-top) - 12px));
-    padding-bottom:max(20px,env(safe-area-inset-bottom))}
+    padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  html.touch-ui #guestbook .gb-spread{grid-template-columns:1fr;min-height:0}
+  html.touch-ui #guestbook .gb-spread::after{display:none}
 </style>
 </head>
 <body>
@@ -201,6 +219,7 @@
     </div>
     <div class="cta" id="cta">Click to enter</div>
   </div>
+  <p class="byline" id="gate-foot">built by <a href="https://rr2.dev" target="_blank" rel="noopener noreferrer">rahul</a></p>
 </div>
 
 <div id="crosshair" class="hidden"></div>
@@ -218,45 +237,70 @@
   <div class="bar" id="d-bar" style="display:none"><i id="d-bar-i"></i></div>
 </div>
 
+<div id="gb-dim" hidden></div>
 <div id="guestbook" hidden>
   <div id="gb-list">
     <div class="gb-head">
-      <h2>Guestbook</h2>
       <button type="button" class="gb-x" id="gb-close">Close</button>
     </div>
-    <p class="gb-intro" id="gb-list-intro">Books guests have left on the table.</p>
-    <button type="button" class="gb-primary" id="gb-add">Leave a book</button>
-    <div class="gb-entries" id="gb-entries"></div>
+    <div class="gb-spread">
+      <div class="gb-page">
+        <h2 class="gb-script">Guestbook</h2>
+        <p class="gb-sub" id="gb-list-intro"></p>
+        <div class="gb-entries" id="gb-entries-shelved"></div>
+      </div>
+      <div class="gb-page">
+        <h2 class="gb-script">Waiting</h2>
+        <p class="gb-sub">to be shelved</p>
+        <div class="gb-entries" id="gb-entries-waiting"></div>
+        <div class="gb-page-foot">
+          <button type="button" class="gb-primary" id="gb-add">Leave a book</button>
+        </div>
+      </div>
+    </div>
   </div>
   <form id="gb-form" hidden autocomplete="off" novalidate>
     <div class="gb-head">
-      <h2>Leave a book</h2>
       <button type="button" class="gb-x" id="gb-close2">Close</button>
     </div>
-    <p class="gb-intro" id="gb-form-intro"></p>
-    <label>Title <input name="t" maxlength="120" placeholder="e.g. Dune" required></label>
-    <label>Author <input name="a" maxlength="80" placeholder="e.g. Frank Herbert" required></label>
-    <div class="gb-matches" id="gb-matches" hidden></div>
-    <p class="gb-matchhint" id="gb-matchhint" hidden></p>
-    <label>Your name <input name="by" maxlength="40" placeholder="so I know who to thank" required></label>
-    <label>Why should I read it? <textarea name="why" maxlength="400" rows="3" placeholder="one or two lines is plenty"></textarea></label>
-    <input class="gb-hp" name="website" tabindex="-1" aria-hidden="true">
-    <div class="gb-actions">
-      <button type="button" id="gb-back">Back</button>
-      <button type="submit" class="gb-primary" id="gb-submit">Leave it on the table</button>
+    <div class="gb-spread">
+      <div class="gb-page">
+        <h2 class="gb-script">Leave a book</h2>
+        <p class="gb-intro" id="gb-form-intro"></p>
+      </div>
+      <div class="gb-page">
+        <label>Title <input name="t" maxlength="120" placeholder="e.g. Dune" required></label>
+        <label>Author <input name="a" maxlength="80" placeholder="e.g. Frank Herbert" required></label>
+        <div class="gb-matches" id="gb-matches" hidden></div>
+        <p class="gb-matchhint" id="gb-matchhint" hidden></p>
+        <label>Your name <input name="by" maxlength="40" placeholder="so I know who to thank" required></label>
+        <label>Why should I read it? <textarea name="why" maxlength="400" rows="3" placeholder="one or two lines is plenty"></textarea></label>
+        <input class="gb-hp" name="website" tabindex="-1" aria-hidden="true">
+        <div class="gb-actions">
+          <button type="button" id="gb-back">Back</button>
+          <button type="submit" class="gb-primary" id="gb-submit">Leave it on the table</button>
+        </div>
+        <p class="gb-status" id="gb-status"></p>
+        <p class="gb-meta" id="gb-remaining"></p>
+      </div>
     </div>
-    <p class="gb-status" id="gb-status"></p>
-    <p class="gb-meta" id="gb-remaining"></p>
   </form>
   <div id="gb-done" hidden>
     <div class="gb-head">
-      <h2>Left on the table</h2>
       <button type="button" class="gb-x" id="gb-close3">Close</button>
     </div>
-    <p class="gb-intro" id="gb-done-line"></p>
-    <div class="gb-done-actions">
-      <button type="button" class="gb-primary" id="gb-see">Go see it</button>
-      <button type="button" id="gb-again">Leave another</button>
+    <div class="gb-spread">
+      <div class="gb-page">
+        <h2 class="gb-script">Left on the table</h2>
+        <p class="gb-intro">It's waiting on the table, wearing a tag until it's shelved.</p>
+      </div>
+      <div class="gb-page">
+        <p class="gb-intro" id="gb-done-line"></p>
+        <div class="gb-done-actions">
+          <button type="button" class="gb-primary" id="gb-see">Go see it</button>
+          <button type="button" id="gb-again">Leave another</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1978,12 +2022,17 @@ guestGroup.add(ledgerGroup);
 const ledgerCover = new THREE.Mesh(new THREE.BoxGeometry(LEDGER.w, 0.012, LEDGER.d), LEATHER);
 ledgerCover.position.y = 0.006;
 ledgerGroup.add(ledgerCover);
+const ledgerBlocks = [];
 [-1, 1].forEach((s) => {
   const block = new THREE.Mesh(new THREE.BoxGeometry(LEDGER.w / 2 - 0.012, 0.016, LEDGER.d - 0.02), PAGE_MAT);
-  block.position.set(s * (LEDGER.w / 4 - 0.002), 0.012 + 0.008, 0);
-  block.rotation.z = -s * 0.05;
+  const x0 = s * (LEDGER.w / 4 - 0.002);
+  const rz0 = -s * 0.05;
+  block.position.set(x0, 0.012 + 0.008, 0);
+  block.rotation.z = rz0;
   ledgerGroup.add(block);
+  ledgerBlocks.push({ mesh: block, s, x0, rz0 });
 });
+let ledgerOpenT = 0;
 
 const ledgerCanvas = document.createElement('canvas');
 ledgerCanvas.width = 1024;
@@ -2113,8 +2162,8 @@ inkwell.add(quill);
 
 /* ---- standing sign at the back edge ---- */
 const guestSign = makePlaque(
-  ['Guests', { text: 'leave a book' }, 'pick up the quill'],
-  { w: 0.46, h: 0.30, font: 46 }
+  ['Recommend a book', { text: 'for me' }, 'Click the quill'],
+  { w: 0.46, h: 0.30, font: 42 }
 );
 guestSign.position.set(-0.32, GUEST_TABLE.h + 0.16, -GUEST_TABLE.d / 2 + 0.05);
 guestSign.rotation.x = -0.18;
@@ -2781,6 +2830,7 @@ scene.add(controls.object ?? controls.getObject?.() ?? camera);
 camera.rotation.order = 'YXZ';
 
 const gate = document.getElementById('gate');
+const gbDim = document.getElementById('gb-dim');
 const crosshair = document.getElementById('crosshair');
 const promptEl = document.getElementById('prompt');
 const hintEl = document.getElementById('hint');
@@ -2791,6 +2841,7 @@ const btnCovers = document.getElementById('btn-covers');
 const btnLeave = document.getElementById('btn-leave');
 
 let inRoom = false;
+let guestbookOpen = false;
 let gateIgnoreUntil = 0;
 let stickX = 0;
 let stickY = 0;
@@ -2829,6 +2880,11 @@ function enterRoom() {
 
 function leaveRoom() {
   if (!inRoom) return;
+  if (guestbookOpen) {
+    guestbookOpen = false;
+    gbDim.hidden = true;
+    guestbookEl.hidden = true;
+  }
   inRoom = false;
   gateIgnoreUntil = performance.now() + 500;
   if (opened) {
@@ -2849,7 +2905,7 @@ function leaveRoom() {
 syncChrome();
 
 gate.addEventListener('click', (e) => {
-  if (e.target.closest && (e.target.closest('.lil-gui') || e.target.closest('#detail') || e.target.closest('#guestbook'))) return;
+  if (e.target.closest && (e.target.closest('.lil-gui') || e.target.closest('#detail') || e.target.closest('#guestbook') || e.target.closest('#gate-foot'))) return;
   if (!guestbookEl.hidden) closeGuestbook(); // clicking past the panel goes back in
   if (performance.now() < gateIgnoreUntil) return;
   if (useTouch) {
@@ -2870,7 +2926,7 @@ gate.addEventListener('click', (e) => {
 });
 controls.addEventListener('lock', enterRoom);
 controls.addEventListener('unlock', () => {
-  if (useTouch) return;
+  if (useTouch || guestbookOpen) return;
   leaveRoom();
 });
 document.addEventListener('pointerlockerror', () => {
@@ -2970,7 +3026,7 @@ function applyLook(dx, dy) {
 
 const canvas = renderer.domElement;
 canvas.addEventListener('pointerdown', (e) => {
-  if (!useTouch || !inRoom || lookId != null) return;
+  if (!useTouch || !inRoom || guestbookOpen || lookId != null) return;
   if (e.target !== canvas) return;
   lookId = e.pointerId;
   lookLastX = lookStartX = e.clientX;
@@ -3159,7 +3215,7 @@ function hitFromPointer(e) {
 }
 
 function interact(target = looked) {
-  if (!inRoom) return;
+  if (!inRoom || guestbookOpen) return;
 
   if (target && target.userData.type === 'player') {
     Music.toggle();
@@ -3210,27 +3266,28 @@ btnCovers.addEventListener('pointerup', (e) => {
 });
 
 addEventListener('keydown', (e) => {
-  if (e.code !== 'KeyC' || e.repeat || !inRoom || typing(e)) return;
+  if (e.code !== 'KeyC' || e.repeat || !inRoom || guestbookOpen || typing(e)) return;
   toggleCoverMode();
 });
 
 document.addEventListener('click', () => {
-  if (useTouch || !inRoom) return;
+  if (useTouch || !inRoom || guestbookOpen) return;
   interact();
 });
 
 /* ============================================================
    GUESTBOOK PANEL
    Opened from the ledger (list) or the quill / ghost slot / sign /
-   table top (form). On desktop the pointer is released first, so the
-   panel sits above the entry gate like #detail does; clicking the
-   gate around it closes the panel and re-enters the room.
+   table top (form). Stays in the room: a dimmer sits over the live
+   canvas and the panel is the same open ledger. Desktop unlocks the
+   pointer so the guest can type, without calling leaveRoom().
    ============================================================ */
 const guestbookEl = document.getElementById('guestbook');
 const gbList = document.getElementById('gb-list');
 const gbForm = document.getElementById('gb-form');
 const gbDone = document.getElementById('gb-done');
-const gbEntries = document.getElementById('gb-entries');
+const gbEntriesShelved = document.getElementById('gb-entries-shelved');
+const gbEntriesWaiting = document.getElementById('gb-entries-waiting');
 const gbMatches = document.getElementById('gb-matches');
 const gbMatchHint = document.getElementById('gb-matchhint');
 const gbStatus = document.getElementById('gb-status');
@@ -3240,11 +3297,15 @@ const gbDoneLine = document.getElementById('gb-done-line');
 const gbAgain = document.getElementById('gb-again');
 const RELAY_CONFIGURED = !/YOUR-SUBDOMAIN/.test(GUEST_RELAY_URL);
 
+document.getElementById('gb-list-intro').textContent =
+  `books guests have left for ${HOST_NAME}`;
 document.getElementById('gb-form-intro').textContent =
   `Leave a book for ${HOST_NAME} to read. It goes on the table straight away, wearing a tag until ${HOST_NAME} approves it.`;
 
 guestbookEl.addEventListener('click', (e) => e.stopPropagation());
 guestbookEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+gbDim.addEventListener('click', (e) => { e.stopPropagation(); closeGuestbook(); });
+gbDim.addEventListener('pointerdown', (e) => e.stopPropagation());
 
 let gbOpenedAt = 0;
 let gbSelected = null;   // chosen Open Library match { isbn, cover }
@@ -3257,17 +3318,30 @@ function openGuestbook(view = 'list') {
     opened = null;
     hideDetail();
   }
+  guestbookOpen = true;
+  gbDim.hidden = false;
   guestbookEl.hidden = false;
   showGbView(view);
-  if (!useTouch && controls.isLocked) controls.unlock();   // → leaveRoom(), gate behind
+  crosshair.classList.add('hidden');
+  promptEl.classList.remove('on');
+  if (!useTouch) hintEl.textContent = 'Esc to close the book';
+  if (!useTouch && controls.isLocked) controls.unlock();
   if (useTouch) stickEl.hidden = true;
   markGuestSeen();
   hideToast();
 }
 
 function closeGuestbook() {
+  const wasOpen = guestbookOpen;
+  guestbookOpen = false;
+  gbDim.hidden = true;
   guestbookEl.hidden = true;
   if (useTouch && inRoom) stickEl.hidden = false;
+  if (inRoom) {
+    crosshair.classList.remove('hidden');
+    if (!useTouch) hintEl.textContent = 'Esc to release the cursor';
+  }
+  if (wasOpen && !useTouch && inRoom && !controls.isLocked) controls.lock();
 }
 
 function showGbView(view) {
@@ -3318,31 +3392,33 @@ function entryRow(e, wait) {
   return div;
 }
 
-function renderEntries() {
-  gbEntries.textContent = '';
-  const mine = guestMine.filter((m) => m.status === 'pending');
-  const waiting = waitingList();
-  const shelved = guestShelved.slice().reverse();
+function fillEntries(el, rows, emptyLines, wait) {
+  el.textContent = '';
+  if (!rows.length) {
+    emptyLines.forEach((line) => {
+      const p = document.createElement('p');
+      p.className = 'gb-empty';
+      p.textContent = line;
+      el.appendChild(p);
+    });
+    return;
+  }
+  rows.forEach((e) => el.appendChild(entryRow(e, wait)));
+}
 
-  if (mine.length) {
-    const h = document.createElement('p'); h.className = 'gb-sec'; h.textContent = 'Yours';
-    gbEntries.appendChild(h);
-    mine.forEach((e) => gbEntries.appendChild(entryRow(e, true)));
-  }
-  const h1 = document.createElement('p'); h1.className = 'gb-sec'; h1.textContent = 'On the table';
-  gbEntries.appendChild(h1);
-  if (shelved.length) shelved.forEach((e) => gbEntries.appendChild(entryRow(e, false)));
-  else {
-    const p = document.createElement('p'); p.className = 'gb-empty';
-    p.textContent = 'Nothing yet — be the first.';
-    gbEntries.appendChild(p);
-  }
-  const others = waiting.filter((w) => !mine.includes(w));
-  if (others.length) {
-    const h2 = document.createElement('p'); h2.className = 'gb-sec'; h2.textContent = 'Waiting to be shelved';
-    gbEntries.appendChild(h2);
-    others.forEach((e) => gbEntries.appendChild(entryRow(e, true)));
-  }
+function renderEntries() {
+  fillEntries(
+    gbEntriesShelved,
+    guestShelved.slice().reverse(),
+    ['Nothing here yet.', 'Be the first —', 'pick up the quill.'],
+    false
+  );
+  fillEntries(
+    gbEntriesWaiting,
+    waitingList(),
+    ['Leave a book and it', 'appears here, then on', 'the table once approved.'],
+    true
+  );
 }
 
 document.getElementById('gb-close').addEventListener('click', closeGuestbook);
@@ -3370,10 +3446,12 @@ function goSeeGuestBook() {
     return;
   }
   lookAtGuestTable();
-  if (!inRoom) controls.lock();
 }
 addEventListener('keydown', (e) => {
-  if (e.code === 'Escape' && !guestbookEl.hidden && !inRoom) closeGuestbook();
+  if (e.code === 'Escape' && guestbookOpen) {
+    e.preventDefault();
+    closeGuestbook();
+  }
 });
 
 /* ---- Open Library lookup: pick the right edition to get a real cover ---- */
@@ -3566,7 +3644,14 @@ const clock = new THREE.Clock();
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  if (inRoom) {
+  if (inRoom && guestbookOpen) {
+    velocity.set(0, 0, 0);
+    if (looked) {
+      looked = null;
+      crosshair.classList.remove('hot');
+      promptEl.classList.remove('on');
+    }
+  } else if (inRoom) {
     /* NOTE: use explicit ternaries, not Number(). keys[code] is undefined
        until that key is first pressed, and Number(undefined) is NaN — which
        propagates into velocity and then into camera.position, permanently
@@ -3673,6 +3758,11 @@ function animate() {
 
   landscape.update(clock.elapsedTime);
   quill.rotation.z = 0.42 + Math.sin(clock.elapsedTime * 1.3) * 0.035;
+  ledgerOpenT += ((guestbookOpen ? 1 : 0) - ledgerOpenT) * Math.min(1, dt * 6);
+  for (const b of ledgerBlocks) {
+    b.mesh.position.x = b.x0 + b.s * 0.02 * ledgerOpenT;
+    b.mesh.rotation.z = b.rz0 * (1 - 0.85 * ledgerOpenT);
+  }
   updateToast();
 
   composer.render();

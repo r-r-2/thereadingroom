@@ -231,12 +231,15 @@ See `ARCHITECTURE.md` for the how and why of each section.
     should appear. Toggle post-processing off to see the raw scene without
     bloom. Without the query param, leaving the room must not show it.
 16. Turn around at spawn. A table by the door holds an open guestbook, a
-    quill, a standing sign, and a ghost slot that reads "your book goes
-    here". You cannot walk through the table. A first-visit toast points
-    at it. Click the quill / ghost / sign / table top — the form opens
-    (pointer unlocks on desktop). Click the ledger — the list opens, with
-    a Leave a book button. Submit a book (relay optional locally) — it
-    appears on the table with an "awaiting approval" tag, listed in the
-    ledger in lighter ink. Pull it out: meta reads "waiting for approval".
-    A seeded `guestbook.js` entry renders with its cover; pull it out →
-    "Recommended by".
+    quill, a standing sign that reads "Recommend a book for me / Click
+    the quill", and a ghost slot that reads "your book goes here". You
+    cannot walk through the table. A first-visit toast points at it.
+    Click the quill / ghost / sign / table top — the room stays visible
+    under a dim overlay; the form is a cream open book (pointer unlocks
+    on desktop, Esc / dimmer / Close re-locks). Click the ledger — two
+    cream pages, Guestbook and Waiting, not a dark card. Submit a book
+    (relay optional locally) — it appears on the table with an "awaiting
+    approval" tag, listed on the Waiting page in lighter ink. Pull it
+    out: meta reads "waiting for approval". Shelved entries in
+    `guestbook.js` sit on the table and on the Guestbook page; there is
+    no Left Hand of Darkness seed.
