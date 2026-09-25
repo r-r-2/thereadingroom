@@ -1289,15 +1289,48 @@ function makeBookMesh(b) {
   return mesh;
 }
 
+const SHELF_MONTHS = {
+  Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
+  Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12
+};
+
+/* Sort key for a shelf row. A four-digit year in fin wins ("Jul 2022").
+   A decade label like "2000s" is not a year. Otherwise use y. */
+function shelfTime(b) {
+  const fin = String(b.fin || '');
+  const yearMatch = fin.match(/\b(\d{4})\b/);
+  const year = yearMatch ? Number(yearMatch[1]) : (b.y || 9999);
+  const monthMatch = fin.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/);
+  const month = monthMatch ? SHELF_MONTHS[monthMatch[1]] : 0;
+  return year * 100 + month;
+}
+
+function byShelfTime(a, b) {
+  return shelfTime(a) - shelfTime(b);
+}
+
+/* Fiction keeps the Potter novels as one block in array order.
+   Anything before 2001 sits to their left; 2001 onward sits to their right. */
+function fictionRow(list) {
+  const potter = list.filter((b) => b.t.startsWith('Harry Potter'));
+  const rest = list.filter((b) => !b.t.startsWith('Harry Potter')).sort(byShelfTime);
+  const before = rest.filter((b) => shelfTime(b) < 200100);
+  const after = rest.filter((b) => shelfTime(b) >= 200100);
+  return [...before, ...potter, ...after];
+}
+
 function placeBooks() {
-  // Finished books fill the three lower shelves. Reading-now books
-  // go on the table (placeTableBooks), not the top shelf.
+  // Finished books fill the three lower shelves by kind. Reading-now
+  // books go on the table (placeTableBooks), not the top shelf.
+  // Upper: real people. Middle: everything else. Bottom: fiction.
+  // Each row runs earlier to later.
   const read = BOOKS.filter((b) => !b.reading);
+  const xStart = -CASE.w / 2 + 0.12;
 
   const rows = [
-    { y: SHELF_Y[2], list: read.slice(0, 5), xStart: -CASE.w / 2 + 0.12 },
-    { y: SHELF_Y[1], list: read.slice(5, 10), xStart: -CASE.w / 2 + 0.12 },
-    { y: SHELF_Y[0], list: read.slice(10), xStart: -CASE.w / 2 + 0.12 }
+    { y: SHELF_Y[2], list: read.filter((b) => b.row === 'people').sort(byShelfTime), xStart },
+    { y: SHELF_Y[1], list: read.filter((b) => b.row === 'other').sort(byShelfTime), xStart },
+    { y: SHELF_Y[0], list: fictionRow(read.filter((b) => b.row === 'fiction')), xStart }
   ];
 
   rows.forEach((row) => {
@@ -3189,7 +3222,7 @@ function showDetail(b) {
   } else if (b.guest) {
     meta.textContent = `Recommended by ${b.by}${b.date ? ` · ${b.date}` : ''}`;
   } else {
-    meta.textContent = b.reading ? 'Reading now' : `Finished ${b.fin}`;
+    meta.textContent = b.reading ? 'Reading now' : (b.fin ? `Finished ${b.fin}` : 'Finished');
   }
   const bar = document.getElementById('d-bar');
   if (b.reading) {
