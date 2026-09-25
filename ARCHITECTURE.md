@@ -382,9 +382,10 @@ ignored on failure.
 URLs, ISBN/cover format, 30-day duplicate key, stop at 100 open
 issues, honeypot. The client mirrors the count as UX only.
 
-**Desktop flow.** Clicking a `guestbook` or `guest-add` target calls
-`controls.unlock()`, which fires `leaveRoom()`. The panel stays open
-above the gate (`z-index: 15`). `leaveRoom` must not close it. A click
-on the gate around the panel closes it and re-enters. Touch keeps the
-player in the room and opens the panel as a bottom sheet; a HUD button
-opens the form from anywhere.
+**Desktop flow.** Clicking a `guestbook` or `guest-add` target sets
+`guestbookOpen`, shows `#gb-dim` over the live canvas, and calls
+`controls.unlock()` so the guest can type. The unlock handler must
+**not** call `leaveRoom()` while that flag is set — the 3D room keeps
+rendering. Esc, the dimmer, or Close hide the overlay and re-lock.
+Touch stays in the room and opens the same cream/leather book as a
+bottom sheet (stick hidden); a HUD button opens the form from anywhere.
