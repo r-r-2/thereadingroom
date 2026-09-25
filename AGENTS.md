@@ -190,6 +190,29 @@ See `ARCHITECTURE.md` for the how and why of each section.
 - **Stylized, not photoreal.** Spine text is larger and higher-contrast than a
   real book spine — deliberately. Legibility beats fidelity.
 
+## Git commits
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+```
+<type>[optional scope]: <description>
+```
+
+- **type:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, or `chore`
+- **scope** (optional): `room`, `books`, `guestbook`, `worker`, `audio`, `window`, `mobile`
+- **description:** imperative, lowercase, no trailing period — the *why* more than a file list
+- Body is optional. Breaking changes use a `BREAKING CHANGE:` footer, or `!` after the type (`feat(guestbook)!: …`)
+- One concern per commit. Do not mix unrelated work.
+
+Examples:
+
+```
+feat(analytics): track page views and room interactions with GA4
+fix(mobile): invert stick so forward matches look direction
+docs: record conventional commit format
+chore(worker): bump wrangler in the deploy workflow
+```
+
 ## Verifying a change
 
 1. Run `python3 -m http.server` and open `http://localhost:8000/reading-room.html`.
