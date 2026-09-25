@@ -1,0 +1,27 @@
+---
+description: Use Conventional Commits for every git commit message
+alwaysApply: true
+---
+
+# Conventional Commits
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). See `AGENTS.md` §Git commits.
+
+```
+<type>[optional scope]: <description>
+```
+
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
+- Scopes when useful: `room`, `books`, `guestbook`, `worker`, `audio`, `window`, `mobile`
+- Description: imperative, lowercase, no trailing period
+- Breaking change: `BREAKING CHANGE:` footer or `type(scope)!: description`
+
+```
+# good
+feat(analytics): track page views and room interactions with GA4
+fix(mobile): invert stick so forward matches look direction
+
+# bad
+Add google analytics
+Fixed the stick.
+```
