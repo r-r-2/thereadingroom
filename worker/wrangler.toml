@@ -1,0 +1,28 @@
+name = "reading-room-guestbook"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+REPO = "r-r-2/thereadingroom"
+ALLOWED_ORIGINS = "https://readingroom.rr2.dev,http://localhost:*,http://127.0.0.1:*"
+MAX_PER_IP = "20"
+MAX_OPEN = "100"
+
+# Per-IP counters and duplicate keys. Create once:
+#   wrangler kv namespace create GUEST_KV
+# The deploy Action substitutes GUEST_KV_ID for the placeholder below.
+[[kv_namespaces]]
+binding = "GUEST_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Burst limit: 3 posts per minute per (hashed) IP. Period must be 10 or 60.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 3, period = 60 }
+
+# Secrets (never in this file). Set them as GitHub Actions secrets and run
+# .github/workflows/deploy-guestbook-worker.yml — see worker/README.md.
+#   GITHUB_TOKEN  fine-grained PAT, this repo, Issues: read & write
+#   IP_SALT       any long random string

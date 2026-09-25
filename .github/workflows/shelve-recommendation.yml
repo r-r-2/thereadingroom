@@ -1,0 +1,110 @@
+name: Shelve approved recommendation
+
+# When a `recommendation` issue (filed by worker/worker.js) is given the
+# `approved` label: parse the JSON block, append the entry to guestbook.js,
+# commit to the default branch, then comment and close the issue.
+# Pages redeploys and the book appears on the guest table for everyone.
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: shelve-guestbook
+  cancel-in-progress: false
+
+jobs:
+  shelve:
+    if: >-
+      github.event.label.name == 'approved' &&
+      contains(join(github.event.issue.labels.*.name, ','), 'recommendation')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Append entry to guestbook.js
+        id: append
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const issue = context.payload.issue;
+
+            const m = issue.body && issue.body.match(/<!-- rr-guest -->\s*```json\s*([\s\S]*?)```/);
+            if (!m) {
+              core.setFailed('No rr-guest JSON block found in the issue body.');
+              return;
+            }
+            let raw;
+            try { raw = JSON.parse(m[1]); }
+            catch (e) { core.setFailed('JSON block did not parse: ' + e.message); return; }
+
+            // Re-validate: never trust issue text blindly.
+            const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u001F\u007F]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
+            const noUrl = (v) => !/(https?:\/\/|www\.)/i.test(v);
+            const e = {
+              id: issue.number,
+              t: clean(raw.t, 120),
+              a: clean(raw.a, 80),
+              by: clean(raw.by, 40),
+              why: clean(raw.why, 400),
+              isbn: clean(raw.isbn, 20).replace(/[^0-9X]/gi, '').toUpperCase(),
+              cover: clean(raw.cover, 200),
+              date: clean(raw.date, 20) || new Date().toLocaleString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+            };
+            if (!e.t || !e.a || !e.by) { core.setFailed('Title, author and name are required.'); return; }
+            if (![e.t, e.a, e.by, e.why].every(noUrl)) { core.setFailed('Links are not allowed.'); return; }
+            if (e.isbn && !/^(\d{9}[\dX]|\d{13})$/.test(e.isbn)) e.isbn = '';
+            if (e.cover && !/^https:\/\/covers\.openlibrary\.org\/b\/(id|isbn|olid)\/[A-Za-z0-9_-]+-[SML]\.jpg$/.test(e.cover)) e.cover = '';
+
+            const file = 'guestbook.js';
+            let src = fs.readFileSync(file, 'utf8');
+            if (new RegExp(`\\{\\s*id:\\s*${issue.number}\\b`).test(src)) {
+              core.info(`Issue #${issue.number} is already shelved.`);
+              core.setOutput('already', 'true');
+              return;
+            }
+
+            const q = (s) => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+            const parts = [
+              `id: ${e.id}`, `t: ${q(e.t)}`, `a: ${q(e.a)}`, `by: ${q(e.by)}`
+            ];
+            if (e.why) parts.push(`why: ${q(e.why)}`);
+            if (e.isbn) parts.push(`isbn: ${q(e.isbn)}`);
+            if (e.cover) parts.push(`cover: ${q(e.cover)}`);
+            parts.push(`date: ${q(e.date)}`);
+            const line = `  { ${parts.join(', ')} },\n`;
+
+            // Insert before the closing `];` of the default export.
+            const idx = src.lastIndexOf('];');
+            if (idx < 0) { core.setFailed('Could not find the closing "];" in guestbook.js'); return; }
+            src = src.slice(0, idx) + line + src.slice(idx);
+            fs.writeFileSync(file, src);
+            core.setOutput('title', e.t);
+            core.setOutput('by', e.by);
+
+      - name: Commit
+        if: steps.append.outputs.already != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add guestbook.js
+          git commit -m "Shelve guest recommendation: ${{ steps.append.outputs.title }} (by ${{ steps.append.outputs.by }}, #${{ github.event.issue.number }})"
+          git push
+
+      - name: Comment and close
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const n = context.payload.issue.number;
+            await github.rest.issues.createComment({
+              ...context.repo, issue_number: n,
+              body: 'Shelved on the guest table. Thank you for the recommendation!'
+            });
+            await github.rest.issues.update({ ...context.repo, issue_number: n, state: 'closed', state_reason: 'completed' });

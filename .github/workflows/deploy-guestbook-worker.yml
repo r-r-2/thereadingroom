@@ -1,0 +1,66 @@
+name: Deploy guestbook worker
+
+# Ships worker/ to Cloudflare. Secrets live in this repo
+# (Settings → Secrets and variables → Actions), not in wrangler CLI.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy-guestbook-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-guestbook-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bind KV namespace
+        env:
+          GUEST_KV_SECRET: ${{ secrets.GUEST_KV_ID }}
+          GUEST_KV_VAR: ${{ vars.GUEST_KV_ID }}
+        run: |
+          GUEST_KV_ID="${GUEST_KV_SECRET:-$GUEST_KV_VAR}"
+          if [ -z "$GUEST_KV_ID" ]; then
+            echo "Set GUEST_KV_ID as an Actions secret or variable (the id from wrangler kv namespace create GUEST_KV)."
+            exit 1
+          fi
+          sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/${GUEST_KV_ID}/" wrangler.toml
+
+      - name: Deploy worker
+        run: npx --yes wrangler@4 deploy
+
+      # Worker must exist before secrets can be written. First deploy may
+      # briefly run without them; the next request after this step is fine.
+      - name: Push Worker secrets
+        env:
+          GUEST_GITHUB_TOKEN: ${{ secrets.GUEST_GITHUB_TOKEN }}
+          IP_SALT: ${{ secrets.IP_SALT }}
+        run: |
+          if [ -z "$GUEST_GITHUB_TOKEN" ] || [ -z "$IP_SALT" ]; then
+            echo "Set GUEST_GITHUB_TOKEN and IP_SALT as Actions secrets."
+            exit 1
+          fi
+          {
+            echo "GITHUB_TOKEN=${GUEST_GITHUB_TOKEN}"
+            echo "IP_SALT=${IP_SALT}"
+          } | npx --yes wrangler@4 secret bulk
