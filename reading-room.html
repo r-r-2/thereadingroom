@@ -4,6 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Reading Room</title>
+<script>
+  const GA_MEASUREMENT_ID = 'G-TVP2ZFDJB1';
+  const GA_ENABLED = !/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  window.track = function(name, params) {
+    if (!GA_ENABLED) return;
+    gtag('event', name, params);
+  };
+  if (GA_ENABLED) {
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID;
+    document.head.appendChild(s);
+    gtag('js', new Date());
+    gtag('config', GA_MEASUREMENT_ID);
+  }
+</script>
 <style>
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;height:100dvh;overflow:hidden;background:#c9b8a0;
@@ -345,6 +363,8 @@ import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import BOOKS from './books.js';
 import GUESTS from './guestbook.js';
+
+const track = window.track;
 
 /* Touch-first devices cannot use Pointer Lock (unsupported on iOS Safari,
    and there is no WASD). Drag-to-look + a virtual stick instead. */
@@ -2876,6 +2896,7 @@ function enterRoom() {
      that gesture, so this is the earliest legal moment to start. */
   if (!Music.ready) Music.start();
   maybeShowToast();
+  track('enter_room', { touch: useTouch });
 }
 
 function leaveRoom() {
@@ -3219,6 +3240,7 @@ function interact(target = looked) {
 
   if (target && target.userData.type === 'player') {
     Music.toggle();
+    track('turntable_toggle', { playing: Music.playing });
     promptEl.textContent = promptFor(target);
     return;
   }
@@ -3242,13 +3264,17 @@ function interact(target = looked) {
   if (target && target.userData.book) {
     target.userData.out = true;
     opened = target;
-    showDetail(target.userData.book);
+    const b = target.userData.book;
+    showDetail(b);
+    const source = b.guest ? 'guest' : target.userData.onTable ? 'table' : 'shelf';
+    track('book_pull', { title: b.t, source });
   }
 }
 
 function toggleCoverMode() {
   coverMode = !coverMode;
   btnCovers.textContent = coverMode ? 'Spines' : 'Covers';
+  track('cover_toggle', { mode: coverMode ? 'covers' : 'spines' });
   if (opened) {
     opened.userData.out = false;
     opened = null;
@@ -3579,6 +3605,7 @@ gbForm.addEventListener('submit', async (e) => {
       (RELAY_CONFIGURED ? '' : ' Saved in this browser only.');
     gbAgain.hidden = guestRemaining <= 0;
     showGbView('done');
+    track('guestbook_submit');
   } catch (err) {
     setGbStatus(err.message, 'err');
   } finally {
