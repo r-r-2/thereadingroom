@@ -24,4 +24,5 @@ export default [
   { id: 0, t: 'The Left Hand of Darkness', a: 'Ursula K. Le Guin', by: 'Maya',
     why: 'A winter planet, two genders that are neither, and a friendship that rewires what you think a person is.',
     isbn: '9780441478125', date: 'Sep 2026' },
+  { id: 19, t: 'The Secret', a: 'Rhonda Byrne', by: 'Swaa', why: 'It changed my perspective and I think it is helpful for everyone in one way or other.', isbn: '9783442337903', cover: 'https://covers.openlibrary.org/b/id/845815-M.jpg', date: 'Sept 2026' },
 ];
