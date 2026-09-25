@@ -35,6 +35,13 @@ THREE.Scene
 │   ├── lamp (base, stem, shade, glow) + lampLight
 │   ├── succulent
 │   └── reading-book meshes (placeTableBooks())
+├── guestGroup (Group, front wall right of the door, rotated π)
+│   ├── top, apron, legs (top is `guest-add`)
+│   ├── ledger (open book, `guestbook`)
+│   ├── inkwell + quill (`guest-add`)
+│   ├── standing sign (`guest-add`)
+│   ├── ghost slot (`guest-add`)
+│   └── guest-book meshes (from guestbook.js + localStorage)
 └── player (Group, at far-right corner, rotated −π/2)
     ├── credenza (Mesh)
     ├── plinth (Mesh)
@@ -129,6 +136,7 @@ only. Books with `reading` lie cover-up on the reading table to the left
 of the bookcase (`placeTableBooks`). The first four sit in a row on the
 tabletop; further titles stack on the leftmost book, each still its own
 interactable. Cover-mode does not stand them up or send them to a shelf.
+`makeTableLayout` / `layBookOnTable` is shared with the guest table.
 Each table book gets a burgundy ribbon child (`addBookmark`) inserted
 through the page block at `reading / 100` and sticking out of the
 table-front edge; it is posed once and rides with pull-out.
@@ -225,10 +233,13 @@ Collision is a bounding-box clamp in `collide()`:
    tries to move past `CASE_MAX_Z`, clamp z to that boundary.
 3. Reading table AABB: if inside the table's x/z box, push to the
    nearest face so the player can walk around it but not through it.
-4. Book nook AABB: if inside the left-wall bay (bench + flanking
+4. Guest table AABB: same `pushOutOfBox` helper; personal space is on
+   the room-facing (−z) side because the table sits against the front
+   wall.
+5. Book nook AABB: if inside the left-wall bay (bench + flanking
    towers), push to the nearest face so the seat cannot be walked
    through.
-5. Eye height: `position.y` is always reset to 1.62. There is no
+6. Eye height: `position.y` is always reset to 1.62. There is no
    gravity and no jumping.
 
 When the clamp corrects position, local velocity is rebuilt from the
@@ -335,3 +346,45 @@ Folders:
   Key position (x/y/z).
 - **Room** — fog near/far, FOV, move speed.
 - **Sound** — volume slider, play/pause toggle.
+
+## Guest table and guestbook
+
+The guest table sits against the front wall, right of the door
+(`GUEST_X = 1.9`, `GUEST_Z = ROOM.d/2 − table depth/2`), rotated π so it
+shares the reading-table layout code (local +z toward the viewer).
+
+```
+Form ──POST──► Cloudflare Worker ──PAT──► GitHub Issue (label: recommendation)
+                                         │
+                                         ├─ public API ──► ledger "Waiting"
+                                         │
+                    you add `approved` ──┴── Action ──► guestbook.js ──► 3D books
+Guest's own POST ──► localStorage ──► 3D book with pending tag (dopamine)
+```
+
+**Source of truth.** Committed entries in `guestbook.js` render as 3D
+books (capped at `GUEST_MAX_ON_TABLE = 12`; the rest live in the ledger)
+and as dark ink in the open ledger. The submitter's own pending entries
+are stored in `localStorage` (`rr-guest-mine`) and placed on the table
+with a paper tag (Lambert `emissive` pulse + 4 mm bob). Other visitors'
+unapproved books are ledger-only unless `GUEST_PENDING_ON_TABLE` is
+flipped.
+
+**On load** the client reconciles: if `guestbook.js` has that issue
+`id`, the local copy is treated as shelved and no tag is added; a
+public `GET /issues/{n}` that comes back closed without a matching
+entry drops the local copy (declined). The open-issue list is fetched
+unauthenticated, cached in `sessionStorage` for ten minutes, and
+ignored on failure.
+
+**Abuse** is enforced in `worker/worker.js`: 20 posts per hashed IP
+(KV, no expiry), 3/min burst, origin allow-list, field lengths, no
+URLs, ISBN/cover format, 30-day duplicate key, stop at 100 open
+issues, honeypot. The client mirrors the count as UX only.
+
+**Desktop flow.** Clicking a `guestbook` or `guest-add` target calls
+`controls.unlock()`, which fires `leaveRoom()`. The panel stays open
+above the gate (`z-index: 15`). `leaveRoom` must not close it. A click
+on the gate around the panel closes it and re-enters. Touch keeps the
+player in the room and opens the panel as a bottom sheet; a HUD button
+opens the form from anywhere.

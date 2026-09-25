@@ -1,9 +1,11 @@
 # The Reading Room — agents guide
 
 A first-person walkable 3D room containing a bookshelf, built with Three.js.
-No build step, no framework, no bundler. Two files: `reading-room.html`
-(scene + logic) and `books.js` (book data). Three.js and lil-gui load from
-unpkg via an import map; cover images are fetched from Open Library on demand.
+No build step, no framework, no bundler. The room is `reading-room.html`
+plus two data files (`books.js`, `guestbook.js`). Guest submissions go
+through a small Cloudflare Worker (`worker/`) into GitHub Issues, then an
+Action shelves approved ones. Three.js and lil-gui load from unpkg via an
+import map; cover images are fetched from Open Library on demand.
 
 ## Running it
 
@@ -18,9 +20,15 @@ Chrome blocks those from `file://` URLs. No build step beyond that.
 ## Files
 
 - **`reading-room.html`** — scene, lights, room, window, bookcase, decor,
-  reading table, turntable, audio, controls, post-processing, animation loop.
+  reading table, guest table, turntable, audio, controls, post-processing,
+  animation loop.
 - **`books.js`** — exported array of book objects. Edit this to add or update
   books. See **Adding a book** below for the full field schema.
+- **`guestbook.js`** — approved guest recommendations on the table by the
+  door. Appended by the shelving Action, or by hand. See **Guest
+  recommendations** below.
+- **`worker/`** — Cloudflare Worker that files `recommendation` issues for
+  anonymous guests. Deploy notes in `worker/README.md`.
 
 ## Adding a book
 
@@ -96,11 +104,43 @@ Safe to omit on first add.
   `https://openlibrary.org/isbn/{isbn}` in a new tab. The panel stays
   above the entry gate so the link is clickable.
 
+## Guest recommendations
+
+Visitors leave a book on the **guest table** (front wall, right of the
+door) without a GitHub account. The in-room form `POST`s to the Worker
+in [`worker/`](worker/README.md), which files a `recommendation` issue.
+The guest sees their book on the table immediately, with an "awaiting
+approval" tag. Other visitors see pending titles only in the ledger
+(`GUEST_PENDING_ON_TABLE = false`).
+
+### Shelving a recommendation
+
+1. Open the issue. Add the **`approved`** label.
+2. `.github/workflows/shelve-recommendation.yml` appends the entry to
+   [`guestbook.js`](guestbook.js), commits to the default branch, and
+   closes the issue. Pages redeploys; the tag comes off for everyone.
+3. Close without `approved` to decline. The submitter's local copy is
+   dropped on their next visit.
+
+Edit `guestbook.js` by hand if you want to tweak a `why` line or drop
+an entry. The seed entry (`id: 0`) is a stand-in; delete it once real
+guests arrive.
+
+### Relay setup (once)
+
+See [`worker/README.md`](worker/README.md). Paste Cloudflare + GitHub
+tokens into Actions secrets, run **Deploy guestbook worker**, then put
+the printed URL in `GUEST_RELAY_URL` in `reading-room.html`. Until that
+string still contains `YOUR-SUBDOMAIN`, the form saves in this browser
+only (fine for local testing). Abuse limits live in `worker/worker.js`:
+20 entries per IP, 3/min burst, no links, duplicate and flood guards.
+
 ## Script layout
 
 Everything in the HTML lives in one `<script type="module">`. Sections in order:
 
-1. **Imports** — Three.js addons, lil-gui, and `BOOKS` from `./books.js`.
+1. **Imports** — Three.js addons, lil-gui, `BOOKS` from `./books.js`,
+   and `GUESTS` from `./guestbook.js`.
 2. **Scene** — `THREE.Scene`, camera (eye at 1.62 m), renderer, ACES tone
    mapping, fog.
 3. **Lights** — ambient, key, fill, shelfWash, windowLight, candleLight,
@@ -119,18 +159,20 @@ Everything in the HTML lives in one `<script type="module">`. Sections in order:
 9. **Decor** — shelf props: succulents, candles, flat book stacks, framed
    prints, vase, candleLight.
 10. **Reading table** — top, legs, apron, lamp, succulent, `placeTableBooks()`.
-11. **Turntable** — credenza, plinth, platter, record, spindle, tonearm.
+11. **Guest table** — table by the door, ledger, quill, ghost slot, sign,
+    `layBookOnTable()`, guestbook overlay, first-visit toast.
+12. **Turntable** — credenza, plinth, platter, record, spindle, tonearm.
     Tonearm hit targets added to `interactables`.
-12. **Music** — `Music` IIFE wrapping the Web Audio graph (pads, plucks,
+13. **Music** — `Music` IIFE wrapping the Web Audio graph (pads, plucks,
     delay, vinyl hiss).
-13. **Controls** — `PointerLockControls` on desktop; on touch, drag-to-look
-    plus a virtual stick, with Cover / Leave buttons. Shared `inRoom` flag,
-    keyboard map, velocity/collision.
-14. **Raycast interaction** — book pull-out, wall lever, detail
-    panel, record toggle. Taps raycast from the finger; clicks use the
-    center crosshair.
-15. **Animation loop** — movement, turntable rotation, arm travel, cover
-    mode / book animation, `composer.render()`.
+14. **Controls** — `PointerLockControls` on desktop; on touch, drag-to-look
+    plus a virtual stick, with Cover / Leave a book / Leave buttons.
+    Shared `inRoom` flag, keyboard map, velocity/collision.
+15. **Raycast interaction** — book pull-out, wall lever, detail
+    panel, record toggle, guestbook / guest-add. Taps raycast from the
+    finger; clicks use the center crosshair.
+16. **Animation loop** — movement, turntable rotation, arm travel, cover
+    mode / book animation, pending-tag bob, `composer.render()`.
 
 See `ARCHITECTURE.md` for the how and why of each section.
 
@@ -181,10 +223,20 @@ See `ARCHITECTURE.md` for the how and why of each section.
 13. Check the browser console for errors. The global `error` handler on the
     loading div will surface module-level throws.
 14. On a phone (or DevTools device mode): the gate should list drag / stick /
-    tap, not WASD. Tap to enter — a walk stick, Covers, and Leave appear.
-    Drag looks around; the stick walks; tap a book to pull it out; Leave
-    returns to the gate without re-entering from the same tap.
+    tap, not WASD. Tap to enter — a walk stick, Covers, Leave a book, and
+    Leave appear. Drag looks around; the stick walks; tap a book to pull
+    it out; Leave returns to the gate without re-entering from the same tap.
 15. The Look / lil-gui panel must be absent on the default URL. Open
     `reading-room.html?edit=1`, press Esc (or stay on the gate): the panel
     should appear. Toggle post-processing off to see the raw scene without
     bloom. Without the query param, leaving the room must not show it.
+16. Turn around at spawn. A table by the door holds an open guestbook, a
+    quill, a standing sign, and a ghost slot that reads "your book goes
+    here". You cannot walk through the table. A first-visit toast points
+    at it. Click the quill / ghost / sign / table top — the form opens
+    (pointer unlocks on desktop). Click the ledger — the list opens, with
+    a Leave a book button. Submit a book (relay optional locally) — it
+    appears on the table with an "awaiting approval" tag, listed in the
+    ledger in lighter ink. Pull it out: meta reads "waiting for approval".
+    A seeded `guestbook.js` entry renders with its cover; pull it out →
+    "Recommended by".

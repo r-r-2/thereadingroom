@@ -61,6 +61,71 @@
   #detail .meta{margin:14px 0 0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
   #detail .bar{height:3px;border-radius:2px;background:rgba(220,196,158,.2);margin-top:10px;overflow:hidden}
   #detail .bar i{display:block;height:100%;background:#E0B36B;border-radius:2px}
+  .dots i{display:inline-block;width:4px;height:4px;margin-left:3px;border-radius:50%;background:#E0B36B;
+    animation:dot 1.2s infinite ease-in-out}
+  .dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+  @keyframes dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+
+  /* ---- guestbook panel ---- */
+  #guestbook{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:440px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 40px);overflow-y:auto;
+    z-index:15;pointer-events:auto;touch-action:pan-y;
+    background:rgba(24,19,15,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(220,196,158,.24);border-radius:12px;padding:22px 24px 20px;
+    -webkit-user-select:text;user-select:text}
+  #guestbook[hidden]{display:none}
+  #guestbook .gb-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+  #guestbook h2{margin:0;font-size:20px;font-weight:600;letter-spacing:.01em}
+  #guestbook .gb-intro{margin:0 0 14px;font-size:13px;line-height:1.55;color:#A8998A}
+  #guestbook button{font:inherit;cursor:pointer;border-radius:999px;border:1px solid rgba(220,196,158,.3);
+    background:transparent;color:#EDE3D4;padding:8px 14px;font-size:13px}
+  #guestbook button:hover{background:rgba(220,196,158,.1)}
+  #guestbook button:disabled{opacity:.45;cursor:default}
+  #guestbook .gb-primary{background:#E8D9C0;color:#241d16;font-weight:600;border-color:transparent;padding:10px 20px}
+  #guestbook .gb-primary:hover{background:#F0E4CE}
+  #guestbook .gb-x{padding:4px 10px;font-size:12px;color:#A8998A}
+  #guestbook .gb-entries{margin-top:16px}
+  #guestbook .gb-sec{margin:14px 0 6px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
+  #guestbook .gb-e{padding:8px 0;border-top:1px solid rgba(220,196,158,.1);font-size:13px;line-height:1.45}
+  #guestbook .gb-e b{font-weight:600}
+  #guestbook .gb-e .who{color:#A8998A}
+  #guestbook .gb-e .why{margin:3px 0 0;color:#CFC1AE;font-size:12.5px}
+  #guestbook .gb-e.wait{opacity:.7}
+  #guestbook .gb-empty{font-size:13px;color:#8C7D6E;padding:10px 0}
+  #guestbook label{display:block;margin:0 0 10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8C7D6E}
+  #guestbook input,#guestbook textarea{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;
+    color:#EDE3D4;background:rgba(255,245,230,.05);border:1px solid rgba(220,196,158,.22);border-radius:8px;
+    padding:9px 11px;outline:none;-webkit-user-select:text;user-select:text}
+  #guestbook input:focus,#guestbook textarea:focus{border-color:rgba(232,217,192,.6)}
+  #guestbook textarea{resize:vertical;min-height:64px}
+  #guestbook .gb-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  #guestbook .gb-matches{display:flex;flex-direction:column;gap:6px;margin:-4px 0 12px}
+  #guestbook .gb-match{display:flex;align-items:center;gap:10px;text-align:left;border-radius:8px;padding:6px 8px;
+    border:1px solid rgba(220,196,158,.16);background:rgba(255,245,230,.03)}
+  #guestbook .gb-match img{width:28px;height:42px;object-fit:cover;border-radius:2px;background:#3a2f26;flex:none}
+  #guestbook .gb-match .m-t{font-size:13px;line-height:1.3}
+  #guestbook .gb-match .m-a{font-size:11.5px;color:#A8998A}
+  #guestbook .gb-match.on{border-color:#E0B36B;background:rgba(224,179,107,.1)}
+  #guestbook .gb-matchhint{font-size:11.5px;color:#8C7D6E;margin:-4px 0 12px}
+  #guestbook .gb-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:6px}
+  #guestbook .gb-status{margin:12px 0 0;font-size:13px;line-height:1.5;color:#CFC1AE;min-height:1em}
+  #guestbook .gb-status.err{color:#E5A08A}
+  #guestbook .gb-status.ok{color:#D9C48F}
+  #guestbook .gb-meta{margin:8px 0 0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8C7D6E}
+  #guestbook .gb-return{margin-top:14px;text-align:center}
+  #guestbook .gb-done-actions{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-top:18px}
+  #guestbook .gb-done-actions .gb-primary{width:100%;text-align:center}
+
+  /* ---- first-visit nudge ---- */
+  #toast{position:fixed;left:50%;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));
+    transform:translate(-50%,10px);z-index:10;pointer-events:none;display:flex;align-items:center;gap:10px;
+    background:rgba(24,19,15,.82);border:1px solid rgba(220,196,158,.24);border-radius:999px;
+    padding:10px 16px 10px 12px;font-size:13px;color:#EDE3D4;letter-spacing:.02em;
+    opacity:0;transition:opacity .35s ease,transform .35s ease}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+  #toast .arr{display:inline-block;width:22px;height:22px;border-radius:50%;background:#E8D9C0;color:#241d16;
+    font-size:14px;line-height:22px;text-align:center;font-weight:700;transition:transform .12s linear}
+  html.touch-ui #toast{bottom:max(170px,calc(env(safe-area-inset-bottom) + 170px))}
 
   #hint{position:fixed;left:20px;bottom:18px;z-index:10;font-size:11.5px;color:#7C6E60;
     letter-spacing:.03em;pointer-events:none}
@@ -79,6 +144,7 @@
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   #btn-leave{right:max(12px,env(safe-area-inset-right))}
   #btn-covers{left:max(12px,env(safe-area-inset-left))}
+  #btn-book{left:50%;transform:translateX(-50%);background:rgba(232,217,192,.9);color:#241d16}
   #stick{
     pointer-events:auto;position:absolute;
     left:max(18px,env(safe-area-inset-left));
@@ -101,6 +167,11 @@
     bottom:max(16px,env(safe-area-inset-bottom));
     transform:translateY(16px)}
   html.touch-ui #detail.on{transform:translateY(0)}
+  html.touch-ui #guestbook{
+    left:0;right:0;top:auto;bottom:0;width:auto;max-width:none;
+    transform:none;border-radius:16px 16px 0 0;
+    max-height:min(88dvh,calc(100dvh - env(safe-area-inset-top) - 12px));
+    padding-bottom:max(20px,env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
@@ -121,7 +192,7 @@
 <div id="gate" class="hidden">
   <div class="inner">
     <h1>The Reading Room</h1>
-    <p>A room with my books in it. Walk over to a shelf and look at a spine to pull it out. There’s a record playing in the corner.</p>
+    <p>A room with my books in it. Walk over to a shelf and look at a spine to pull it out. There’s a record playing in the corner.<br>Guests: leave a book for me on the table by the door.</p>
     <div class="keys" id="keys-desk">
       <kbd>W A S D</kbd><kbd>Mouse to look</kbd><kbd>Click a book</kbd><kbd>C covers</kbd><kbd>Click the record to stop it</kbd><kbd>Esc to leave</kbd>
     </div>
@@ -140,17 +211,63 @@
   <p class="author" id="d-author"></p>
   <p class="note" id="d-note" hidden></p>
   <div id="d-review" class="review" hidden>
-    <p class="review-label">Review</p>
+    <p class="review-label" id="d-review-label">Review</p>
     <p class="review-body" id="d-review-body"></p>
   </div>
   <p class="meta" id="d-meta"></p>
   <div class="bar" id="d-bar" style="display:none"><i id="d-bar-i"></i></div>
 </div>
 
+<div id="guestbook" hidden>
+  <div id="gb-list">
+    <div class="gb-head">
+      <h2>Guestbook</h2>
+      <button type="button" class="gb-x" id="gb-close">Close</button>
+    </div>
+    <p class="gb-intro" id="gb-list-intro">Books guests have left on the table.</p>
+    <button type="button" class="gb-primary" id="gb-add">Leave a book</button>
+    <div class="gb-entries" id="gb-entries"></div>
+  </div>
+  <form id="gb-form" hidden autocomplete="off" novalidate>
+    <div class="gb-head">
+      <h2>Leave a book</h2>
+      <button type="button" class="gb-x" id="gb-close2">Close</button>
+    </div>
+    <p class="gb-intro" id="gb-form-intro"></p>
+    <label>Title <input name="t" maxlength="120" placeholder="e.g. Dune" required></label>
+    <label>Author <input name="a" maxlength="80" placeholder="e.g. Frank Herbert" required></label>
+    <div class="gb-matches" id="gb-matches" hidden></div>
+    <p class="gb-matchhint" id="gb-matchhint" hidden></p>
+    <label>Your name <input name="by" maxlength="40" placeholder="so I know who to thank" required></label>
+    <label>Why should I read it? <textarea name="why" maxlength="400" rows="3" placeholder="one or two lines is plenty"></textarea></label>
+    <input class="gb-hp" name="website" tabindex="-1" aria-hidden="true">
+    <div class="gb-actions">
+      <button type="button" id="gb-back">Back</button>
+      <button type="submit" class="gb-primary" id="gb-submit">Leave it on the table</button>
+    </div>
+    <p class="gb-status" id="gb-status"></p>
+    <p class="gb-meta" id="gb-remaining"></p>
+  </form>
+  <div id="gb-done" hidden>
+    <div class="gb-head">
+      <h2>Left on the table</h2>
+      <button type="button" class="gb-x" id="gb-close3">Close</button>
+    </div>
+    <p class="gb-intro" id="gb-done-line"></p>
+    <div class="gb-done-actions">
+      <button type="button" class="gb-primary" id="gb-see">Go see it</button>
+      <button type="button" id="gb-again">Leave another</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span class="arr" id="toast-arr">➜</span><span id="toast-text"></span></div>
+
 <div id="hint">Esc to release the cursor</div>
 
 <div id="touch-hud" hidden>
   <button type="button" class="hud-btn" id="btn-covers">Covers</button>
+  <button type="button" class="hud-btn" id="btn-book">Leave a book</button>
   <button type="button" class="hud-btn" id="btn-leave">Leave</button>
   <div id="stick" aria-label="Walk">
     <div id="stick-base"></div>
@@ -183,6 +300,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import BOOKS from './books.js';
+import GUESTS from './guestbook.js';
 
 /* Touch-first devices cannot use Pointer Lock (unsupported on iOS Safari,
    and there is no WASD). Drag-to-look + a virtual stick instead. */
@@ -1274,33 +1392,42 @@ switchPivot.add(switchKnob);
 markSwitch(switchKnob);
 switchPivot.rotation.x = -0.7;
 
-/* Instruction plaque above the lever. Not in interactables. */
-const plaqueCanvas = document.createElement('canvas');
-plaqueCanvas.width = 512;
-plaqueCanvas.height = 384;
-{
-  const x = plaqueCanvas.getContext('2d');
+/* Framed cream plaque with centred lines of text. Used for the lever
+   instructions and the guest-table sign. Returns the frame mesh; the art
+   plane is a child on its +z face. */
+function makePlaque(lines, { w = 0.36, h = 0.26, depth = 0.02, font = 42, ink = '#5C4E40', frameMat = SWITCH_WOOD } = {}) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = Math.round(512 * h / w);
+  const x = c.getContext('2d');
   x.fillStyle = '#F7F1E7';
-  x.fillRect(0, 0, 512, 384);
-  x.fillStyle = '#5C4E40';
+  x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = ink;
   x.textAlign = 'center';
   x.textBaseline = 'middle';
-  x.font = '600 42px ui-sans-serif, system-ui, sans-serif';
-  const lines = ['Click the lever', 'or press C', 'to flip covers'];
-  lines.forEach((line, i) => x.fillText(line, 256, 118 + i * 58));
+  const lineH = font * 1.38;
+  const y0 = c.height / 2 - ((lines.length - 1) * lineH) / 2;
+  lines.forEach((line, i) => {
+    const heavy = typeof line !== 'string';
+    const text = heavy ? line.text : line;
+    x.font = `${heavy ? 700 : 600} ${heavy ? Math.round(font * 1.12) : font}px ui-sans-serif, system-ui, sans-serif`;
+    x.fillText(text, c.width / 2, y0 + i * lineH);
+  });
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(w, h, depth), frameMat);
+  const margin = Math.min(0.02, w * 0.06);
+  const art = new THREE.Mesh(
+    new THREE.PlaneGeometry(w - margin * 2, h - margin * 2),
+    new THREE.MeshLambertMaterial({ map: tex })
+  );
+  art.position.z = depth / 2 + 0.001;
+  frame.add(art);
+  return frame;
 }
-const plaqueTex = new THREE.CanvasTexture(plaqueCanvas);
-plaqueTex.colorSpace = THREE.SRGBColorSpace;
-const plaqueFrame = new THREE.Mesh(
-  new THREE.BoxGeometry(0.36, 0.26, 0.02),
-  SWITCH_WOOD
-);
-const plaqueArt = new THREE.Mesh(
-  new THREE.PlaneGeometry(0.32, 0.22),
-  new THREE.MeshLambertMaterial({ map: plaqueTex })
-);
-plaqueArt.position.z = 0.011;
-plaqueFrame.add(plaqueArt);
+
+/* Instruction plaque above the lever. Not in interactables. */
+const plaqueFrame = makePlaque(['Click the lever', 'or press C', 'to flip covers']);
 plaqueFrame.position.set(0, 1.58, 0.01);
 wallSwitch.add(plaqueFrame);
 
@@ -1729,55 +1856,462 @@ function addBookmark(mesh, b) {
   mesh.add(ribbon);
 }
 
-function placeTableBooks() {
-  const reading = BOOKS.filter((b) => b.reading);
-  const LAYER = 4;
-  const gap = 0.018;
-  let x = -TABLE.w / 2 + 0.10;
-  const colX = [];
-  const colZ = [];
-  let pileTop = TABLE.h;
+/* Cover-up table layout shared by the reading table and the guest table.
+   The first `layer` books sit in a row from the left; the rest stack on
+   the leftmost one. `slotFor()` answers "where would the next book of
+   this size go" so the guest table can show a ghost in the empty slot;
+   `commit` advances the layout. */
+function makeTableLayout(group, dims, { layer = 4, xStart = -dims.w / 2 + 0.10 } = {}) {
+  return { group, dims, layer, gap: 0.018, x: xStart, col: null, pileTop: dims.h, count: 0 };
+}
 
-  reading.forEach((b, i) => {
-    const mesh = makeBookMesh(b);
-    addBookmark(mesh, b);
-    const d = mesh.userData.depth;
-    const nest = new THREE.Group();
-    mesh.rotation.z = -Math.PI / 2;
-    nest.add(mesh);
-    nest.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.16;
-
-    let px, py, pz;
-    if (i < LAYER) {
-      px = x + d / 2;
-      py = TABLE.h + b.th / 2;
-      pz = TABLE.d / 2 - b.h / 2 - 0.04;
-      colX[i] = px;
-      colZ[i] = pz;
-      x += d + gap;
-      if (i === 0) pileTop = TABLE.h + b.th;
-    } else {
-      px = colX[0] + (Math.random() - 0.5) * 0.025;
-      py = pileTop + b.th / 2;
-      pz = colZ[0] + (Math.random() - 0.5) * 0.02;
-      pileTop += b.th;
+function slotFor(L, depth, th, h, commit) {
+  const { dims } = L;
+  let px, py, pz;
+  if (L.count < L.layer) {
+    px = L.x + depth / 2;
+    py = dims.h + th / 2;
+    pz = dims.d / 2 - h / 2 - 0.04;
+    if (commit) {
+      if (L.count === 0) { L.col = { x: px, z: pz }; L.pileTop = dims.h + th; }
+      L.x += depth + L.gap;
     }
+  } else {
+    px = L.col.x + (commit ? (Math.random() - 0.5) * 0.025 : 0);
+    py = L.pileTop + th / 2;
+    pz = L.col.z + (commit ? (Math.random() - 0.5) * 0.02 : 0);
+    if (commit) L.pileTop += th;
+  }
+  if (commit) L.count++;
+  return { px, py, pz };
+}
 
-    nest.position.set(px, py, pz);
-    const home = nest.position.clone();
-    mesh.userData.spineHome = home;
-    mesh.userData.spineRotY = nest.rotation.y;
-    mesh.userData.faceHome = home.clone();
-    mesh.userData.faceRotY = nest.rotation.y;
-    mesh.userData.onTable = true;
-    mesh.userData.tableRoot = nest;
-    tableGroup.add(nest);
-    books.push(mesh);
-    interactables.push(mesh);
-    loadCover(mesh, b);
-  });
+function layBookOnTable(L, b, { bookmark = false, cover = true } = {}) {
+  const mesh = makeBookMesh(b);
+  if (bookmark) addBookmark(mesh, b);
+  const nest = new THREE.Group();
+  mesh.rotation.z = -Math.PI / 2;
+  nest.add(mesh);
+  nest.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.16;
+
+  const { px, py, pz } = slotFor(L, mesh.userData.depth, b.th, b.h, true);
+  nest.position.set(px, py, pz);
+  const home = nest.position.clone();
+  mesh.userData.spineHome = home;
+  mesh.userData.spineRotY = nest.rotation.y;
+  mesh.userData.faceHome = home.clone();
+  mesh.userData.faceRotY = nest.rotation.y;
+  mesh.userData.onTable = true;
+  mesh.userData.tableRoot = nest;
+  L.group.add(nest);
+  books.push(mesh);
+  interactables.push(mesh);
+  if (cover) loadCover(mesh, b);
+  return mesh;
+}
+
+function placeTableBooks() {
+  const L = makeTableLayout(tableGroup, TABLE, { layer: 4 });
+  BOOKS.filter((b) => b.reading).forEach((b) => layBookOnTable(L, b, { bookmark: true }));
 }
 placeTableBooks();
+
+/* ============================================================
+   GUEST TABLE — by the door, against the front wall
+   Visitors leave books here. Committed entries come from
+   guestbook.js; the visitor's own pending ones from localStorage.
+   Submissions go through the relay in ./worker (see worker/README.md).
+   ============================================================ */
+const HOST_NAME = 'Rahul';
+// Paste the URL printed by `wrangler deploy`. While it still contains
+// YOUR-SUBDOMAIN the form saves locally only, so the room can be tested
+// without the relay.
+const GUEST_RELAY_URL = 'https://reading-room-guestbook.YOUR-SUBDOMAIN.workers.dev';
+const GUEST_REPO = 'r-r-2/thereadingroom';
+const GUEST_MAX_PER_IP = 20;        // mirrors MAX_PER_IP in the worker (UX only)
+const GUEST_MAX_ON_TABLE = 12;      // 3D books on the table; the rest live in the ledger
+const GUEST_PENDING_ON_TABLE = false; // other visitors' unapproved books: ledger only
+const GUEST_LS_KEY = 'rr-guest-mine';
+
+const GUEST_TABLE = { w: 1.4, d: 0.55, h: 0.76 };
+const GUEST_X = 1.9;
+const GUEST_Z = ROOM.d / 2 - 0.02 - GUEST_TABLE.d / 2;
+
+const guestGroup = new THREE.Group();
+guestGroup.position.set(GUEST_X, 0, GUEST_Z);
+// Turned to face the room so the table layout code (local +z = toward
+// the viewer) is shared with the reading table unchanged.
+guestGroup.rotation.y = Math.PI;
+scene.add(guestGroup);
+
+function guestBox(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  guestGroup.add(m);
+  return m;
+}
+
+function markGuestAdd(mesh) {
+  mesh.userData.type = 'guest-add';
+  interactables.push(mesh);
+}
+
+// A mis-aimed click on the table top still opens the form.
+markGuestAdd(guestBox(GUEST_TABLE.w, 0.04, GUEST_TABLE.d, WOOD, 0, GUEST_TABLE.h - 0.02, 0));
+guestBox(GUEST_TABLE.w - 0.04, 0.07, 0.03, WOOD_DARK, 0, GUEST_TABLE.h - 0.075, GUEST_TABLE.d / 2 - 0.025);
+{
+  const ix = GUEST_TABLE.w / 2 - 0.05;
+  const iz = GUEST_TABLE.d / 2 - 0.05;
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+    guestBox(0.045, GUEST_TABLE.h - 0.04, 0.045, WOOD_DARK, sx * ix, (GUEST_TABLE.h - 0.04) / 2, sz * iz);
+  });
+}
+
+/* ---- the open ledger ---- */
+const LEDGER = { w: 0.38, d: 0.27, x: 0.40, z: 0.03 };
+const LEATHER = new THREE.MeshLambertMaterial({ color: 0x5A3A2A });
+const ledgerGroup = new THREE.Group();
+ledgerGroup.position.set(LEDGER.x, GUEST_TABLE.h, LEDGER.z);
+ledgerGroup.rotation.y = -0.10;
+guestGroup.add(ledgerGroup);
+
+const ledgerCover = new THREE.Mesh(new THREE.BoxGeometry(LEDGER.w, 0.012, LEDGER.d), LEATHER);
+ledgerCover.position.y = 0.006;
+ledgerGroup.add(ledgerCover);
+[-1, 1].forEach((s) => {
+  const block = new THREE.Mesh(new THREE.BoxGeometry(LEDGER.w / 2 - 0.012, 0.016, LEDGER.d - 0.02), PAGE_MAT);
+  block.position.set(s * (LEDGER.w / 4 - 0.002), 0.012 + 0.008, 0);
+  block.rotation.z = -s * 0.05;
+  ledgerGroup.add(block);
+});
+
+const ledgerCanvas = document.createElement('canvas');
+ledgerCanvas.width = 1024;
+ledgerCanvas.height = 728;
+const ledgerTex = new THREE.CanvasTexture(ledgerCanvas);
+ledgerTex.colorSpace = THREE.SRGBColorSpace;
+ledgerTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const ledgerPage = new THREE.Mesh(
+  new THREE.PlaneGeometry(LEDGER.w - 0.024, LEDGER.d - 0.024),
+  new THREE.MeshLambertMaterial({ map: ledgerTex })
+);
+ledgerPage.rotation.x = -Math.PI / 2;
+ledgerPage.position.y = 0.012 + 0.016 + 0.004;
+ledgerGroup.add(ledgerPage);
+ledgerGroup.children.forEach((m) => { m.userData.type = 'guestbook'; interactables.push(m); });
+
+const INK = '#3A3F5C';
+const INK_LIGHT = 'rgba(58,63,92,.42)';
+const SCRIPT_FONT = "'Snell Roundhand', 'Apple Chancery', 'Segoe Script', 'URW Chancery L', cursive";
+
+function drawLedger(shelved, waiting) {
+  const W = ledgerCanvas.width, H = ledgerCanvas.height;
+  const x = ledgerCanvas.getContext('2d');
+  x.fillStyle = '#F5EEDF';
+  x.fillRect(0, 0, W, H);
+  // gutter shadow
+  const g = x.createLinearGradient(W / 2 - 60, 0, W / 2 + 60, 0);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(0.5, 'rgba(0,0,0,.16)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g;
+  x.fillRect(W / 2 - 60, 0, 120, H);
+  // ruled lines
+  const ROW = 84;
+  const ROW0 = 230;
+  x.strokeStyle = 'rgba(90,70,50,.14)';
+  x.lineWidth = 2;
+  for (let y = ROW0 - 62; y < H - 30; y += ROW) {
+    [[50, W / 2 - 50], [W / 2 + 50, W - 50]].forEach(([a, b]) => {
+      x.beginPath(); x.moveTo(a, y); x.lineTo(b, y); x.stroke();
+    });
+  }
+
+  const page = (px, heading, sub, rows, faint, empty) => {
+    x.textAlign = 'left';
+    x.textBaseline = 'alphabetic';
+    x.fillStyle = INK;
+    x.font = `700 62px ${SCRIPT_FONT}`;
+    x.fillText(heading, px, 100);
+    x.font = `italic 400 28px Georgia, serif`;
+    x.fillStyle = 'rgba(58,63,92,.62)';
+    x.fillText(sub, px, 142);
+    if (!rows.length) {
+      x.fillStyle = INK_LIGHT;
+      x.font = `italic 400 34px Georgia, serif`;
+      empty.forEach((line, i) => x.fillText(line, px, ROW0 + i * 52));
+      return;
+    }
+    x.fillStyle = faint ? INK_LIGHT : INK;
+    const maxW = W / 2 - 120;
+    rows.slice(0, 6).forEach((e, i) => {
+      const y = ROW0 + i * ROW;
+      x.font = `400 40px ${SCRIPT_FONT}`;
+      let s = e.line;
+      while (x.measureText(s).width > maxW && s.length > 4) s = s.slice(0, -2);
+      if (s !== e.line) s += '…';
+      x.fillText(s, px, y);
+      x.font = `400 28px ${SCRIPT_FONT}`;
+      x.fillText(`— ${e.by}`, px + 10, y + 34);
+    });
+  };
+
+  const fmt = (e) => ({ line: `${e.t} · ${e.a}`, by: e.by });
+  page(60, 'Guestbook', `books guests have left for ${HOST_NAME}`,
+    shelved.slice().reverse().map(fmt), false,
+    ['Nothing here yet.', 'Be the first —', 'pick up the quill.']);
+  page(W / 2 + 50, 'Waiting', 'to be shelved',
+    waiting.map(fmt), true,
+    ['Leave a book and it', 'appears here, then on', 'the table once approved.']);
+  ledgerTex.needsUpdate = true;
+}
+
+/* ---- quill in an inkwell ---- */
+const inkwell = new THREE.Group();
+inkwell.position.set(0.62, GUEST_TABLE.h, -0.12);
+guestGroup.add(inkwell);
+{
+  const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.024, 0.05, 14), GLASS);
+  jar.position.y = 0.025;
+  inkwell.add(jar);
+  const ink = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.03, 14),
+    new THREE.MeshLambertMaterial({ color: 0x1E2236 }));
+  ink.position.y = 0.02;
+  inkwell.add(ink);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.026, 0.004, 8, 20), BRASS);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.05;
+  inkwell.add(rim);
+  [jar, ink, rim].forEach(markGuestAdd);
+}
+const quill = new THREE.Group();
+quill.position.set(0, 0.03, 0);
+quill.rotation.z = 0.42;
+quill.rotation.x = -0.25;
+inkwell.add(quill);
+{
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.0022, 0.0035, 0.24, 8),
+    new THREE.MeshLambertMaterial({ color: 0xF2E8D6 }));
+  shaft.position.y = 0.12;
+  quill.add(shaft);
+  const feather = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8),
+    new THREE.MeshLambertMaterial({ color: 0xF6EFE4 }));
+  feather.scale.set(0.35, 3.2, 1);
+  feather.position.set(0, 0.19, 0);
+  quill.add(feather);
+  const nib = new THREE.Mesh(new THREE.ConeGeometry(0.004, 0.02, 8), BRASS);
+  nib.rotation.x = Math.PI;
+  nib.position.y = -0.005;
+  quill.add(nib);
+  // fat see-through hit target so the quill is easy to aim at
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.26, 8),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  hit.position.y = 0.12;
+  quill.add(hit);
+  [shaft, feather, nib, hit].forEach(markGuestAdd);
+}
+
+/* ---- standing sign at the back edge ---- */
+const guestSign = makePlaque(
+  ['Guests', { text: 'leave a book' }, 'pick up the quill'],
+  { w: 0.46, h: 0.30, font: 46 }
+);
+guestSign.position.set(-0.32, GUEST_TABLE.h + 0.16, -GUEST_TABLE.d / 2 + 0.05);
+guestSign.rotation.x = -0.18;
+guestGroup.add(guestSign);
+markGuestAdd(guestSign);
+markGuestAdd(guestSign.children[0]);
+{
+  const prop = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.2, 0.02), WOOD_DARK);
+  prop.position.set(-0.32, GUEST_TABLE.h + 0.10, -GUEST_TABLE.d / 2 + 0.005);
+  prop.rotation.x = 0.35;
+  guestGroup.add(prop);
+}
+
+/* ---- guest books + the ghost slot ---- */
+const guestLayout = makeTableLayout(guestGroup, GUEST_TABLE, { layer: 3, xStart: -GUEST_TABLE.w / 2 + 0.08 });
+const GUEST_PALETTE = [
+  ['#1E2A44', '#F0EAD8'], ['#7A2E2E', '#F5E6DA'], ['#2F4F3E', '#EEF2E6'],
+  ['#3B2F4A', '#EFE7F5'], ['#B8722C', '#1B1B1B'], ['#EFE6D3', '#2A2A2A'],
+  ['#274A63', '#EDF3F7'], ['#5A4632', '#F3EBDD']
+];
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+function normaliseGuest(e) {
+  const [c, f] = GUEST_PALETTE[hashStr(e.t || '') % GUEST_PALETTE.length];
+  return {
+    c, f, th: 0.020 + (hashStr(e.a || '') % 7) * 0.0015, h: 0.205 + (hashStr(e.t || '') % 5) * 0.006,
+    ...e, guest: true, note: ''
+  };
+}
+
+const GHOST_MAT = new THREE.MeshLambertMaterial({ color: 0xF6EFE4, transparent: true, opacity: 0.22, depthWrite: false });
+const GHOST_LINE = new THREE.LineDashedMaterial({ color: 0x8A7A66, dashSize: 0.012, gapSize: 0.008, transparent: true, opacity: 0.9 });
+const ghost = new THREE.Group();
+{
+  const gd = 0.21, gth = 0.024, gh = 0.216;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(gd, gth, gh), GHOST_MAT);
+  ghost.add(body);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(body.geometry), GHOST_LINE);
+  edges.computeLineDistances();
+  ghost.add(edges);
+  const card = makePlaque([{ text: 'your book' }, 'goes here'], { w: 0.16, h: 0.10, depth: 0.003, font: 58, frameMat: PAGE_MAT });
+  card.rotation.x = -Math.PI / 2;
+  card.position.y = gth / 2 + 0.003;
+  ghost.add(card);
+  ghost.userData.size = { gd, gth, gh };
+  [body, card, card.children[0]].forEach(markGuestAdd);
+}
+// Box is already (depth, thickness, height) so no nest rotation is needed.
+guestGroup.add(ghost);
+
+const guestMeshes = [];
+let guestNetworkReady = false;
+function updateGhost() {
+  const { gd, gth, gh } = ghost.userData.size;
+  if (guestLayout.count >= GUEST_MAX_ON_TABLE) {
+    // Raycaster ignores `visible`, so park it out of reach as well.
+    ghost.visible = false;
+    ghost.position.y = -10;
+    return;
+  }
+  const { px, py, pz } = slotFor(guestLayout, gd, gth, gh, false);
+  ghost.position.set(px, py, pz);
+  ghost.visible = true;
+}
+
+/* Paper tag laid on the cover of a visitor's own, not-yet-approved book.
+   Local −x is the upward-facing cover after rotation.z = −π/2. */
+function addPendingTag(mesh, b) {
+  const tag = makePlaque(['awaiting', 'approval'], { w: 0.095, h: 0.052, depth: 0.003, font: 66, ink: '#8B3A3A', frameMat: PAGE_MAT });
+  tag.children[0].material.emissive = new THREE.Color(0xE0B36B);
+  tag.children[0].material.emissiveIntensity = 0;
+  tag.rotation.y = -Math.PI / 2;
+  tag.rotation.z = 0.35;
+  tag.position.set(-b.th / 2 - 0.003, -b.h / 2 + 0.06, mesh.userData.depth * 0.5 - 0.07);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.006, 0.0015, 6, 12), BRASS);
+  ring.position.set(-0.03, 0.026, 0);
+  tag.add(ring);
+  mesh.add(tag);
+  mesh.userData.tag = tag;
+  mesh.userData.pending = true;
+  mesh.userData.tagT = 1;
+}
+
+function addGuestBook(entry) {
+  const b = normaliseGuest(entry);
+  const mesh = layBookOnTable(guestLayout, b, { cover: guestNetworkReady });
+  if (b.status === 'pending') addPendingTag(mesh, b);
+  guestMeshes.push(mesh);
+  updateGhost();
+  return mesh;
+}
+
+function removeGuestMesh(mesh) {
+  const root = mesh.userData.tableRoot;
+  root.parent?.remove(root);
+  [books, interactables, guestMeshes].forEach((arr) => {
+    const i = arr.indexOf(mesh);
+    if (i >= 0) arr.splice(i, 1);
+  });
+}
+
+/* ---- entries: committed + mine + others waiting ---- */
+const guestShelved = GUESTS.map((e) => ({ ...e, status: 'shelved' }));
+let guestMine = [];
+try { guestMine = JSON.parse(localStorage.getItem(GUEST_LS_KEY) || '[]'); } catch { guestMine = []; }
+if (!Array.isArray(guestMine)) guestMine = [];
+let guestOthers = [];
+let guestRemaining = Math.max(0, GUEST_MAX_PER_IP - guestMine.length);
+
+function saveMine() {
+  try { localStorage.setItem(GUEST_LS_KEY, JSON.stringify(guestMine)); } catch { /* private mode */ }
+}
+
+// Reconcile: anything I left that is now in guestbook.js is shelved.
+const shelvedIds = new Set(guestShelved.map((e) => e.id));
+guestMine.forEach((m) => { if (shelvedIds.has(m.id)) m.status = 'shelved'; });
+saveMine();
+
+guestShelved.slice(-GUEST_MAX_ON_TABLE).forEach((e) => addGuestBook(e));
+guestMine.filter((m) => m.status === 'pending').forEach((m) => addGuestBook(m));
+updateGhost();
+
+function waitingList() {
+  const mine = guestMine.filter((m) => m.status === 'pending');
+  const mineIds = new Set(mine.map((m) => m.id));
+  return [...mine, ...guestOthers.filter((o) => !mineIds.has(o.id) && !shelvedIds.has(o.id))];
+}
+function redrawLedger() { drawLedger(guestShelved, waitingList()); }
+redrawLedger();
+
+/* Best-effort, unauthenticated reads of the public issue list so other
+   visitors' waiting books show in the ledger. 60 req/hr per IP, so the
+   result is cached for ten minutes. Fails silently.
+   Started after the first painted frame — see startGuestNetwork(). */
+const GH_API = `https://api.github.com/repos/${GUEST_REPO}`;
+function parseIssue(issue) {
+  const m = issue.body && issue.body.match(/<!-- rr-guest -->\s*```json\s*([\s\S]*?)```/);
+  if (!m) return null;
+  try {
+    const j = JSON.parse(m[1]);
+    if (!j.t || !j.a) return null;
+    return { id: issue.number, t: String(j.t), a: String(j.a), by: String(j.by || 'a guest'),
+      why: String(j.why || ''), isbn: String(j.isbn || ''), cover: String(j.cover || ''),
+      date: String(j.date || ''), status: 'pending' };
+  } catch { return null; }
+}
+async function cachedJson(url, ttlMs) {
+  const key = 'rr-gh:' + url;
+  try {
+    const hit = JSON.parse(sessionStorage.getItem(key) || 'null');
+    if (hit && Date.now() - hit.t < ttlMs) return hit.v;
+  } catch { /* ignore */ }
+  const r = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+  if (!r.ok) throw new Error(`GitHub ${r.status}`);
+  const v = await r.json();
+  try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); } catch { /* ignore */ }
+  return v;
+}
+async function fetchGuestIssues() {
+  try {
+    const list = await cachedJson(`${GH_API}/issues?labels=recommendation&state=open&per_page=50`, 10 * 60 * 1000);
+    guestOthers = list.map(parseIssue).filter(Boolean);
+    if (GUEST_PENDING_ON_TABLE) {
+      const mineIds = new Set(guestMine.map((m) => m.id));
+      guestOthers.filter((o) => !mineIds.has(o.id)).forEach((o) => addGuestBook(o));
+    }
+    redrawLedger();
+  } catch (e) { console.debug('[guestbook] issue list unavailable:', e.message); }
+
+  // My pending books: dropped if the issue was closed without shelving.
+  for (const m of guestMine) {
+    if (m.status !== 'pending' || !(m.id > 0)) continue;
+    try {
+      const issue = await cachedJson(`${GH_API}/issues/${m.id}`, 10 * 60 * 1000);
+      if (issue.state === 'closed' && !shelvedIds.has(m.id)) {
+        m.status = 'declined';
+        const mesh = guestMeshes.find((g) => g.userData.book.id === m.id);
+        if (mesh) removeGuestMesh(mesh);
+      }
+    } catch { /* leave as pending */ }
+  }
+  guestMine = guestMine.filter((m) => m.status !== 'declined');
+  saveMine();
+  redrawLedger();
+}
+
+/* Guest Open Library covers + the GitHub issue list wait until the gate
+   has painted. Submits after that load a cover immediately. */
+function startGuestNetwork() {
+  if (guestNetworkReady) return;
+  guestNetworkReady = true;
+  guestMeshes.forEach((m) => loadCover(m, m.userData.book));
+  fetchGuestIssues();
+}
 
 /* ============================================================
    TURNTABLE
@@ -2290,6 +2824,7 @@ function enterRoom() {
   /* Browsers block audio until a user gesture. Entering the room is
      that gesture, so this is the earliest legal moment to start. */
   if (!Music.ready) Music.start();
+  maybeShowToast();
 }
 
 function leaveRoom() {
@@ -2307,13 +2842,15 @@ function leaveRoom() {
   touchHud.hidden = true;
   resetStick();
   velocity.set(0, 0, 0);
+  hideToast();
   syncGui();
 }
 
 syncChrome();
 
 gate.addEventListener('click', (e) => {
-  if (e.target.closest && (e.target.closest('.lil-gui') || e.target.closest('#detail'))) return;
+  if (e.target.closest && (e.target.closest('.lil-gui') || e.target.closest('#detail') || e.target.closest('#guestbook'))) return;
+  if (!guestbookEl.hidden) closeGuestbook(); // clicking past the panel goes back in
   if (performance.now() < gateIgnoreUntil) return;
   if (useTouch) {
     enterRoom();
@@ -2348,9 +2885,16 @@ btnLeave.addEventListener('pointerup', (e) => {
   e.stopPropagation();
   leaveRoom();
 });
+document.getElementById('btn-book').addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (inRoom) openGuestbook('form');
+});
 
 const keys = Object.create(null);
-addEventListener('keydown', (e) => { keys[e.code] = true; });
+// Typing in the guestbook form must not walk the player or flip covers.
+const typing = (e) => !!(e.target && e.target.closest && e.target.closest('#guestbook'));
+addEventListener('keydown', (e) => { if (!typing(e)) keys[e.code] = true; });
 addEventListener('keyup', (e) => { keys[e.code] = false; });
 
 const velocity = new THREE.Vector3();
@@ -2456,7 +3000,7 @@ canvas.addEventListener('pointercancel', (e) => {
 
 addEventListener('touchmove', (e) => {
   if (!inRoom) return;
-  if (e.target.closest && e.target.closest('.review-body')) return;
+  if (e.target.closest && (e.target.closest('.review-body') || e.target.closest('#guestbook'))) return;
   e.preventDefault();
 }, { passive: false });
 
@@ -2470,10 +3014,30 @@ const CASE_MIN_X = -CASE.w / 2 - 0.08;
 const CASE_MAX_X = CASE.w / 2 + 0.08;
 const CASE_MAX_Z = -ROOM.d / 2 + 0.19 + CASE.d / 2 + 0.42; // + personal space
 
-const TABLE_MIN_X = TABLE_X - TABLE.w / 2 - 0.08;
-const TABLE_MAX_X = TABLE_X + TABLE.w / 2 + 0.08;
-const TABLE_MIN_Z = TABLE_Z - TABLE.d / 2 - 0.08;
-const TABLE_MAX_Z = TABLE_Z + TABLE.d / 2 + 0.42;
+// Reading table: personal space on its room-facing (+z) side.
+const TABLE_BOX = [
+  TABLE_X - TABLE.w / 2 - 0.08, TABLE_X + TABLE.w / 2 + 0.08,
+  TABLE_Z - TABLE.d / 2 - 0.08, TABLE_Z + TABLE.d / 2 + 0.42
+];
+// Guest table sits against the front wall, so its room side is −z. The
+// far edge extends past the wall so the push-out never picks that side.
+const GUEST_BOX = [
+  GUEST_X - GUEST_TABLE.w / 2 - 0.08, GUEST_X + GUEST_TABLE.w / 2 + 0.08,
+  GUEST_Z - GUEST_TABLE.d / 2 - 0.42, ROOM.d
+];
+
+function pushOutOfBox(pos, [minX, maxX, minZ, maxZ]) {
+  if (!(pos.x > minX && pos.x < maxX && pos.z > minZ && pos.z < maxZ)) return;
+  const dxMin = pos.x - minX;
+  const dxMax = maxX - pos.x;
+  const dzMin = pos.z - minZ;
+  const dzMax = maxZ - pos.z;
+  const nearest = Math.min(dxMin, dxMax, dzMin, dzMax);
+  if (nearest === dxMin) pos.x = minX;
+  else if (nearest === dxMax) pos.x = maxX;
+  else if (nearest === dzMin) pos.z = minZ;
+  else pos.z = maxZ;
+}
 
 function collide(pos) {
   const pad = 0.42;
@@ -2482,17 +3046,8 @@ function collide(pos) {
   if (pos.x > CASE_MIN_X && pos.x < CASE_MAX_X && pos.z < CASE_MAX_Z) {
     pos.z = CASE_MAX_Z;
   }
-  if (pos.x > TABLE_MIN_X && pos.x < TABLE_MAX_X && pos.z > TABLE_MIN_Z && pos.z < TABLE_MAX_Z) {
-    const dxMin = pos.x - TABLE_MIN_X;
-    const dxMax = TABLE_MAX_X - pos.x;
-    const dzMin = pos.z - TABLE_MIN_Z;
-    const dzMax = TABLE_MAX_Z - pos.z;
-    const nearest = Math.min(dxMin, dxMax, dzMin, dzMax);
-    if (nearest === dxMin) pos.x = TABLE_MIN_X;
-    else if (nearest === dxMax) pos.x = TABLE_MAX_X;
-    else if (nearest === dzMin) pos.z = TABLE_MIN_Z;
-    else pos.z = TABLE_MAX_Z;
-  }
+  pushOutOfBox(pos, TABLE_BOX);
+  pushOutOfBox(pos, GUEST_BOX);
   /* Book nook: push out of the bench + flanking towers on the left wall. */
   if (pos.x < NOOK_MAX_X && pos.z > NOOK_MIN_Z && pos.z < NOOK_MAX_Z) {
     const dx = NOOK_MAX_X - pos.x;
@@ -2537,15 +3092,28 @@ function showDetail(b) {
 
   const reviewEl = document.getElementById('d-review');
   const reviewBody = document.getElementById('d-review-body');
-  if (b.review) {
-    reviewBody.textContent = b.review;
+  const reviewText = b.guest ? b.why : b.review;
+  if (reviewText) {
+    document.getElementById('d-review-label').textContent = b.guest ? 'Why you should read it' : 'Review';
+    reviewBody.textContent = reviewText;
     reviewEl.hidden = false;
   } else {
     reviewBody.textContent = '';
     reviewEl.hidden = true;
   }
 
-  document.getElementById('d-meta').textContent = b.reading ? 'Reading now' : `Finished ${b.fin}`;
+  const meta = document.getElementById('d-meta');
+  if (b.guest && b.status === 'pending') {
+    meta.textContent = `Left by ${b.by} · waiting for approval`;
+    const dots = document.createElement('span');
+    dots.className = 'dots';
+    dots.innerHTML = '<i></i><i></i><i></i>';
+    meta.appendChild(dots);
+  } else if (b.guest) {
+    meta.textContent = `Recommended by ${b.by}${b.date ? ` · ${b.date}` : ''}`;
+  } else {
+    meta.textContent = b.reading ? 'Reading now' : `Finished ${b.fin}`;
+  }
   const bar = document.getElementById('d-bar');
   if (b.reading) {
     bar.style.display = 'block';
@@ -2575,6 +3143,8 @@ function promptFor(hit) {
   if (hit.userData.type === 'switch') {
     return coverMode ? `${actVerb()} to show spines` : `${actVerb()} to show covers`;
   }
+  if (hit.userData.type === 'guestbook') return `${actVerb()} to read the guestbook`;
+  if (hit.userData.type === 'guest-add') return `${actVerb()} to leave a book`;
   return hit === opened ? `${actVerb()} to put it back` : `${actVerb()} to pull out`;
 }
 
@@ -2599,6 +3169,11 @@ function interact(target = looked) {
 
   if (target && target.userData.type === 'switch') {
     toggleCoverMode();
+    return;
+  }
+
+  if (target && (target.userData.type === 'guestbook' || target.userData.type === 'guest-add')) {
+    openGuestbook(target.userData.type === 'guestbook' ? 'list' : 'form');
     return;
   }
 
@@ -2635,7 +3210,7 @@ btnCovers.addEventListener('pointerup', (e) => {
 });
 
 addEventListener('keydown', (e) => {
-  if (e.code !== 'KeyC' || e.repeat || !inRoom) return;
+  if (e.code !== 'KeyC' || e.repeat || !inRoom || typing(e)) return;
   toggleCoverMode();
 });
 
@@ -2643,6 +3218,345 @@ document.addEventListener('click', () => {
   if (useTouch || !inRoom) return;
   interact();
 });
+
+/* ============================================================
+   GUESTBOOK PANEL
+   Opened from the ledger (list) or the quill / ghost slot / sign /
+   table top (form). On desktop the pointer is released first, so the
+   panel sits above the entry gate like #detail does; clicking the
+   gate around it closes the panel and re-enters the room.
+   ============================================================ */
+const guestbookEl = document.getElementById('guestbook');
+const gbList = document.getElementById('gb-list');
+const gbForm = document.getElementById('gb-form');
+const gbDone = document.getElementById('gb-done');
+const gbEntries = document.getElementById('gb-entries');
+const gbMatches = document.getElementById('gb-matches');
+const gbMatchHint = document.getElementById('gb-matchhint');
+const gbStatus = document.getElementById('gb-status');
+const gbRemaining = document.getElementById('gb-remaining');
+const gbSubmit = document.getElementById('gb-submit');
+const gbDoneLine = document.getElementById('gb-done-line');
+const gbAgain = document.getElementById('gb-again');
+const RELAY_CONFIGURED = !/YOUR-SUBDOMAIN/.test(GUEST_RELAY_URL);
+
+document.getElementById('gb-form-intro').textContent =
+  `Leave a book for ${HOST_NAME} to read. It goes on the table straight away, wearing a tag until ${HOST_NAME} approves it.`;
+
+guestbookEl.addEventListener('click', (e) => e.stopPropagation());
+guestbookEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+let gbOpenedAt = 0;
+let gbSelected = null;   // chosen Open Library match { isbn, cover }
+let gbLookupTimer = 0;
+let gbLookupSeq = 0;
+
+function openGuestbook(view = 'list') {
+  if (opened) {
+    opened.userData.out = false;
+    opened = null;
+    hideDetail();
+  }
+  guestbookEl.hidden = false;
+  showGbView(view);
+  if (!useTouch && controls.isLocked) controls.unlock();   // → leaveRoom(), gate behind
+  if (useTouch) stickEl.hidden = true;
+  markGuestSeen();
+  hideToast();
+}
+
+function closeGuestbook() {
+  guestbookEl.hidden = true;
+  if (useTouch && inRoom) stickEl.hidden = false;
+}
+
+function showGbView(view) {
+  gbList.hidden = view !== 'list';
+  gbForm.hidden = view !== 'form';
+  gbDone.hidden = view !== 'done';
+  if (view === 'form') {
+    gbOpenedAt = performance.now();
+    setGbStatus('');
+    updateRemaining();
+    gbForm.elements.t.focus({ preventScroll: true });
+  } else if (view === 'list') {
+    renderEntries();
+  }
+}
+
+function setGbStatus(msg, kind = '') {
+  gbStatus.textContent = msg;
+  gbStatus.className = 'gb-status' + (kind ? ' ' + kind : '');
+}
+
+function updateRemaining() {
+  gbRemaining.textContent = guestRemaining > 0
+    ? `${guestRemaining} of ${GUEST_MAX_PER_IP} left`
+    : `You've left ${GUEST_MAX_PER_IP} books — thank you`;
+  gbSubmit.disabled = guestRemaining <= 0;
+}
+
+function entryRow(e, wait) {
+  const div = document.createElement('div');
+  div.className = 'gb-e' + (wait ? ' wait' : '');
+  const head = document.createElement('div');
+  const b = document.createElement('b');
+  b.textContent = e.t;
+  head.appendChild(b);
+  head.appendChild(document.createTextNode(` · ${e.a} `));
+  const who = document.createElement('span');
+  who.className = 'who';
+  who.textContent = `— ${e.by}${wait ? ' · waiting' : e.date ? ` · ${e.date}` : ''}`;
+  head.appendChild(who);
+  div.appendChild(head);
+  if (e.why) {
+    const p = document.createElement('p');
+    p.className = 'why';
+    p.textContent = e.why;
+    div.appendChild(p);
+  }
+  return div;
+}
+
+function renderEntries() {
+  gbEntries.textContent = '';
+  const mine = guestMine.filter((m) => m.status === 'pending');
+  const waiting = waitingList();
+  const shelved = guestShelved.slice().reverse();
+
+  if (mine.length) {
+    const h = document.createElement('p'); h.className = 'gb-sec'; h.textContent = 'Yours';
+    gbEntries.appendChild(h);
+    mine.forEach((e) => gbEntries.appendChild(entryRow(e, true)));
+  }
+  const h1 = document.createElement('p'); h1.className = 'gb-sec'; h1.textContent = 'On the table';
+  gbEntries.appendChild(h1);
+  if (shelved.length) shelved.forEach((e) => gbEntries.appendChild(entryRow(e, false)));
+  else {
+    const p = document.createElement('p'); p.className = 'gb-empty';
+    p.textContent = 'Nothing yet — be the first.';
+    gbEntries.appendChild(p);
+  }
+  const others = waiting.filter((w) => !mine.includes(w));
+  if (others.length) {
+    const h2 = document.createElement('p'); h2.className = 'gb-sec'; h2.textContent = 'Waiting to be shelved';
+    gbEntries.appendChild(h2);
+    others.forEach((e) => gbEntries.appendChild(entryRow(e, true)));
+  }
+}
+
+document.getElementById('gb-close').addEventListener('click', closeGuestbook);
+document.getElementById('gb-close2').addEventListener('click', closeGuestbook);
+document.getElementById('gb-close3').addEventListener('click', closeGuestbook);
+document.getElementById('gb-add').addEventListener('click', () => showGbView('form'));
+document.getElementById('gb-back').addEventListener('click', () => showGbView('list'));
+document.getElementById('gb-again').addEventListener('click', () => showGbView('form'));
+document.getElementById('gb-see').addEventListener('click', () => goSeeGuestBook());
+
+function lookAtGuestTable() {
+  camera.position.set(GUEST_X, EYE, GUEST_Z - 1.2);
+  collide(camera.position);
+  camera.lookAt(GUEST_X, GUEST_TABLE.h + 0.02, GUEST_Z);
+  lookEuler.setFromQuaternion(camera.quaternion);
+  lookEuler.z = 0;
+  lookEuler.x = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, lookEuler.x));
+  camera.quaternion.setFromEuler(lookEuler);
+}
+
+function goSeeGuestBook() {
+  closeGuestbook();
+  if (useTouch) {
+    showToast('Yours is the one with the tag.', 4000, { arrow: false });
+    return;
+  }
+  lookAtGuestTable();
+  if (!inRoom) controls.lock();
+}
+addEventListener('keydown', (e) => {
+  if (e.code === 'Escape' && !guestbookEl.hidden && !inRoom) closeGuestbook();
+});
+
+/* ---- Open Library lookup: pick the right edition to get a real cover ---- */
+function scheduleLookup() {
+  clearTimeout(gbLookupTimer);
+  gbLookupTimer = setTimeout(runLookup, 550);
+}
+async function runLookup() {
+  const t = gbForm.elements.t.value.trim();
+  const a = gbForm.elements.a.value.trim();
+  if (t.length < 3) { showMatches([]); return; }
+  const seq = ++gbLookupSeq;
+  gbMatchHint.hidden = false;
+  gbMatchHint.textContent = 'Looking for a cover…';
+  try {
+    const u = new URL('https://openlibrary.org/search.json');
+    u.searchParams.set('title', t);
+    if (a) u.searchParams.set('author', a);
+    u.searchParams.set('limit', '6');
+    u.searchParams.set('fields', 'key,title,author_name,isbn,cover_i,first_publish_year');
+    const r = await fetch(u);
+    const data = await r.json();
+    if (seq !== gbLookupSeq) return;
+    const docs = (data.docs || []).filter((d) => d.cover_i).slice(0, 4);
+    showMatches(docs);
+  } catch {
+    if (seq === gbLookupSeq) showMatches([]);
+  }
+}
+function showMatches(docs) {
+  gbMatches.textContent = '';
+  gbSelected = null;
+  if (!docs.length) {
+    gbMatches.hidden = true;
+    gbMatchHint.hidden = gbForm.elements.t.value.trim().length < 3;
+    gbMatchHint.textContent = 'No cover found — that’s fine, a plain jacket will do.';
+    return;
+  }
+  gbMatches.hidden = false;
+  gbMatchHint.hidden = false;
+  gbMatchHint.textContent = 'Tap the matching edition so the real cover shows on the table.';
+  docs.forEach((d) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gb-match';
+    const img = document.createElement('img');
+    img.alt = '';
+    img.loading = 'lazy';
+    img.src = `https://covers.openlibrary.org/b/id/${d.cover_i}-S.jpg`;
+    const txt = document.createElement('div');
+    const mt = document.createElement('div'); mt.className = 'm-t'; mt.textContent = d.title;
+    const ma = document.createElement('div'); ma.className = 'm-a';
+    ma.textContent = `${(d.author_name || []).slice(0, 2).join(', ')}${d.first_publish_year ? ` · ${d.first_publish_year}` : ''}`;
+    txt.append(mt, ma);
+    btn.append(img, txt);
+    btn.addEventListener('click', () => {
+      const on = btn.classList.contains('on');
+      [...gbMatches.children].forEach((c) => c.classList.remove('on'));
+      if (on) { gbSelected = null; return; }
+      btn.classList.add('on');
+      const isbn13 = (d.isbn || []).find((s) => /^\d{13}$/.test(s)) || (d.isbn || [])[0] || '';
+      gbSelected = { isbn: isbn13, cover: `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` };
+      if (!gbForm.elements.a.value.trim() && d.author_name?.length) gbForm.elements.a.value = d.author_name[0];
+    });
+    gbMatches.appendChild(btn);
+  });
+}
+gbForm.elements.t.addEventListener('input', scheduleLookup);
+gbForm.elements.a.addEventListener('input', scheduleLookup);
+
+/* ---- submit → relay → book on the table ---- */
+gbForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = gbForm.elements;
+  const entry = {
+    t: f.t.value.trim(), a: f.a.value.trim(), by: f.by.value.trim(), why: f.why.value.trim(),
+    isbn: gbSelected?.isbn || '', cover: gbSelected?.cover || ''
+  };
+  if (!entry.t || !entry.a || !entry.by) { setGbStatus('Title, author and your name, please.', 'err'); return; }
+  if (/(https?:\/\/|www\.)/i.test(`${entry.t} ${entry.a} ${entry.by} ${entry.why}`)) {
+    setGbStatus('Please leave links out.', 'err'); return;
+  }
+  if (f.website.value) return;                           // honeypot
+  if (performance.now() - gbOpenedAt < 3000) {           // too fast to be a person
+    setGbStatus('One moment…'); await new Promise((r) => setTimeout(r, 1200));
+  }
+  if (guestRemaining <= 0) { updateRemaining(); return; }
+
+  gbSubmit.disabled = true;
+  setGbStatus('Placing it on the table…');
+  try {
+    let number;
+    if (RELAY_CONFIGURED) {
+      const r = await fetch(GUEST_RELAY_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...entry, website: f.website.value })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (data.error === 'limit') { guestRemaining = 0; updateRemaining(); }
+        throw new Error(data.message || `Something went wrong (${r.status}). Please try again.`);
+      }
+      number = data.number;
+      if (typeof data.remaining === 'number') guestRemaining = data.remaining;
+      else guestRemaining = Math.max(0, guestRemaining - 1);
+    } else {
+      console.warn('[guestbook] GUEST_RELAY_URL is not set — saving locally only.');
+      number = -Date.now();
+      guestRemaining = Math.max(0, guestRemaining - 1);
+    }
+    const mine = {
+      ...entry, id: number, status: 'pending',
+      date: new Date().toLocaleString('en-GB', { month: 'short', year: 'numeric' }), ts: Date.now()
+    };
+    guestMine.push(mine);
+    saveMine();
+    addGuestBook(mine);
+    redrawLedger();
+    updateRemaining();
+    gbForm.reset();
+    showMatches([]);
+    gbMatchHint.hidden = true;
+    gbDoneLine.textContent =
+      `“${mine.t}” is on the table with a tag until ${HOST_NAME} approves it.` +
+      (RELAY_CONFIGURED ? '' : ' Saved in this browser only.');
+    gbAgain.hidden = guestRemaining <= 0;
+    showGbView('done');
+  } catch (err) {
+    setGbStatus(err.message, 'err');
+  } finally {
+    if (guestRemaining > 0) gbSubmit.disabled = false;
+  }
+});
+
+/* ---- first-visit nudge toward the guest table ---- */
+const toastEl = document.getElementById('toast');
+const toastArr = document.getElementById('toast-arr');
+const GUEST_SEEN_KEY = 'rr-guest-seen';
+let toastUntil = 0;
+let toastMinUntil = 0;
+const toastTarget = new THREE.Vector3(GUEST_X, GUEST_TABLE.h + 0.1, GUEST_Z);
+const toastTmp = new THREE.Vector3();
+const toastFwd = new THREE.Vector3();
+const toastRight = new THREE.Vector3();
+
+function markGuestSeen() {
+  try { localStorage.setItem(GUEST_SEEN_KEY, '1'); } catch { /* ignore */ }
+}
+function showToast(text, ms = 4000, { arrow = false } = {}) {
+  document.getElementById('toast-text').textContent = text;
+  toastArr.hidden = !arrow;
+  toastEl.classList.add('on');
+  toastUntil = performance.now() + ms;
+  toastMinUntil = arrow ? performance.now() + 2500 : toastUntil;
+}
+function maybeShowToast() {
+  let seen = false;
+  try { seen = !!localStorage.getItem(GUEST_SEEN_KEY); } catch { /* ignore */ }
+  if (seen || guestMine.length) return;
+  showToast(
+    useTouch ? 'Turn around — leave a book on the table by the door' : 'Turn around — guests leave a book on the table by the door',
+    9000,
+    { arrow: true }
+  );
+}
+function hideToast() {
+  toastEl.classList.remove('on');
+  toastUntil = 0;
+  toastArr.hidden = false;
+}
+function updateToast() {
+  if (!toastUntil) return;
+  const now = performance.now();
+  if (now > toastUntil) { hideToast(); markGuestSeen(); return; }
+  // Rotate the arrow toward the table in the camera's horizontal frame.
+  toastTmp.subVectors(toastTarget, camera.position); toastTmp.y = 0;
+  camera.getWorldDirection(toastFwd); toastFwd.y = 0; toastFwd.normalize();
+  toastRight.crossVectors(toastFwd, camera.up).normalize();
+  const ang = Math.atan2(toastTmp.dot(toastRight), toastTmp.dot(toastFwd));
+  toastArr.style.transform = `rotate(${ang - Math.PI / 2}rad)`;
+  // Once the table is on screen the arrow has done its job.
+  if (now > toastMinUntil && Math.abs(ang) < 0.5) { hideToast(); markGuestSeen(); }
+}
 
 /* ============================================================
    LOOP
@@ -2739,6 +3653,16 @@ function animate() {
       root.position.x = restPos.x;
       root.position.y = restPos.y + u.t * 0.08;
       root.position.z = restPos.z + u.t * 0.06;
+      if (u.tag) {
+        // Waiting for approval: gentle bob and a breathing glow on the tag.
+        // Once shelved the tag shrinks away and the bob stops.
+        if (!u.pending) u.tagT = Math.max(0, u.tagT - dt * 2.5);
+        const k = u.tagT;
+        root.position.y += Math.sin(clock.elapsedTime * 2.1) * 0.004 * k;
+        u.tag.children[0].material.emissiveIntensity = (0.18 + 0.22 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 3))) * k;
+        u.tag.scale.setScalar(Math.max(0.001, k));
+        if (k === 0) { m.remove(u.tag); u.tag = null; }
+      }
     } else {
       m.position.x = restPos.x;
       m.position.y = restPos.y + u.t * 0.012;
@@ -2748,6 +3672,8 @@ function animate() {
   }
 
   landscape.update(clock.elapsedTime);
+  quill.rotation.z = 0.42 + Math.sin(clock.elapsedTime * 1.3) * 0.035;
+  updateToast();
 
   composer.render();
   requestAnimationFrame(animate);
@@ -2769,6 +3695,11 @@ document.getElementById('loading').remove();
 gate.classList.remove('hidden');
 syncGui();
 animate();
+requestAnimationFrame(() => requestAnimationFrame(startGuestNetwork));
+
+// Design-harness hook (?edit=1 only): drive the camera and the guestbook
+// from the console without pointer lock.
+if (EDIT) window.__room = { camera, scene, enterRoom, leaveRoom, openGuestbook, closeGuestbook, addGuestBook, redrawLedger, interact, interactables };
 </script>
 </body>
 </html>
