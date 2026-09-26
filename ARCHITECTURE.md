@@ -100,8 +100,8 @@ mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT]
 
 `+z` faces the room (spine), `±x` are the front and back covers, the
 remaining three faces are the page block. A wall-mounted lever to the
-left of the bookcase lerps **shelf** books to a face-out rest pose
-(`rotation.y = −π/2`) so `+x` faces the room. Table books skip that blend.
+left of the bookcase lerps **shelf** books into an exhibition arc so
+the jacket (`+x`) faces the room. Table books skip that blend.
 Do not put the jacket texture on `+z` — that face
 is only 1.4–3 cm wide and would squash the cover.
 
@@ -145,14 +145,23 @@ Each shelf book is offset from the previous by its thickness plus a 4 mm
 gap. A small random Z-lean (`rotation.z ±0.015 rad`) keeps them from
 looking machine-placed.
 
-Shelf meshes store two rest poses: `spineHome` / `spineRotY = 0` (current
-row) and `faceHome` / `faceRotY = −π/2`. Face-out packs two covers per
-lower shelf on the left of the board so they clear the decor (usable
-left band is about 0.64 m). That is a hard cap of six face-out books;
-more than that will overlap on the bottom shelf. Table books set
-`onTable`, rotate `z = −π/2` so the jacket (`+x`) faces up, and copy
-`spineHome` into `faceHome` so cover-mode is a no-op. Pull-out lifts them
-in Y rather than applying the standing-spine quarter-turn.
+Shelf meshes store two rest poses: `spineHome` / `spineQuat` (current
+row, including the small Z-lean) and `faceHome` / `faceQuat`. Cover mode
+lifts every shelf book into a shallow arc in front of the case
+(`layoutExhibition`). Each shelf category is its own row: Harry Potter
+on its own row under the other fiction, which stays centered, then
+non-fiction (`other`) in the middle and people on top. A
+category that outgrows the arc tightens its gap, then gains a second
+rank, before any jacket shrinks. The bottom row sits lower than eye
+height so the top row stays inside a landscape window. Each jacket yaws
+toward a point in front of the arc and pitches toward eye height, so
+the upper covers face you. A rank that is still wider than the arc
+after that split scales down just enough to fit. A short centre-out lag
+(`flyLag`) makes the flock leave and return as one smooth gesture.
+Table books set `onTable`, rotate `z = −π/2` so the jacket (`+x`) faces
+up, and copy `spineHome` into `faceHome` so cover-mode is a no-op.
+Pull-out lifts them in Y rather than applying the standing-spine
+quarter-turn.
 
 The `interactables` array is declared at module scope **before**
 `placeBooks()` is called. Each book mesh is pushed into it; the
@@ -176,8 +185,10 @@ lerps `userData.t` toward 1 over roughly 0.1 s, applied **on top of**
 the current rest pose (a blend of `spineHome` and `faceHome` by
 `coverT`):
 - Spine mode (`coverT ≈ 0`): `z + 0.17`, `y + 0.012`, `rotation.y += −0.95`
-- Cover mode (`coverT ≈ 1`): forward nudge only (`z + 0.06`). The jacket
-  already faces the room; another quarter-turn would hide it.
+- Cover mode (`coverT ≈ 1`): step toward you along the cover normal
+  (about 14 cm). The jacket already faces the room; another quarter-turn
+  would hide it. The book under the crosshair eases out a few centimetres
+  before the click.
 - Table books (`onTable`): lift `y + 0.08` and `z + 0.06`; no Y spin, so
   the jacket stays facing up.
 
@@ -200,7 +211,7 @@ while the pointer is locked: calls `toggleCoverMode()`. Any open book
 is closed first so the two animations do not fight. The lever throws
 up (spines) and down (covers) with `coverT`. `keydown` ignores
 `e.repeat` so holding C does not flicker. A plaque above the lever
-reads "Click the lever / or press C / to flip covers". Prompts:
+reads "Float the books / to view / (press C)". Prompts:
 `Click to show covers` / `Click to show spines`.
 
 ## Movement and collision
