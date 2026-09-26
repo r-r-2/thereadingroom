@@ -61,9 +61,13 @@ Size heuristics from current entries: `th` ≈ `0.014`–`0.030`, `h` ≈ `0.178
   the leftmost book.
 - Finished books fill the lower three shelves in **array order**: 5 / 5 /
   remainder. The top shelf is decor only.
-- Face-out mode packs at most two covers per lower shelf (**6** finished
-  books look clean). More still works in spine mode but overlaps face-out.
-  Table books ignore cover-mode.
+- Cover mode lifts every finished book into a shallow arc in front of
+  the case: people on top, non-fiction in the middle, other fiction
+  centered under that, and Harry Potter on its own row below. The stack
+  sits low enough that the top row stays in a
+  landscape window. A category that outgrows the arc tightens its gap,
+  then gains a second rank, before any jacket shrinks. Table books
+  ignore cover-mode.
 
 Append finished books at the end of the array. `reading` books can sit
 anywhere; they are filtered onto the table.
@@ -224,13 +228,16 @@ chore(worker): bump wrangler in the deploy workflow
 6. With a book open, press Esc, then click the title — Open Library should
    open in a new tab without re-locking the pointer.
 7. Walk to the wall left of the bookcase. A large plaque should read
-   "Click the lever / or press C / to flip covers". Look at the lever
+   "Float the books / to view / (press C)". Look at the lever
    — prompt should read "Click to show covers". Click it — the handle
-   throws down and books rotate face-out on the left of the three
-   lower shelves, clear of the decor. Press C to flip back to spines.
+   throws down and every shelf book lifts into rows — people on
+   top, non-fiction in the middle, other fiction centered under that,
+   Harry Potter on its own row below — low enough
+   that the top row stays in view. Press C to return to spines.
 8. In both modes, pull a book out and put it back. Cover mode should
-   nudge forward only (no extra quarter-turn). Table books (if any
-   `reading` entries exist) should stay on the table, lying cover-up.
+   step the jacket toward you along its facing (no extra quarter-turn).
+   Table books (if any `reading` entries exist) should stay on the
+   table, lying cover-up.
 9. Face the left wall: a built-in book nook — large landscape window over a
    cushioned bench with pillows, flanked by wood curio towers (framed art,
    ceramics, sculptures; books only as accents) and brass sconces — across

@@ -62,15 +62,16 @@
   #prompt.on{opacity:1}
 
   /* ---- book detail ---- */
-  #detail{position:fixed;right:28px;top:50%;transform:translate(20px,-50%);
+  #detail{position:fixed;right:28px;top:auto;bottom:28px;transform:translate(20px,0);
     width:330px;max-width:calc(100vw - 40px);z-index:12;pointer-events:none;
     background:rgba(24,19,15,.93);backdrop-filter:blur(10px);
     border:1px solid rgba(220,196,158,.22);border-radius:10px;padding:20px 22px;
     opacity:0;transition:opacity .25s ease,transform .25s cubic-bezier(.22,.8,.3,1)}
-  /* Above the gate (z-index 14) so Esc → click title works. */
-  #detail.on{opacity:1;transform:translate(0,-50%);pointer-events:auto;z-index:15}
+  /* Above the gate (z-index 14) so Esc → click title works.
+     manipulation so a tap follows the link despite touch-action:none on body. */
+  #detail.on{opacity:1;transform:translate(0,0);pointer-events:auto;z-index:15;touch-action:manipulation}
   #detail #d-title{display:block;margin:0 0 3px;font-size:18px;font-weight:600;line-height:1.25;
-    color:inherit;text-decoration:none;cursor:pointer}
+    color:inherit;text-decoration:none;cursor:pointer;touch-action:manipulation}
   #detail #d-title:hover{text-decoration:underline;text-underline-offset:3px}
   #detail #d-title:not([href]){cursor:default}
   #detail #d-title:not([href]):hover{text-decoration:none}
@@ -1170,14 +1171,20 @@ function box(w, h, d, mat, x, y, z) {
   return m;
 }
 
+// Own materials so cover mode can dim the case without darkening the room.
+const caseWood = WOOD.clone();
+const caseWoodDark = WOOD_DARK.clone();
+const caseWoodBase = caseWood.color.clone();
+const caseDarkBase = caseWoodDark.color.clone();
+
 // back panel, sides, top
-box(CASE.w, CASE.h, 0.03, WOOD_DARK, 0, CASE.h / 2, -CASE.d / 2);
-box(0.05, CASE.h, CASE.d, WOOD, -CASE.w / 2, CASE.h / 2, 0);
-box(0.05, CASE.h, CASE.d, WOOD, CASE.w / 2, CASE.h / 2, 0);
-box(CASE.w + 0.05, 0.05, CASE.d, WOOD, 0, CASE.h, 0);
-box(CASE.w + 0.05, 0.06, CASE.d, WOOD, 0, 0.03, 0);
+box(CASE.w, CASE.h, 0.03, caseWoodDark, 0, CASE.h / 2, -CASE.d / 2);
+box(0.05, CASE.h, CASE.d, caseWood, -CASE.w / 2, CASE.h / 2, 0);
+box(0.05, CASE.h, CASE.d, caseWood, CASE.w / 2, CASE.h / 2, 0);
+box(CASE.w + 0.05, 0.05, CASE.d, caseWood, 0, CASE.h, 0);
+box(CASE.w + 0.05, 0.06, CASE.d, caseWood, 0, 0.03, 0);
 // shelf boards
-SHELF_Y.forEach((y) => box(CASE.w, 0.035, CASE.d, WOOD, 0, y, 0));
+SHELF_Y.forEach((y) => box(CASE.w, 0.035, CASE.d, caseWood, 0, y, 0));
 
 /* ============================================================
    BOOK MESHES
@@ -1284,6 +1291,9 @@ function makeBookMesh(b) {
     depth,
     out: false,
     t: 0,
+    hover: 0,
+    flyLag: 0,
+    faceScale: 1,
     type: 'book'
   };
   return mesh;
@@ -1319,6 +1329,152 @@ function fictionRow(list) {
   return [...before, ...potter, ...after];
 }
 
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const X_AXIS = new THREE.Vector3(1, 0, 0);
+const flyQuat = new THREE.Quaternion();
+const pullQuat = new THREE.Quaternion();
+const faceNormal = new THREE.Vector3();
+const _yawQ = new THREE.Quaternion();
+const _pitchQ = new THREE.Quaternion();
+
+/* Frame-rate independent ease. No overshoot, so a fast move stays smooth. */
+function damp(current, target, lambda, dt) {
+  return current + (target - current) * (1 - Math.exp(-lambda * dt));
+}
+
+/* Cover mode lifts shelf books into a shallow arc in front of the case.
+   Low enough for a landscape window: Harry Potter on its own row under
+   fiction, the rest of fiction centered above that, non-fiction in the
+   middle, people on top. People and non-fiction stay stacked off the
+   fiction row, so they do not move when Potter drops down. */
+function layoutExhibition(meshes) {
+  if (!meshes.length) return;
+
+  const EYE = 1.62;
+  const BOTTOM_Y = 1.26;
+  const GAP_X = 0.06;
+  const MIN_GAP_X = 0.015;
+  const GAP_Y = 0.2;
+  const MAX_SPAN = 3.1;
+  const Z_FRONT = CASE.d / 2 + 0.12;
+  const FOCUS_Z = Z_FRONT + 1.4;
+
+  const byRow = { people: [], other: [], fiction: [] };
+  for (const mesh of meshes) {
+    const row = mesh.userData.book.row;
+    (byRow[row] || byRow.other).push(mesh);
+  }
+
+  const potter = byRow.fiction.filter((m) => m.userData.book.t.startsWith('Harry Potter'));
+  byRow.fiction = byRow.fiction.filter((m) => !m.userData.book.t.startsWith('Harry Potter'));
+
+  const widthOf = (list, gap) => {
+    let w = 0;
+    for (const m of list) w += m.userData.depth;
+    return w + gap * Math.max(0, list.length - 1);
+  };
+
+  /* Full-size gap first. If the row is wider than the arc, close the
+     gap before any jacket shrinks. A second rank is only for what
+     still does not fit, and only that category wraps. */
+  const tighten = (list) => {
+    const sum = list.reduce((s, m) => s + m.userData.depth, 0);
+    const gaps = list.length - 1;
+    if (gaps <= 0) return GAP_X;
+    return Math.min(GAP_X, Math.max(MIN_GAP_X, (MAX_SPAN - sum) / gaps));
+  };
+
+  const ranksFor = (list) => {
+    if (!list.length) return [];
+    const gap = tighten(list);
+    if (widthOf(list, gap) <= MAX_SPAN + 1e-4) return [{ list, gap, scale: 1 }];
+    const mid = Math.ceil(list.length / 2);
+    return [list.slice(0, mid), list.slice(mid)].filter((part) => part.length).map((part) => {
+      const g = tighten(part);
+      const w = widthOf(part, g);
+      return { list: part, gap: g, scale: w > MAX_SPAN ? MAX_SPAN / w : 1 };
+    });
+  };
+
+  // bands[0] is the lowest row. Within a split category, earlier books
+  // stay on the upper rank so the category still reads downward.
+  // Potter is not in this stack — it sits on its own row underneath.
+  const bands = [];
+  for (const key of ['fiction', 'other', 'people']) {
+    const ranks = ranksFor(byRow[key]);
+    for (let i = ranks.length - 1; i >= 0; i--) bands.push(ranks[i]);
+  }
+  if (!bands.length && !potter.length) return;
+
+  const bandHeight = (band) => {
+    let h = 0;
+    for (const m of band.list) h = Math.max(h, m.userData.book.h * band.scale);
+    return h;
+  };
+  const rowH = bands.map(bandHeight);
+  const rowY = [];
+  if (bands.length) {
+    rowY[0] = BOTTOM_Y;
+    for (let r = 1; r < bands.length; r++) {
+      rowY[r] = rowY[r - 1] + (rowH[r - 1] + rowH[r]) / 2 + GAP_Y;
+    }
+  }
+
+  let maxAbsX = 0;
+  const placed = [];
+  const placeBand = (band, y) => {
+    const scale = band.scale;
+    let total = 0;
+    for (const m of band.list) total += m.userData.depth * scale;
+    total += band.gap * scale * Math.max(0, band.list.length - 1);
+    const half = total / 2;
+    let cursor = -half;
+    for (const mesh of band.list) {
+      const w = mesh.userData.depth * scale;
+      const x = cursor + w / 2;
+      cursor += w + band.gap * scale;
+      const z = Z_FRONT + 0.1 * (half > 0 ? (x / half) ** 2 : 0);
+      mesh.userData.faceHome.set(x, y, z);
+      mesh.userData.faceScale = scale;
+
+      // Local +x is the jacket. Yaw turns it toward a point in front of
+      // the arc; pitch tips it toward eye height. Yaw is capped so
+      // neighbours stay clear of each other.
+      const yawRaw = Math.atan2(-(FOCUS_Z - z), -x);
+      const yaw = -Math.PI / 2 + THREE.MathUtils.clamp(yawRaw + Math.PI / 2, -0.18, 0.18);
+      const pitch = THREE.MathUtils.clamp(-Math.atan2(EYE - y, 1.4), -0.28, 0.28);
+      _yawQ.setFromAxisAngle(Y_AXIS, yaw);
+      _pitchQ.setFromAxisAngle(X_AXIS, pitch);
+      mesh.userData.faceRotY = yaw;
+      mesh.userData.faceRotX = pitch;
+      mesh.userData.faceQuat = _pitchQ.clone().multiply(_yawQ);
+      maxAbsX = Math.max(maxAbsX, Math.abs(x));
+      placed.push(mesh);
+    }
+  };
+
+  bands.forEach((band, r) => placeBand(band, rowY[r]));
+
+  if (potter.length) {
+    const potterRanks = ranksFor(potter);
+    const potterBands = [];
+    for (let i = potterRanks.length - 1; i >= 0; i--) potterBands.push(potterRanks[i]);
+    const potterH = potterBands.map(bandHeight);
+    const fictionH = byRow.fiction.length ? rowH[0] : 0;
+    const potterY = [byRow.fiction.length
+      ? BOTTOM_Y - (fictionH + potterH[0]) / 2 - GAP_Y
+      : BOTTOM_Y];
+    for (let r = 1; r < potterBands.length; r++) {
+      potterY[r] = potterY[r - 1] + (potterH[r - 1] + potterH[r]) / 2 + GAP_Y;
+    }
+    potterBands.forEach((band, r) => placeBand(band, potterY[r]));
+  }
+
+  for (const mesh of placed) {
+    mesh.userData.flyLag = maxAbsX > 0 ? 0.1 * Math.abs(mesh.userData.faceHome.x) / maxAbsX : 0;
+  }
+}
+
 function placeBooks() {
   // Finished books fill the three lower shelves by kind. Reading-now
   // books go on the table (placeTableBooks), not the top shelf.
@@ -1341,8 +1497,11 @@ function placeBooks() {
       mesh.rotation.z = (Math.random() - 0.5) * 0.03;
       mesh.userData.spineHome = mesh.position.clone();
       mesh.userData.spineRotY = 0;
+      mesh.userData.spineQuat = mesh.quaternion.clone();
       mesh.userData.faceHome = new THREE.Vector3();
       mesh.userData.faceRotY = -Math.PI / 2;
+      mesh.userData.faceRotX = 0;
+      mesh.userData.faceQuat = new THREE.Quaternion();
       mesh.userData.onTable = false;
 
       shelfGroup.add(mesh);
@@ -1352,29 +1511,8 @@ function placeBooks() {
     });
   });
 
-  // Face-out rest poses: two covers per lower shelf, packed left of
-  // the decor. Shelf books only — table books never get a shelf pose.
-  const faceXStart = -CASE.w / 2 + 0.12;
-  const faceYs = [SHELF_Y[2], SHELF_Y[1], SHELF_Y[0]];
-  let faceShelf = 0;
-  let faceSlot = 0;
-  let faceX = faceXStart;
-  for (const mesh of books) {
-    if (faceSlot >= 2) {
-      faceShelf = Math.min(faceShelf + 1, faceYs.length - 1);
-      faceSlot = 0;
-      faceX = faceXStart;
-    }
-    const b = mesh.userData.book;
-    const d = mesh.userData.depth;
-    mesh.userData.faceHome.set(
-      faceX + d / 2,
-      faceYs[faceShelf] + 0.018 + b.h / 2,
-      CASE.d / 2 - b.th / 2 - 0.015
-    );
-    faceX += d + 0.012;
-    faceSlot++;
-  }
+  // Shelf books only — table books never get an exhibition pose.
+  layoutExhibition(books);
 }
 placeBooks();
 
@@ -1524,7 +1662,7 @@ function makePlaque(lines, { w = 0.36, h = 0.26, depth = 0.02, font = 42, ink = 
 }
 
 /* Instruction plaque above the lever. Not in interactables. */
-const plaqueFrame = makePlaque(['Click the lever', 'or press C', 'to flip covers']);
+const plaqueFrame = makePlaque(['Float the books', 'to view', '(press C)']);
 plaqueFrame.position.set(0, 1.58, 0.01);
 wallSwitch.add(plaqueFrame);
 
@@ -2981,6 +3119,21 @@ gate.addEventListener('click', (e) => {
 controls.addEventListener('lock', enterRoom);
 controls.addEventListener('unlock', () => {
   if (useTouch || guestbookOpen) return;
+  /* Esc drops the pointer lock. Keep an open book and its title link
+     above the gate so the Open Library link can be clicked. */
+  if (detail.classList.contains('on')) {
+    inRoom = false;
+    gateIgnoreUntil = performance.now() + 500;
+    gate.classList.remove('hidden');
+    crosshair.classList.add('hidden');
+    promptEl.classList.remove('on');
+    touchHud.hidden = true;
+    resetStick();
+    velocity.set(0, 0, 0);
+    hideToast();
+    syncGui();
+    return;
+  }
   leaveRoom();
 });
 document.addEventListener('pointerlockerror', () => {
@@ -3782,17 +3935,26 @@ function animate() {
   player.getWorldPosition(playerWorldPos);
   Music.updateListener(camera.position, playerWorldPos);
 
-  // cover-display: blend spine-out ↔ face-out, then apply pull-out
-  coverT += ((coverMode ? 1 : 0) - coverT) * Math.min(1, dt * 9);
+  // Cover mode: one shared ease, then a short centre-out wave per book.
+  // Exponential damp has no overshoot, so the lift stays fast without jitter.
+  coverT = damp(coverT, coverMode ? 1 : 0, 18, dt);
+  const shade = 1 - coverT * 0.42;
+  caseWood.color.copy(caseWoodBase).multiplyScalar(shade);
+  caseWoodDark.color.copy(caseDarkBase).multiplyScalar(shade);
   switchPivot.rotation.x = -0.7 + coverT * 1.4;
 
   for (const m of books) {
     const u = m.userData;
-    const target = u.out ? 1 : 0;
-    u.t += (target - u.t) * Math.min(1, dt * 9);
-    const ct = u.onTable ? 0 : coverT;
+    u.t = damp(u.t, u.out ? 1 : 0, 16, dt);
+    let ct = 0;
+    if (!u.onTable) {
+      const lag = u.flyLag || 0;
+      ct = coverMode
+        ? THREE.MathUtils.smoothstep(coverT, lag, 1)
+        : THREE.MathUtils.smoothstep(coverT, 0, 1 - lag);
+    }
+    u.hover = damp(u.hover, (!u.onTable && looked === m && !u.out && ct > 0.85) ? 1 : 0, 18, dt);
     restPos.lerpVectors(u.spineHome, u.faceHome, ct);
-    const restRotY = u.spineRotY + (u.faceRotY - u.spineRotY) * ct;
     if (u.onTable) {
       const root = u.tableRoot;
       root.position.x = restPos.x;
@@ -3809,10 +3971,22 @@ function animate() {
         if (k === 0) { m.remove(u.tag); u.tag = null; }
       }
     } else {
-      m.position.x = restPos.x;
-      m.position.y = restPos.y + u.t * 0.012;
-      m.position.z = restPos.z + u.t * (0.17 * (1 - ct) + 0.06 * ct);
-      m.rotation.y = restRotY + u.t * -0.95 * (1 - ct);
+      const spineNudge = u.t * 0.17 * (1 - ct);
+      const faceNudge = (u.t * 0.14 + u.hover * 0.035) * ct;
+      faceNormal.set(1, 0, 0).applyQuaternion(u.faceQuat);
+      // A small rise mid-flight, zero at both rest poses.
+      const hop = Math.sin(ct * Math.PI) * 0.06;
+      m.position.x = restPos.x + faceNormal.x * faceNudge;
+      m.position.y = restPos.y + u.t * 0.012 * (1 - ct) + hop + faceNormal.y * faceNudge;
+      m.position.z = restPos.z + spineNudge + faceNormal.z * faceNudge;
+      flyQuat.copy(u.spineQuat).slerp(u.faceQuat, ct);
+      const pullYaw = u.t * -0.95 * (1 - ct);
+      if (pullYaw) {
+        pullQuat.setFromAxisAngle(Y_AXIS, pullYaw);
+        flyQuat.premultiply(pullQuat);
+      }
+      m.quaternion.copy(flyQuat);
+      m.scale.setScalar(1 + (u.faceScale - 1) * ct);
     }
   }
 
