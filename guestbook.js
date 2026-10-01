@@ -24,4 +24,5 @@ export default [
   { id: 19, t: 'The Secret', a: 'Rhonda Byrne', by: 'Swaa',
     why: 'It changed my perspective and I think it is helpful for everyone in one way or other.',
     isbn: '9783442337903', cover: 'https://covers.openlibrary.org/b/id/845815-M.jpg', date: 'Sept 2026' },
+  { id: 23, t: 'The Human Instinct: How We Evolved to Have Reason, Consciousness, and Free Will', a: 'Kenneth R. Miller', by: 'Rosh', why: 'What made me curious about the book - Natural selection surely explains how our bodies and brains were shaped, but Miller argues that it’s not a social or cultural theory of everything.', date: 'Sept 2026' },
 ];
