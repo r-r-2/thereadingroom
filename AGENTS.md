@@ -117,6 +117,13 @@ The guest sees their book on the table immediately, with an "awaiting
 approval" tag. Other visitors see pending titles only in the ledger
 (`GUEST_PENDING_ON_TABLE = false`).
 
+The newest three approved books lie on the table (`GUEST_ON_TABLE`);
+guests listed in `GUEST_ALWAYS_ON_TABLE` always hold one of those three
+places with their newest book. Older books stand cover-out on the
+**picture ledge** on the wall above the table (two rails of eight,
+hidden while empty). When the ledge is full, the guest with the most books showing loses
+their oldest first; those titles stay in the ledger.
+
 ### Shelving a recommendation
 
 1. Open the issue. Add the **`approved`** label.
@@ -271,5 +278,7 @@ chore(worker): bump wrangler in the deploy workflow
     (relay optional locally) — it appears on the table with an "awaiting
     approval" tag, listed on the Waiting page in lighter ink. Pull it
     out: meta reads "waiting for approval". Shelved entries in
-    `guestbook.js` sit on the table and on the Guestbook page; there is
-    no Left Hand of Darkness seed.
+    `guestbook.js` are listed on the Guestbook page; the newest three
+    (always including one of Swaa's) lie on the table and older ones
+    stand cover-out on the wall ledge above it. Ledge books pull out like table books. There is no Left Hand
+    of Darkness seed.

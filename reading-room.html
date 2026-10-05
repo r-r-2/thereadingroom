@@ -2131,6 +2131,15 @@ function layBookOnTable(L, b, { bookmark = false, cover = true } = {}) {
 
   const { px, py, pz } = slotFor(L, mesh.userData.depth, b.th, b.h, true);
   nest.position.set(px, py, pz);
+  adoptNestedBook(L.group, nest, mesh);
+  if (cover) loadCover(mesh, b);
+  return mesh;
+}
+
+/* A book that rests in its own nest group instead of on the bookcase.
+   The frame loop moves the nest, so pull-out lifts it up and toward the
+   viewer whatever pose the mesh holds inside. */
+function adoptNestedBook(group, nest, mesh) {
   const home = nest.position.clone();
   mesh.userData.spineHome = home;
   mesh.userData.spineRotY = nest.rotation.y;
@@ -2138,11 +2147,9 @@ function layBookOnTable(L, b, { bookmark = false, cover = true } = {}) {
   mesh.userData.faceRotY = nest.rotation.y;
   mesh.userData.onTable = true;
   mesh.userData.tableRoot = nest;
-  L.group.add(nest);
+  group.add(nest);
   books.push(mesh);
   interactables.push(mesh);
-  if (cover) loadCover(mesh, b);
-  return mesh;
 }
 
 function placeTableBooks() {
@@ -2164,11 +2171,13 @@ const HOST_NAME = 'Rahul';
 const GUEST_RELAY_URL = 'https://reading-room-guestbook.rahul-kmr007.workers.dev';
 const GUEST_REPO = 'r-r-2/thereadingroom';
 const GUEST_MAX_PER_IP = 20;        // mirrors MAX_PER_IP in the worker (UX only)
-const GUEST_MAX_ON_TABLE = 12;      // 3D books on the table; the rest live in the ledger
+const GUEST_MAX_ON_TABLE = 12;      // 3D books on the table before the ghost slot goes
+const GUEST_ON_TABLE = 3;           // newest approved books lying on the table; older ones go to the ledge
+const GUEST_ALWAYS_ON_TABLE = ['Swaa']; // guests who always hold one of those table places
 const GUEST_PENDING_ON_TABLE = false; // other visitors' unapproved books: ledger only
 const GUEST_LS_KEY = 'rr-guest-mine';
 
-const GUEST_TABLE = { w: 1.4, d: 0.55, h: 0.76 };
+const GUEST_TABLE = { w: 1.9, d: 0.62, h: 0.76 };
 const GUEST_X = 1.9;
 const GUEST_Z = ROOM.d / 2 - 0.02 - GUEST_TABLE.d / 2;
 
@@ -2203,7 +2212,7 @@ guestBox(GUEST_TABLE.w - 0.04, 0.07, 0.03, WOOD_DARK, 0, GUEST_TABLE.h - 0.075, 
 }
 
 /* ---- the open ledger ---- */
-const LEDGER = { w: 0.38, d: 0.27, x: 0.40, z: 0.03 };
+const LEDGER = { w: 0.38, d: 0.27, x: 0.56, z: 0.03 };
 const LEATHER = new THREE.MeshLambertMaterial({ color: 0x5A3A2A });
 const ledgerGroup = new THREE.Group();
 ledgerGroup.position.set(LEDGER.x, GUEST_TABLE.h, LEDGER.z);
@@ -2308,7 +2317,7 @@ function drawLedger(shelved, waiting) {
 
 /* ---- quill in an inkwell ---- */
 const inkwell = new THREE.Group();
-inkwell.position.set(0.62, GUEST_TABLE.h, -0.12);
+inkwell.position.set(0.84, GUEST_TABLE.h, -0.12);
 guestGroup.add(inkwell);
 {
   const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.024, 0.05, 14), GLASS);
@@ -2356,20 +2365,38 @@ const guestSign = makePlaque(
   ['Recommend a book', { text: 'for me' }, 'Click the quill'],
   { w: 0.46, h: 0.30, font: 42 }
 );
-guestSign.position.set(-0.32, GUEST_TABLE.h + 0.16, -GUEST_TABLE.d / 2 + 0.05);
+guestSign.position.set(-0.40, GUEST_TABLE.h + 0.16, -GUEST_TABLE.d / 2 + 0.05);
 guestSign.rotation.x = -0.18;
 guestGroup.add(guestSign);
 markGuestAdd(guestSign);
 markGuestAdd(guestSign.children[0]);
 {
   const prop = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.2, 0.02), WOOD_DARK);
-  prop.position.set(-0.32, GUEST_TABLE.h + 0.10, -GUEST_TABLE.d / 2 + 0.005);
+  prop.position.set(-0.40, GUEST_TABLE.h + 0.10, -GUEST_TABLE.d / 2 + 0.005);
   prop.rotation.x = 0.35;
   guestGroup.add(prop);
 }
 
+/* ---- picture ledge on the wall above the table ----
+   Older approved books stand cover-out on two rails so every cover shows.
+   The wall is at local −z; rails are hidden until they hold a book. */
+const GUEST_LEDGE = { w: GUEST_TABLE.w + 0.06, d: 0.09, t: 0.02, y: [1.22, 1.56], perRail: 8, gap: 0.014, lean: 0.10 };
+const GUEST_WALL_Z = -GUEST_TABLE.d / 2 - 0.02;
+const guestRails = GUEST_LEDGE.y.map((y) => {
+  const rail = new THREE.Group();
+  const board = new THREE.Mesh(new THREE.BoxGeometry(GUEST_LEDGE.w, GUEST_LEDGE.t, GUEST_LEDGE.d), WOOD);
+  board.position.set(0, -GUEST_LEDGE.t / 2, GUEST_LEDGE.d / 2);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(GUEST_LEDGE.w, 0.022, 0.008), WOOD_DARK);
+  lip.position.set(0, 0.011 - GUEST_LEDGE.t / 2, GUEST_LEDGE.d - 0.004);
+  rail.add(board, lip);
+  rail.position.set(0, y, GUEST_WALL_Z);
+  rail.visible = false;
+  guestGroup.add(rail);
+  return rail;
+});
+
 /* ---- guest books + the ghost slot ---- */
-const guestLayout = makeTableLayout(guestGroup, GUEST_TABLE, { layer: 3, xStart: -GUEST_TABLE.w / 2 + 0.08 });
+const guestLayout = makeTableLayout(guestGroup, GUEST_TABLE, { layer: GUEST_ON_TABLE + 1, xStart: -GUEST_TABLE.w / 2 + 0.08 });
 const GUEST_PALETTE = [
   ['#1E2A44', '#F0EAD8'], ['#7A2E2E', '#F5E6DA'], ['#2F4F3E', '#EEF2E6'],
   ['#3B2F4A', '#EFE7F5'], ['#B8722C', '#1B1B1B'], ['#EFE6D3', '#2A2A2A'],
@@ -2459,6 +2486,52 @@ function removeGuestMesh(mesh) {
   });
 }
 
+/* Stand a rail's worth of books cover-out, centred on the rail. Depth is
+   random per mesh, so the row is measured after the meshes exist. */
+function standGuestRow(entries, rail) {
+  const meshes = entries.map((e) => makeBookMesh(normaliseGuest(e)));
+  const width = meshes.reduce((w, m) => w + m.userData.depth, 0) + GUEST_LEDGE.gap * (meshes.length - 1);
+  let x = -width / 2;
+  for (const mesh of meshes) {
+    const b = mesh.userData.book;
+    mesh.rotation.y = -Math.PI / 2;
+    const nest = new THREE.Group();
+    nest.add(mesh);
+    nest.rotation.x = -GUEST_LEDGE.lean;
+    nest.position.set(x + mesh.userData.depth / 2, rail.position.y + b.h / 2 + 0.002, GUEST_WALL_Z + 0.05);
+    x += mesh.userData.depth + GUEST_LEDGE.gap;
+    adoptNestedBook(guestGroup, nest, mesh);
+    if (guestNetworkReady) loadCover(mesh, b);
+    guestMeshes.push(mesh);
+  }
+  rail.visible = meshes.length > 0;
+}
+
+/* Which approved books get a 3D copy. The newest GUEST_ON_TABLE lie on
+   the table, except that each GUEST_ALWAYS_ON_TABLE guest's newest book
+   holds a place there however old it is. Older books go to the ledge.
+   When the ledge is full, the guest with the most books showing gives up
+   their oldest first, so one keen guest cannot crowd out the others.
+   Anything dropped is still listed in the ledger book. */
+const guestKey = (e) => String(e.by || '').trim().toLowerCase();
+function splitGuestDisplay(shelved) {
+  const kept = GUEST_ALWAYS_ON_TABLE
+    .map((name) => shelved.findLast((e) => guestKey(e) === name.toLowerCase()))
+    .filter(Boolean);
+  const spare = Math.max(0, GUEST_ON_TABLE - kept.length);
+  const newest = spare ? shelved.filter((e) => !kept.includes(e)).slice(-spare) : [];
+  const table = shelved.filter((e) => kept.includes(e) || newest.includes(e));
+  const ledge = shelved.filter((e) => !table.includes(e));
+  const room = GUEST_LEDGE.perRail * guestRails.length;
+  while (ledge.length > room) {
+    const showing = new Map();
+    [...table, ...ledge].forEach((e) => showing.set(guestKey(e), (showing.get(guestKey(e)) || 0) + 1));
+    const most = Math.max(...ledge.map((e) => showing.get(guestKey(e))));
+    ledge.splice(ledge.findIndex((e) => showing.get(guestKey(e)) === most), 1);
+  }
+  return { table, ledge };
+}
+
 /* ---- entries: committed + mine + others waiting ---- */
 const guestShelved = GUESTS.map((e) => ({ ...e, status: 'shelved' }));
 let guestMine = [];
@@ -2476,7 +2549,11 @@ const shelvedIds = new Set(guestShelved.map((e) => e.id));
 guestMine.forEach((m) => { if (shelvedIds.has(m.id)) m.status = 'shelved'; });
 saveMine();
 
-guestShelved.slice(-GUEST_MAX_ON_TABLE).forEach((e) => addGuestBook(e));
+{
+  const { table, ledge } = splitGuestDisplay(guestShelved);
+  table.forEach((e) => addGuestBook(e));
+  guestRails.forEach((rail, i) => standGuestRow(ledge.slice(i * GUEST_LEDGE.perRail, (i + 1) * GUEST_LEDGE.perRail), rail));
+}
 guestMine.filter((m) => m.status === 'pending').forEach((m) => addGuestBook(m));
 updateGhost();
 

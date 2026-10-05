@@ -41,6 +41,7 @@ THREE.Scene
 │   ├── inkwell + quill (`guest-add`)
 │   ├── standing sign (`guest-add`)
 │   ├── ghost slot (`guest-add`)
+│   ├── picture ledge (two rails on the wall, hidden while empty)
 │   └── guest-book meshes (from guestbook.js + localStorage)
 └── player (Group, at far-right corner, rotated −π/2)
     ├── credenza (Mesh)
@@ -373,9 +374,16 @@ Form ──POST──► Cloudflare Worker ──PAT──► GitHub Issue (labe
 Guest's own POST ──► localStorage ──► 3D book with pending tag (dopamine)
 ```
 
-**Source of truth.** Committed entries in `guestbook.js` render as 3D
-books (capped at `GUEST_MAX_ON_TABLE = 12`; the rest live in the ledger)
-and as dark ink in the open ledger. The submitter's own pending entries
+**Source of truth.** Committed entries in `guestbook.js` render as dark
+ink in the open ledger and as 3D books. `splitGuestDisplay` decides
+where: the newest `GUEST_ON_TABLE = 3` lie on the table, except that
+each guest named in `GUEST_ALWAYS_ON_TABLE` holds one of those places
+with their newest book however old it is. Older books stand cover-out
+on the picture ledge above the table (`GUEST_LEDGE`, two rails of
+eight, each row centred; `standGuestRow`). Once the ledge is full the
+guest with the most books showing gives up their oldest first. Dropped
+books stay in the ledger. Ledge books use the same nest-group pull-out
+as table books (`adoptNestedBook`). The submitter's own pending entries
 are stored in `localStorage` (`rr-guest-mine`) and placed on the table
 with a paper tag (Lambert `emissive` pulse + 4 mm bob). Other visitors'
 unapproved books are ledger-only unless `GUEST_PENDING_ON_TABLE` is
