@@ -226,6 +226,17 @@ chore(worker): bump wrangler in the deploy workflow
 
 ## Verifying a change
 
+**Automated (on demand):** `/verify-room` (skill in `.claude/skills/verify-room/`)
+or `cd tools/verify && npm install && node verify.mjs check`. It runs headless
+assertions on the working copy (console errors, table covers face-up with the spine
+on the left, hover lift, Q/M/C keys, no NaN black blocks, gate copy, v1 link) and
+prints only failures. `node verify.mjs visual [ref]` writes a before/after page
+(`tools/verify/out/visual/index.html`) of fixed views versus `ref` (default
+`main`) for a human to review. Keep the `window.__room` harness intact, because
+the tool depends on it.
+
+**Manual:**
+
 1. Run `python3 -m http.server` and open `http://localhost:8000/reading-room.html`.
 2. Click to enter, walk to the bookcase (WASD + mouse).
 3. Look at a spine — crosshair should turn gold and the prompt should appear.

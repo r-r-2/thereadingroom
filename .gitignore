@@ -4,3 +4,5 @@ worker/.dev.vars
 worker/node_modules/
 worker/.wrangler/
 .cursor/*.log
+tools/verify/node_modules/
+tools/verify/out/
