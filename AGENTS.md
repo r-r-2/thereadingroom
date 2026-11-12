@@ -60,7 +60,7 @@ A local HTTP server is required — ES module imports (`./src/main.js`,
     and 4-panel entry door with brass lever hardware & hallway light sliver.
   - `src/exterior.js` — 3D parallax outdoor pocket world outside the left-wall
     window (inside-facing GLSL sky dome, 4 mountain ridges + valley mist as
-    arcs curving around the window,
+    arcs curving around the window, painterly sun-lit ridge shader,
     wind-swaying 3D pines, 3D bird flock, falling rain streaks,
     volumetric sunbeams).
   - `src/window-nook.js` — mullioned oak window, physical glass + GLSL animated

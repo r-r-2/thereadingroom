@@ -16,6 +16,12 @@ export function buildExterior(scene) {
   extGroup.position.set(-ROOM.w / 2 - 0.1, 0, NOOK.worldZ);
   scene.add(extGroup);
 
+  // Raw sRGB components (no colour management) for shaders that linearise themselves.
+  const srgb = (hex) => new THREE.Vector3(((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255);
+  // Low sun slightly toward +z (azimuth measured from -X, the window's outward axis)
+  const SUN_DIR = new THREE.Vector3(-22, 2.58, 3.8).normalize();
+  const SUN_AZ = Math.atan2(SUN_DIR.z, -SUN_DIR.x);
+
   /* ---- 1. Atmospheric Sky Dome (GLSL shader: Golden Hour ↔ Rainy Dusk) ---- */
   // An inside-facing sphere centred at eye height just outside the window, so
   // every oblique angle through the glass still lands on sky. Radius + the
@@ -23,8 +29,7 @@ export function buildExterior(scene) {
   const skyUniforms = {
     uTime: { value: 0 },
     uMood: { value: runtime.moodT },
-    // Low sun slightly toward +z, matching the old backdrop's sun position
-    uSunDir: { value: new THREE.Vector3(-22, 2.58, 3.8).normalize() }
+    uSunDir: { value: SUN_DIR }
   };
 
   const skyMat = new THREE.ShaderMaterial({
@@ -118,10 +123,10 @@ export function buildExterior(scene) {
   const ARC_SEGS = 140;
   const ridgeLayers = [
     // Golden colours step toward the warm horizon haze with distance (aerial perspective)
-    { r: 18.5, y: -1.2, w: 34, h: 6.2, golden: 0xc9b9a0, rain: 0x3a4456, seed: 1.2 },
-    { r: 13.0, y: -1.4, w: 28, h: 4.8, golden: 0xa3a58c, rain: 0x2b3546, seed: 3.7 },
-    { r: 8.2,  y: -1.5, w: 22, h: 3.6, golden: 0x788a68, rain: 0x1d2735, seed: 6.4 },
-    { r: 4.6,  y: -1.5, w: 16, h: 2.5, golden: 0x56704c, rain: 0x131b25, seed: 9.1 }
+    { r: 18.5, y: -1.2, w: 34, h: 6.2, golden: 0xc9b9a0, rain: 0x3a4456, seed: 1.2, haze: 0.38 },
+    { r: 13.0, y: -1.4, w: 28, h: 4.8, golden: 0xa3a58c, rain: 0x2b3546, seed: 3.7, haze: 0.24 },
+    { r: 8.2,  y: -1.5, w: 22, h: 3.6, golden: 0x788a68, rain: 0x1d2735, seed: 6.4, haze: 0.11 },
+    { r: 4.6,  y: -1.5, w: 16, h: 2.5, golden: 0x56704c, rain: 0x131b25, seed: 9.1, haze: 0.0 }
   ];
   const RIDGE_BASE = -3; // local bottom of every ridge strip (below the sill line)
 
@@ -142,6 +147,7 @@ export function buildExterior(scene) {
   function buildRidgeGeometry(L) {
     const pos = [];
     const uv = [];
+    const side = [];
     const idx = [];
     for (let i = 0; i <= ARC_SEGS; i++) {
       const u = i / ARC_SEGS;
@@ -150,6 +156,13 @@ export function buildExterior(scene) {
       const z = arcZ(L.r, a);
       pos.push(x, L.y + RIDGE_BASE, z, x, ridgeTop(L, a), z);
       uv.push(u, 0, u, 1);
+      // Profile normal (lateral, up) dotted with the sun's lateral side:
+      // +1 = slope turned toward the low sun, -1 = turned away.
+      const slope = (ridgeTop(L, a + 0.002) - ridgeTop(L, a - 0.002)) / (0.004 * L.r);
+      const nx = -slope / Math.hypot(slope, 1);
+      const toSun = THREE.MathUtils.clamp((SUN_AZ - a) * 3, -1, 1);
+      const f = THREE.MathUtils.clamp((nx / 0.55) * toSun, -1, 1);
+      side.push(f, f);
       if (i < ARC_SEGS) {
         const b = i * 2;
         idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
@@ -158,24 +171,100 @@ export function buildExterior(scene) {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setAttribute('aSide', new THREE.Float32BufferAttribute(side, 1));
     geo.setIndex(idx);
     return geo;
   }
 
+  // Painterly ridge shader: low-sun light on crests and sun-facing slopes,
+  // shadow toward the base, soft brush noise, and aerial perspective (far
+  // layers drift toward the horizon haze). Colours are sRGB, linearised at output.
+  const ridgeShared = {
+    uMood: { value: runtime.moodT },
+    uSpan: { value: ARC_SPAN },
+    uSunAz: { value: SUN_AZ },
+    uHazeGolden: { value: srgb(0xf3c995) },
+    uHazeRain: { value: srgb(0x56627a) }
+  };
+  const ridgeVert = /* glsl */ `
+    attribute float aSide;
+    varying vec2 vUv;
+    varying float vSide;
+    void main() {
+      vUv = uv;
+      vSide = aSide;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+  const ridgeFrag = /* glsl */ `
+    uniform float uMood;
+    uniform float uSpan;
+    uniform float uSunAz;
+    uniform float uHaze;
+    uniform vec2 uScale;
+    uniform vec3 uGolden;
+    uniform vec3 uRain;
+    uniform vec3 uHazeGolden;
+    uniform vec3 uHazeRain;
+    varying vec2 vUv;
+    varying float vSide;
+
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+                 mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+    }
+
+    void main() {
+      vec2 p = vUv * uScale;               // metres along the arc / up the ridge
+      float crest = smoothstep(0.45, 1.0, vUv.y);
+      float a = (vUv.x * 2.0 - 1.0) * uSpan;
+      float nearSun = exp(-abs(a - uSunAz) * 1.6);
+
+      vec3 base = mix(uGolden, uRain, uMood);
+      // Warm key from the low sun vs cool violet shadow; flatter in the rain
+      vec3 litTint = mix(vec3(1.16, 1.05, 0.88), vec3(1.04, 1.04, 1.06), uMood);
+      vec3 shdTint = mix(vec3(0.66, 0.66, 0.76), vec3(0.80, 0.80, 0.84), uMood);
+      float light = clamp(0.15 + 0.6 * crest + 0.35 * vSide * (0.4 + 0.6 * crest), 0.0, 1.0);
+      vec3 col = base * mix(shdTint, litTint, light);
+
+      // Thin warm rim on crests near the sun (Golden Hour only)
+      float rim = smoothstep(0.965, 1.0, vUv.y) * (0.35 + 0.65 * nearSun) * (1.0 - uMood);
+      col += vec3(1.0, 0.80, 0.52) * rim * 0.22;
+
+      // Soft painterly texture: horizontal brush strokes + a broad mottling
+      float n = noise(p * vec2(0.55, 2.4)) * 0.6 + noise(p * vec2(1.7, 0.9) + 7.3) * 0.4;
+      col *= 0.93 + 0.14 * n;
+
+      // Aerial perspective: far layers and valley floors drift to the horizon haze
+      vec3 haze = mix(uHazeGolden, uHazeRain, uMood);
+      float h = uHaze * (0.75 + 0.45 * (1.0 - crest)) + (1.0 - crest) * 0.08 * (1.0 - uMood);
+      col = mix(col, haze, clamp(h, 0.0, 1.0));
+
+      gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(2.2)), 1.0);
+    }
+  `;
+
   const ridgeMeshes = ridgeLayers.map((L) => {
-    const mat = new THREE.MeshBasicMaterial({
-      color: L.golden,
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        ...ridgeShared,
+        uHaze: { value: L.haze },
+        uScale: { value: new THREE.Vector2(2 * ARC_SPAN * L.r, L.h - RIDGE_BASE) },
+        uGolden: { value: srgb(L.golden) },
+        uRain: { value: srgb(L.rain) }
+      },
+      vertexShader: ridgeVert,
+      fragmentShader: ridgeFrag,
       side: THREE.DoubleSide,
       fog: false
     });
     const mesh = new THREE.Mesh(buildRidgeGeometry(L), mat);
     extGroup.add(mesh);
-    return {
-      mesh,
-      mat,
-      goldenCol: new THREE.Color(L.golden),
-      rainCol: new THREE.Color(L.rain)
-    };
+    return mesh;
   });
 
   /* ---- 3. Soft Valley Mist Ribbon (open cylinder arc) ---- */
@@ -320,9 +409,7 @@ export function buildExterior(scene) {
     skyUniforms.uMood.value = m;
 
     // Interpolate 3D ridges, foliage, and valley mist between Golden Hour & Rainy Dusk
-    for (const r of ridgeMeshes) {
-      r.mat.color.lerpColors(r.goldenCol, r.rainCol, m);
-    }
+    ridgeShared.uMood.value = m;
     pineFoliageMat.color.lerpColors(pineFoliageGolden, pineFoliageRain, m);
     mistMat.color.lerpColors(mistGolden, mistRain, m);
     mistMat.opacity = THREE.MathUtils.lerp(0.24, 0.36, m);

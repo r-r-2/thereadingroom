@@ -62,7 +62,8 @@ THREE.Scene (environment = warm PMREM interior texture, Fog)
 ├── 3D Parallax Exterior (`src/exterior.js`, outside -X window)
 │   ├── skyDome (r = 28 m BackSide sphere at eye height; GLSL Golden Hour <-> Rainy Dusk,
 │   │   sun + clouds driven by view elevation/azimuth)
-│   ├── 4 mountain ridge arcs (r = 4.6 / 8.2 / 13 / 18.5 m, ±78° around the window)
+│   ├── 4 mountain ridge arcs (r = 4.6 / 8.2 / 13 / 18.5 m, ±78° around the window;
+│   │   painterly ShaderMaterial: sun-lit crests/slopes, base shadow, brush noise, aerial haze)
 │   │   + valley mist arc (open cylinder segment, r = 9.5 m)
 │   ├── 6 wind-swaying 3D pine trees
 │   ├── 5-bird 3D flock (Golden Hour) + 260 falling 3D rain streaks (Rainy Dusk)
@@ -119,7 +120,8 @@ RenderPass(scene, camera)
 ### Dual Mood System (`golden` ↔ `rain`)
 `runtime.moodT` smoothly damps between `0` (Golden Hour) and `1` (Cozy Rainy Dusk):
 - **Exterior (`exterior.js` & `window-nook.js`):** Sky shader transitions from
-  warm amber sun halo to deep twilight blue; 3D ridges/foliage shift cool;
+  warm amber sun halo to deep twilight blue; ridge shaders (`uMood`) lose
+  their warm crest light and shift cool; foliage shifts cool;
   birds and sunbeams fade out while 3D rain streaks and GLSL
   window-pane trickling droplets fade in.
 - **Interior (`lighting.js`):** Directional sun dims and cools while practical
