@@ -232,6 +232,61 @@ const clock = new THREE.Clock();
    fixed spot in front of the eyes, front cover facing the viewer, spine on the
    left, nudged left/down so the detail drawer (bottom right) doesn't cover it. */
 const INSPECT = { dist: 0.42, right: -0.07, down: 0.035 };
+const INSPECT_PAD = 12;          // px kept clear around the book
+const _fitCache = { key: '', fit: null };
+const _box = new THREE.Box3();
+
+/* One rule for every screen: keep the default pose if the book fits on screen
+   without touching the detail drawer; otherwise move it into the largest free
+   region (left of a side drawer, or above a full-width one) and back off until
+   it fits — never closer than INSPECT.dist. Cached per book + viewport size. */
+function inspectFit(m) {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const key = `${m.id}:${W}x${H}:${camera.fov}`;
+  if (_fitCache.key === key) return _fitCache.fit;
+
+  if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+  m.geometry.boundingBox.getSize(_box.min);
+  const bookH = _box.min.y;              // book height (local y)
+  const bookW = _box.min.z;              // cover width (local z, spine→fore-edge)
+  const ppm1 = H / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)); // px per metre at 1 m
+
+  const el = document.getElementById('detail');
+  const d = { l: el.offsetLeft, t: el.offsetTop, r: el.offsetLeft + el.offsetWidth, b: el.offsetTop + el.offsetHeight };
+  const pad = INSPECT_PAD;
+  const regions = [
+    { x0: pad, y0: pad, x1: d.l - pad, y1: H - pad },   // left of the drawer
+    { x0: pad, y0: pad, x1: W - pad, y1: d.t - pad }    // above the drawer
+  ].filter((r) => r.x1 > r.x0 && r.y1 > r.y0);
+  const area = (r) => (r.x1 - r.x0) * (r.y1 - r.y0);
+  const free = regions.sort((a, b) => area(b) - area(a))[0] || { x0: 0, y0: 0, x1: W, y1: H };
+
+  // 1. Default pose, if it is fully on screen and clear of the drawer.
+  const ppm = ppm1 / INSPECT.dist;
+  const cx = W / 2 + INSPECT.right * ppm;
+  const cy = H / 2 + INSPECT.down * ppm;
+  const hw = (bookW * ppm) / 2;
+  const hh = (bookH * ppm) / 2;
+  let fit = INSPECT;
+  const offScreen = cx - hw < pad || cx + hw > W - pad || cy - hh < pad || cy + hh > H - pad;
+  const underDrawer = cx + hw > d.l - pad && cx - hw < d.r + pad && cy + hh > d.t - pad && cy - hh < d.b + pad;
+  if (offScreen || underDrawer) {
+    // 2. Centre in the free region, far enough to fill at most 80% x 70% of it.
+    const fw = free.x1 - free.x0;
+    const fh = free.y1 - free.y0;
+    const dist = Math.max(INSPECT.dist, (bookW * ppm1) / (0.8 * fw), (bookH * ppm1) / (0.7 * fh));
+    const p = ppm1 / dist;
+    fit = {
+      dist,
+      right: ((free.x0 + free.x1) / 2 - W / 2) / p,
+      down: ((free.y0 + free.y1) / 2 - H / 2) / p
+    };
+  }
+  _fitCache.key = key;
+  _fitCache.fit = fit;
+  return fit;
+}
 const _restW = new THREE.Matrix4();
 const _restP = new THREE.Vector3();
 const _restQ = new THREE.Quaternion();
@@ -255,10 +310,11 @@ function applyInspect(m, k) {
   _camX.setFromMatrixColumn(camera.matrixWorld, 0); // right
   _camY.setFromMatrixColumn(camera.matrixWorld, 1); // up
   _camZ.setFromMatrixColumn(camera.matrixWorld, 2); // back (toward viewer)
+  const fit = inspectFit(m);
   _insP.copy(camera.position)
-    .addScaledVector(_camZ, -INSPECT.dist)
-    .addScaledVector(_camX, INSPECT.right)
-    .addScaledVector(_camY, -INSPECT.down);
+    .addScaledVector(_camZ, -fit.dist)
+    .addScaledVector(_camX, fit.right)
+    .addScaledVector(_camY, -fit.down);
   // Book local axes: +x front cover -> toward viewer, +y top -> up, +z spine -> viewer's left.
   _basis.makeBasis(_camZ, _camY, _camX.clone().negate());
   _insQ.setFromRotationMatrix(_basis);

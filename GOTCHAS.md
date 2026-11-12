@@ -140,3 +140,8 @@ frame first, so:
 - table/ledge meshes restore `userData.restLocal` before blending.
 Held books drop `castShadow` so the cached shadow map never keeps a stale
 shadow of a book floating in front of you. DoF focuses on the mesh itself.
+`inspectFit()` keeps the default pose when the book is on screen and clear of
+the drawer (desktop); otherwise it centres it in the largest free region and
+backs off to fit (phones, where the drawer is a full-width bottom bar). One
+rule, no device branch; test "clear of the drawer", not "inside a region", or a
+tall book beside the desktop drawer gets moved needlessly.
