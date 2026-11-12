@@ -161,3 +161,13 @@ Exterior shaders author colours in sRGB and end with
 without the conversion the sky reads pale grey. Clamp before the `pow()` (see
 #10). The sun disc is *added* on top of its glow, never mixed, so it stays the
 brightest thing in the sky.
+
+## 13. Exterior forest is forced perspective
+
+The pocket world outside the window is tiny: ridges sit only 4.6–18.5 m away
+and are 2.5–6.2 m tall. Pines are scaled to the ridges (~0.45–1.25 m), not
+to real trees, or they read as giants. They are planted with the same
+`ridgeTop()` profile that builds the ridge strips (rooted just below the
+crest, just in front of the strip). Change a ridge profile and the trees follow;
+place trees by hand and they float. Instance colours are rewritten only when
+`runtime.moodT` changes. Don't move that into the per-frame path.

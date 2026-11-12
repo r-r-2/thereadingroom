@@ -61,7 +61,7 @@ A local HTTP server is required — ES module imports (`./src/main.js`,
   - `src/exterior.js` — 3D parallax outdoor pocket world outside the left-wall
     window (inside-facing GLSL sky dome, 4 mountain ridges + valley mist as
     arcs curving around the window, painterly sun-lit ridge shader,
-    wind-swaying 3D pines, 3D bird flock, falling rain streaks,
+    instanced pine forest on the ridge crests, 3D bird flock, falling rain streaks,
     volumetric sunbeams).
   - `src/window-nook.js` — mullioned oak window, physical glass + GLSL animated
     rain-droplet overlay, breathing sheer linen curtains, interactive brass

@@ -20,7 +20,7 @@ reading-room.html (HTML shell, CSS, import map, HUD, detail drawer, guestbook mo
       ├── src/materials.js     (procedural PBR normal/roughness/albedo generators + shared materials)
       ├── src/lighting.js      (warm PMREM IBL, sun shadow rig, RectAreaLight, Golden Hour <-> Rainy Dusk)
       ├── src/room.js          (PBR oak plank floor, woven rug, walls w/ window cutout, trim, 4-panel door)
-      ├── src/exterior.js      (3D parallax outdoor world: GLSL sky dome, ridge arcs, wind pines, birds, rain, sunbeams)
+      ├── src/exterior.js      (3D parallax outdoor world: GLSL sky dome, ridge arcs, instanced forest, birds, rain, sunbeams)
       ├── src/window-nook.js   (mullioned window, physical glass + GLSL rain droplets, curtains, sill mood switch, bench, curio towers)
       ├── src/props.js         (succulents, potted plants, wax candles w/ flames, vases, stacks, prints, sculptures)
       ├── src/books.js         (bookcase carpentry, RoundedBoxGeometry books, spine/cover textures, Open Library, lever, cover arc)
@@ -65,7 +65,8 @@ THREE.Scene (environment = warm PMREM interior texture, Fog)
 │   ├── 4 mountain ridge arcs (r = 4.6 / 8.2 / 13 / 18.5 m, ±78° around the window;
 │   │   painterly ShaderMaterial: sun-lit crests/slopes, base shadow, brush noise, aerial haze)
 │   │   + valley mist arc (open cylinder segment, r = 9.5 m)
-│   ├── 6 wind-swaying 3D pine trees
+│   ├── instanced pine forest (1 InstancedMesh, ~600 trees on the 4 crests via ridgeTop();
+│   │   per-instance aerial-perspective tint, rewritten only when moodT changes)
 │   ├── 5-bird 3D flock (Golden Hour) + 260 falling 3D rain streaks (Rainy Dusk)
 │   └── indoor volumetric sunbeams (AdditiveBlending)
 ├── Built-in Book Nook (`src/window-nook.js`, left wall -X, rotated +π/2)

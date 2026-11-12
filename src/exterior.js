@@ -3,11 +3,12 @@
    or closer to the bench yields true 3D depth parallax at ~0 CPU cost:
    - Inside-facing GLSL sky dome (r = 28 m) blending Golden Hour ↔ Rainy Dusk
    - 4 mountain ridges + valley mist as arcs (±78°) around the window, 4.6–18.5 m out
-   - Wind-swaying 3D pine trees
+   - Instanced pine forest (1 draw call) sitting on the ridge silhouettes
    - Drifting 3D bird flock (Golden Hour) & GPU rain streaks + glass droplets (Rainy Dusk)
    - Volumetric sunbeam shafts inside the room */
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ROOM, NOOK, EYE } from './constants.js';
 import { runtime } from './state.js';
 
@@ -294,33 +295,114 @@ export function buildExterior(scene) {
   mistArc.position.set(0, 0.75, 0);
   extGroup.add(mistArc);
 
-  /* ---- 4. Wind-Swaying 3D Pine Trees in Midground ---- */
-  const pineTrunkMat = new THREE.MeshBasicMaterial({ color: 0x433226, fog: false });
-  const pineFoliageGolden = new THREE.Color(0x4b6a48);
-  const pineFoliageRain = new THREE.Color(0x162426);
-  const pineFoliageMat = new THREE.MeshBasicMaterial({ color: pineFoliageGolden.clone(), fog: false });
-
-  const trees = [];
-  const treeSpots = [
-    [-4.8, -2.0, 0.92], [-5.6, -1.15, 0.78], [-4.5, 1.35, 0.95],
-    [-6.2, 2.05, 0.85], [-5.2, 0.25, 0.68], [-6.8, -0.45, 1.05]
-  ];
-  for (const [tx, tz, sc] of treeSpots) {
-    const g = new THREE.Group();
-    g.position.set(tx, -0.65, tz);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.035 * sc, 0.055 * sc, 1.1 * sc, 10), pineTrunkMat);
-    trunk.position.y = 0.55 * sc;
-    g.add(trunk);
-    for (let tier = 0; tier < 4; tier++) {
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry((0.42 - tier * 0.075) * sc, (0.72 - tier * 0.09) * sc, 16),
-        pineFoliageMat
-      );
-      cone.position.y = (0.95 + tier * 0.34) * sc;
-      g.add(cone);
+  /* ---- 4. Instanced Pine Forest Along the Ridge Lines ---- */
+  // One merged low-poly pine (unit height, base at y = 0) drawn as a single
+  // InstancedMesh. Trees are scaled to the forced-perspective ridges, not to
+  // real metres, and planted on each crest via the same ridgeTop() profile.
+  function buildPineGeometry() {
+    const parts = [];
+    const trunk = new THREE.CylinderGeometry(0.03, 0.045, 0.28, 5);
+    trunk.translate(0, 0.14, 0);
+    parts.push([trunk, 0.32]);
+    for (let k = 0; k < 3; k++) {
+      const h = 0.5 - k * 0.09;
+      const cone = new THREE.ConeGeometry(0.25 - k * 0.06, h, 7);
+      cone.translate(0, 0.24 + k * 0.21 + h / 2, 0);
+      parts.push([cone, 0.9 + k * 0.08]);
     }
-    extGroup.add(g);
-    trees.push({ group: g, phase: tx * 1.7 + tz * 2.3 });
+    for (const [g, tone] of parts) {
+      // Baked tone: dark trunk, upper tiers a touch lighter, sun side (+z, up) brighter
+      const n = g.attributes.normal;
+      const col = new Float32Array(n.count * 3);
+      for (let i = 0; i < n.count; i++) {
+        const lit = tone * (0.82 + 0.3 * Math.max(0, n.getZ(i) * 0.7 + n.getY(i) * 0.3));
+        col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = lit;
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    }
+    return mergeGeometries(parts.map(([g]) => g));
+  }
+
+  // Seeded RNG so the forest is identical on every load
+  let seed = 0x9e3779b9;
+  const rand = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  // Per layer (far -> near): candidate count, clustering threshold, size range
+  // and how far the band reaches down from the crest (fraction of tree height).
+  const forestPlan = [
+    { count: 120, keep: 0.62, size: [0.85, 1.25], band: 0.15, dark: 0.0 },
+    { count: 170, keep: 0.5,  size: [0.7, 1.05],  band: 0.25, dark: 0.1 },
+    { count: 230, keep: 0.4,  size: [0.55, 0.9],  band: 0.4,  dark: 0.2 },
+    { count: 340, keep: 0.12, size: [0.45, 0.8],  band: 0.55, dark: 0.45 } // dense near treeline
+  ];
+  const pineGolden = new THREE.Color(0x3d5a3a);
+  const pineDarkGolden = new THREE.Color(0x24382a);
+  const pineRain = new THREE.Color(0x141e26);
+  const pineDarkRain = new THREE.Color(0x0a1016);
+  const hazeGolden = new THREE.Color(0xf3c995);
+  const hazeRain = new THREE.Color(0x56627a);
+
+  const treeData = []; // { x, y, z, s, w, golden: Color, rain: Color }
+  ridgeLayers.forEach((L, li) => {
+    const plan = forestPlan[li];
+    const ridgeGolden = new THREE.Color(L.golden);
+    const ridgeRain = new THREE.Color(L.rain);
+    for (let i = 0; i < plan.count; i++) {
+      const a = (rand() * 2 - 1) * (ARC_SPAN - 0.04);
+      // Clumps: low-frequency waves along the arc decide where woods grow
+      const s = a * L.r;
+      const clump = 0.5 + 0.3 * Math.sin(s * 0.45 + L.seed * 3.1) + 0.2 * Math.sin(s * 1.3 + L.seed);
+      if (clump < plan.keep + rand() * 0.15) continue;
+      const size = THREE.MathUtils.lerp(plan.size[0], plan.size[1], rand());
+      // Root just below the crest so trunks hide behind the silhouette line
+      const drop = size * (0.12 + rand() * plan.band);
+      const r = L.r - 0.04 - rand() * 0.05;
+      const shade = 0.9 + rand() * 0.2;
+      const dark = Math.min(1, plan.dark + rand() * 0.25);
+      // Aerial perspective: the pine colour leans toward its ridge, then the haze
+      const golden = pineGolden.clone().lerp(pineDarkGolden, dark)
+        .lerp(ridgeGolden, li === 0 ? 0.3 : 0.12).lerp(hazeGolden, L.haze * 1.1)
+        .multiplyScalar(shade);
+      const rain = pineRain.clone().lerp(pineDarkRain, dark)
+        .lerp(ridgeRain, 0.25).lerp(hazeRain, L.haze * 0.9)
+        .multiplyScalar(shade);
+      treeData.push({
+        x: arcX(r, a), y: ridgeTop(L, a) - drop, z: arcZ(r, a),
+        s: size, w: 0.8 + rand() * 0.45, golden, rain
+      });
+    }
+  });
+
+  const forestMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false });
+  const forest = new THREE.InstancedMesh(buildPineGeometry(), forestMat, treeData.length);
+  const _m = new THREE.Matrix4();
+  const _q = new THREE.Quaternion();
+  const _p = new THREE.Vector3();
+  const _s = new THREE.Vector3();
+  treeData.forEach((d, i) => {
+    _p.set(d.x, d.y, d.z);
+    _s.set(d.s * d.w, d.s, d.s * d.w);
+    forest.setMatrixAt(i, _m.compose(_p, _q, _s));
+    forest.setColorAt(i, d.golden);
+  });
+  forest.instanceMatrix.needsUpdate = true;
+  forest.computeBoundingSphere();
+  extGroup.add(forest);
+
+  let forestMood = -1;
+  const _c = new THREE.Color();
+  function updateForestTint(m) {
+    if (Math.abs(m - forestMood) < 1e-4) return; // only when moodT changes
+    forestMood = m;
+    for (let i = 0; i < treeData.length; i++) {
+      forest.setColorAt(i, _c.lerpColors(treeData[i].golden, treeData[i].rain, m));
+    }
+    forest.instanceColor.needsUpdate = true;
   }
 
   /* ---- 6. Distant 3D Bird Flock (Golden Hour) ---- */
@@ -410,16 +492,9 @@ export function buildExterior(scene) {
 
     // Interpolate 3D ridges, foliage, and valley mist between Golden Hour & Rainy Dusk
     ridgeShared.uMood.value = m;
-    pineFoliageMat.color.lerpColors(pineFoliageGolden, pineFoliageRain, m);
+    updateForestTint(m);
     mistMat.color.lerpColors(mistGolden, mistRain, m);
     mistMat.opacity = THREE.MathUtils.lerp(0.24, 0.36, m);
-
-    // Gentle wind sway on 3D pines
-    const windStrength = THREE.MathUtils.lerp(1.0, 2.1, m);
-    for (const tr of trees) {
-      tr.group.rotation.z = Math.sin(t * 0.7 + tr.phase) * 0.018 * windStrength;
-      tr.group.rotation.x = Math.cos(t * 0.55 + tr.phase) * 0.014 * windStrength;
-    }
 
     // Distant bird flock (visible during Golden Hour)
     const birdCycle = (t * 0.035) % 1.4;
