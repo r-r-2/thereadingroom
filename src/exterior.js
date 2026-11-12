@@ -1,14 +1,14 @@
 /* 3D Parallax Exterior Pocket World (replaces v1's per-frame 2D CPU canvas):
    Sits outside the left-wall book-nook window (-X) so stepping left/right
    or closer to the bench yields true 3D depth parallax at ~0 CPU cost:
-   - Custom GLSL atmospheric sky dome smoothly blending Golden Hour ↔ Rainy Dusk
-   - Layered 3D mountain ridges & valley mist planes at real depths (-4m to -26m)
+   - Inside-facing GLSL sky dome (r = 28 m) blending Golden Hour ↔ Rainy Dusk
+   - 4 mountain ridges + valley mist as arcs (±78°) around the window, 4.6–18.5 m out
    - Wind-swaying 3D pine trees
    - Drifting 3D bird flock (Golden Hour) & GPU rain streaks + glass droplets (Rainy Dusk)
    - Volumetric sunbeam shafts inside the room */
 
 import * as THREE from 'three';
-import { ROOM, NOOK } from './constants.js';
+import { ROOM, NOOK, EYE } from './constants.js';
 import { runtime } from './state.js';
 
 export function buildExterior(scene) {
@@ -16,27 +16,34 @@ export function buildExterior(scene) {
   extGroup.position.set(-ROOM.w / 2 - 0.1, 0, NOOK.worldZ);
   scene.add(extGroup);
 
-  /* ---- 1. Atmospheric Sky Backdrop (GLSL shader: Golden Hour ↔ Rainy Dusk) ---- */
+  /* ---- 1. Atmospheric Sky Dome (GLSL shader: Golden Hour ↔ Rainy Dusk) ---- */
+  // An inside-facing sphere centred at eye height just outside the window, so
+  // every oblique angle through the glass still lands on sky. Radius + the
+  // farthest camera spot in the room (~9.5 m) must stay under camera.far (42 m).
   const skyUniforms = {
     uTime: { value: 0 },
-    uMood: { value: runtime.moodT }
+    uMood: { value: runtime.moodT },
+    // Low sun slightly toward +z, matching the old backdrop's sun position
+    uSunDir: { value: new THREE.Vector3(-22, 2.58, 3.8).normalize() }
   };
 
   const skyMat = new THREE.ShaderMaterial({
     uniforms: skyUniforms,
+    side: THREE.BackSide,
     depthWrite: false,
     fog: false,
     vertexShader: /* glsl */ `
-      varying vec2 vUv;
+      varying vec3 vDir;
       void main() {
-        vUv = uv;
+        vDir = position;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,
     fragmentShader: /* glsl */ `
       uniform float uTime;
       uniform float uMood;
-      varying vec2 vUv;
+      uniform vec3 uSunDir;
+      varying vec3 vDir;
 
       float hash(vec2 p) {
         return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -53,33 +60,38 @@ export function buildExterior(scene) {
       }
 
       void main() {
+        vec3 dir = normalize(vDir);
+        // Elevation -> the old plane's vertical uv (0.45 sits just above the horizon)
+        float h = 0.38 + dir.y * 1.1;
+        // Azimuth around the window's outward (-X) axis, ~0 straight out
+        float az = atan(dir.z, -dir.x);
+
         // Golden hour gradient
         vec3 gTop = vec3(0.47, 0.62, 0.78);
         vec3 gMid = vec3(0.96, 0.76, 0.52);
         vec3 gBot = vec3(1.00, 0.83, 0.56);
-        vec3 golden = vUv.y > 0.45
-          ? mix(gMid, gTop, smoothstep(0.45, 1.0, vUv.y))
-          : mix(gBot, gMid, smoothstep(0.0, 0.45, vUv.y));
+        vec3 golden = h > 0.45
+          ? mix(gMid, gTop, smoothstep(0.45, 1.0, h))
+          : mix(gBot, gMid, smoothstep(0.0, 0.45, h));
 
-        // Warm low sun disc + halo
-        vec2 sunPos = vec2(0.40, 0.50);
-        float dSun = distance(vUv * vec2(1.4, 1.0), sunPos * vec2(1.4, 1.0));
+        // Warm low sun disc + halo, by angular distance (radians)
+        float dSun = acos(clamp(dot(dir, uSunDir), -1.0, 1.0));
         golden += vec3(1.0, 0.80, 0.50) * exp(-dSun * 3.6) * 0.55;   // wide warm glow
         golden += vec3(1.0, 0.90, 0.70) * exp(-dSun * 14.0) * 0.6;   // tight halo
-        golden += vec3(1.0, 0.95, 0.82) * smoothstep(0.04, 0.026, dSun) * 1.6; // disc, brighter than its glow
+        golden += vec3(1.0, 0.95, 0.82) * smoothstep(0.04, 0.026, dSun) * 1.6; // disc, added on top: brighter than its glow
 
         // Cozy rainy dusk gradient
         vec3 rTop = vec3(0.16, 0.20, 0.29);
         vec3 rMid = vec3(0.27, 0.32, 0.42);
         vec3 rBot = vec3(0.40, 0.44, 0.52);
-        vec3 rainy = vUv.y > 0.45
-          ? mix(rMid, rTop, smoothstep(0.45, 1.0, vUv.y))
-          : mix(rBot, rMid, smoothstep(0.0, 0.45, vUv.y));
+        vec3 rainy = h > 0.45
+          ? mix(rMid, rTop, smoothstep(0.45, 1.0, h))
+          : mix(rBot, rMid, smoothstep(0.0, 0.45, h));
 
         // Soft drifting clouds
-        vec2 cUv = vec2(vUv.x * 3.5 + uTime * 0.008, vUv.y * 5.0);
+        vec2 cUv = vec2(az * 2.0 + uTime * 0.008, h * 5.0);
         float c = noise(cUv) * 0.6 + noise(cUv * 2.1 + 3.1) * 0.4;
-        float cloudMask = smoothstep(0.48, 0.78, c) * smoothstep(0.22, 0.55, vUv.y);
+        float cloudMask = smoothstep(0.48, 0.78, c) * smoothstep(0.22, 0.55, h);
         vec3 cloudCol = mix(vec3(1.0, 0.95, 0.88), vec3(0.24, 0.29, 0.39), uMood);
 
         vec3 col = mix(golden, rainy, uMood);
@@ -87,50 +99,76 @@ export function buildExterior(scene) {
 
         // Colours above are authored in sRGB; the HDR pipeline expects linear.
         // Without this the sky reads pale grey instead of golden.
-        gl_FragColor = vec4(pow(col, vec3(2.2)), 1.0);
+        gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(2.2)), 1.0);
       }
     `
   });
 
-  const skyPlane = new THREE.Mesh(new THREE.PlaneGeometry(38, 22), skyMat);
-  skyPlane.position.set(-22, 4.2, 0);
-  skyPlane.rotation.y = Math.PI / 2;
-  extGroup.add(skyPlane);
+  const skyDome = new THREE.Mesh(new THREE.SphereGeometry(28, 48, 24), skyMat);
+  skyDome.position.set(0, EYE, 0);
+  skyDome.renderOrder = -1;
+  extGroup.add(skyDome);
 
-  /* ---- 2. Layered 3D Mountain Ridges (true spatial depth parallax) ---- */
+  /* ---- 2. Layered 3D Mountain Ridges (arcs curving around the window) ---- */
+  // Each layer is a strip of bottom/top vertices along an arc of radius `r`
+  // (its old distance), so oblique views never reach a ridge end. `w` is the
+  // old strip width: the profile is sampled by arc length s with t = s / w,
+  // which keeps the centre identical to the old flat ridges.
+  const ARC_SPAN = THREE.MathUtils.degToRad(78);
+  const ARC_SEGS = 140;
   const ridgeLayers = [
     // Golden colours step toward the warm horizon haze with distance (aerial perspective)
-    { x: -18.5, y: -1.2, w: 34, h: 6.2, golden: 0xc9b9a0, rain: 0x3a4456, seed: 1.2 },
-    { x: -13.0, y: -1.4, w: 28, h: 4.8, golden: 0xa3a58c, rain: 0x2b3546, seed: 3.7 },
-    { x: -8.2,  y: -1.5, w: 22, h: 3.6, golden: 0x788a68, rain: 0x1d2735, seed: 6.4 },
-    { x: -4.6,  y: -1.5, w: 16, h: 2.5, golden: 0x56704c, rain: 0x131b25, seed: 9.1 }
+    { r: 18.5, y: -1.2, w: 34, h: 6.2, golden: 0xc9b9a0, rain: 0x3a4456, seed: 1.2 },
+    { r: 13.0, y: -1.4, w: 28, h: 4.8, golden: 0xa3a58c, rain: 0x2b3546, seed: 3.7 },
+    { r: 8.2,  y: -1.5, w: 22, h: 3.6, golden: 0x788a68, rain: 0x1d2735, seed: 6.4 },
+    { r: 4.6,  y: -1.5, w: 16, h: 2.5, golden: 0x56704c, rain: 0x131b25, seed: 9.1 }
   ];
+  const RIDGE_BASE = -3; // local bottom of every ridge strip (below the sill line)
+
+  // Ridge-top height (extGroup local y) at arc angle `a` (0 = straight out the window).
+  function ridgeTop(L, a) {
+    const t = 0.5 + (a * L.r) / L.w;
+    return L.y + L.h * (
+      0.52
+      + 0.24 * Math.sin(t * 6.2 + L.seed)
+      + 0.14 * Math.sin(t * 13.5 + L.seed * 1.9)
+      + 0.06 * Math.cos(t * 23.0 + L.seed)
+    );
+  }
+  // Point on a layer's arc (extGroup local x/z).
+  const arcX = (r, a) => -r * Math.cos(a);
+  const arcZ = (r, a) => r * Math.sin(a);
+
+  function buildRidgeGeometry(L) {
+    const pos = [];
+    const uv = [];
+    const idx = [];
+    for (let i = 0; i <= ARC_SEGS; i++) {
+      const u = i / ARC_SEGS;
+      const a = -ARC_SPAN + u * 2 * ARC_SPAN;
+      const x = arcX(L.r, a);
+      const z = arcZ(L.r, a);
+      pos.push(x, L.y + RIDGE_BASE, z, x, ridgeTop(L, a), z);
+      uv.push(u, 0, u, 1);
+      if (i < ARC_SEGS) {
+        const b = i * 2;
+        idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    return geo;
+  }
 
   const ridgeMeshes = ridgeLayers.map((L) => {
-    const shape = new THREE.Shape();
-    shape.moveTo(-L.w / 2, -3);
-    const segs = 36;
-    for (let i = 0; i <= segs; i++) {
-      const t = i / segs;
-      const px = -L.w / 2 + t * L.w;
-      const py = L.h * (
-        0.52
-        + 0.24 * Math.sin(t * 6.2 + L.seed)
-        + 0.14 * Math.sin(t * 13.5 + L.seed * 1.9)
-        + 0.06 * Math.cos(t * 23.0 + L.seed)
-      );
-      shape.lineTo(px, py);
-    }
-    shape.lineTo(L.w / 2, -3);
-    shape.closePath();
-
     const mat = new THREE.MeshBasicMaterial({
       color: L.golden,
+      side: THREE.DoubleSide,
       fog: false
     });
-    const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat);
-    mesh.position.set(L.x, L.y, 0);
-    mesh.rotation.y = Math.PI / 2;
+    const mesh = new THREE.Mesh(buildRidgeGeometry(L), mat);
     extGroup.add(mesh);
     return {
       mesh,
@@ -140,7 +178,7 @@ export function buildExterior(scene) {
     };
   });
 
-  /* ---- 3. Soft Valley Mist Ribbon ---- */
+  /* ---- 3. Soft Valley Mist Ribbon (open cylinder arc) ---- */
   // Feathered top/bottom so the mist doesn't draw a hard band across the hills.
   const mistCanvas = document.createElement('canvas');
   mistCanvas.width = 4; mistCanvas.height = 64;
@@ -155,13 +193,17 @@ export function buildExterior(scene) {
     alphaMap: new THREE.CanvasTexture(mistCanvas),
     transparent: true,
     opacity: 0.26,
+    side: THREE.BackSide, // seen from inside the cylinder
     depthWrite: false,
     fog: false
   });
-  const mistPlane = new THREE.Mesh(new THREE.PlaneGeometry(26, 2.2), mistMat);
-  mistPlane.position.set(-9.5, 0.75, 0);
-  mistPlane.rotation.y = Math.PI / 2;
-  extGroup.add(mistPlane);
+  // CylinderGeometry puts theta = 3π/2 on -X (straight out of the window).
+  const mistArc = new THREE.Mesh(
+    new THREE.CylinderGeometry(9.5, 9.5, 2.2, 64, 1, true, 1.5 * Math.PI - ARC_SPAN, 2 * ARC_SPAN),
+    mistMat
+  );
+  mistArc.position.set(0, 0.75, 0);
+  extGroup.add(mistArc);
 
   /* ---- 4. Wind-Swaying 3D Pine Trees in Midground ---- */
   const pineTrunkMat = new THREE.MeshBasicMaterial({ color: 0x433226, fog: false });

@@ -135,10 +135,6 @@ export function createLighting(scene, renderer) {
 
   const fogGolden = new THREE.Color(0xf1e6d6);
   const fogRain = new THREE.Color(0x2b3240);
-  // Backdrop seen past the edges of the outdoor scene at oblique window angles:
-  // match the sky's mid-band per mood instead of the beige fog colour.
-  const bgGolden = new THREE.Color(0xf5c285);
-  const bgRain = new THREE.Color(0x45526b);
   const ambGolden = new THREE.Color(SETTINGS.ambientColor);
   const ambRain = new THREE.Color(0x8fa4c4);
   const hemiSkyGolden = new THREE.Color(0xfff5e8);
@@ -177,7 +173,7 @@ export function createLighting(scene, renderer) {
 
     if (scene.fog) {
       scene.fog.color.lerpColors(fogGolden, fogRain, m * 0.72);
-      scene.background.lerpColors(bgGolden, bgRain, m);
+      scene.background.copy(scene.fog.color);
     }
 
     // Practical warm indoor lights come alive in Rainy Dusk

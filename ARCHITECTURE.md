@@ -20,7 +20,7 @@ reading-room.html (HTML shell, CSS, import map, HUD, detail drawer, guestbook mo
       ├── src/materials.js     (procedural PBR normal/roughness/albedo generators + shared materials)
       ├── src/lighting.js      (warm PMREM IBL, sun shadow rig, RectAreaLight, Golden Hour <-> Rainy Dusk)
       ├── src/room.js          (PBR oak plank floor, woven rug, walls w/ window cutout, trim, 4-panel door)
-      ├── src/exterior.js      (3D parallax outdoor world: GLSL sky, 3D ridges, wind pines, birds, rain, sunbeams)
+      ├── src/exterior.js      (3D parallax outdoor world: GLSL sky dome, ridge arcs, wind pines, birds, rain, sunbeams)
       ├── src/window-nook.js   (mullioned window, physical glass + GLSL rain droplets, curtains, sill mood switch, bench, curio towers)
       ├── src/props.js         (succulents, potted plants, wax candles w/ flames, vases, stacks, prints, sculptures)
       ├── src/books.js         (bookcase carpentry, RoundedBoxGeometry books, spine/cover textures, Open Library, lever, cover arc)
@@ -60,8 +60,10 @@ THREE.Scene (environment = warm PMREM interior texture, Fog)
 │   ├── perimeter baseboards + crown molding
 │   └── doorGroup (front wall +Z at x = -1.9, 4 recessed panels, brass lever, threshold glow)
 ├── 3D Parallax Exterior (`src/exterior.js`, outside -X window)
-│   ├── skyPlane (GLSL Golden Hour <-> Rainy Dusk + sun halo + drifting noise clouds)
-│   ├── 4 depth-layered 3D mountain ridges (-4.6m to -18.5m) + valley mist plane
+│   ├── skyDome (r = 28 m BackSide sphere at eye height; GLSL Golden Hour <-> Rainy Dusk,
+│   │   sun + clouds driven by view elevation/azimuth)
+│   ├── 4 mountain ridge arcs (r = 4.6 / 8.2 / 13 / 18.5 m, ±78° around the window)
+│   │   + valley mist arc (open cylinder segment, r = 9.5 m)
 │   ├── 6 wind-swaying 3D pine trees
 │   ├── 5-bird 3D flock (Golden Hour) + 260 falling 3D rain streaks (Rainy Dusk)
 │   └── indoor volumetric sunbeams (AdditiveBlending)
