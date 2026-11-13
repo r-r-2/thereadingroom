@@ -145,3 +145,29 @@ the drawer (desktop); otherwise it centres it in the largest free region and
 backs off to fit (phones, where the drawer is a full-width bottom bar). One
 rule, no device branch; test "clear of the drawer", not "inside a region", or a
 tall book beside the desktop drawer gets moved needlessly.
+
+## 12. Exterior sky dome: radius vs camera far plane, and colour space
+
+The view through the book-nook window is a pocket world inside a BackSide sky
+dome (`src/exterior.js`), centred at eye height just outside the window. Its
+radius (28 m) plus the farthest camera spot in the room (~9.5 m from the
+window) must stay under `camera.far` (42 m in `src/renderer.js`), or the far
+plane clips the sky and the window shows the flat `scene.background` again.
+Ridges and mist are arcs (±78°) around the same centre so oblique views never
+reach a ridge end; `scene.background` just follows the fog colour now.
+
+Exterior shaders author colours in sRGB and end with
+`pow(max(col, 0.0), vec3(2.2))`: the HDR pipeline expects linear values and
+without the conversion the sky reads pale grey. Clamp before the `pow()` (see
+#10). The sun disc is *added* on top of its glow, never mixed, so it stays the
+brightest thing in the sky.
+
+## 13. Exterior forest is forced perspective
+
+The pocket world outside the window is tiny: ridges sit only 4.6–18.5 m away
+and are 2.5–6.2 m tall. Pines are scaled to the ridges (~0.45–1.25 m), not
+to real trees, or they read as giants. They are planted with the same
+`ridgeTop()` profile that builds the ridge strips (rooted just below the
+crest, just in front of the strip). Change a ridge profile and the trees follow;
+place trees by hand and they float. Instance colours are rewritten only when
+`runtime.moodT` changes. Don't move that into the per-frame path.

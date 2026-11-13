@@ -20,7 +20,7 @@ reading-room.html (HTML shell, CSS, import map, HUD, detail drawer, guestbook mo
       ├── src/materials.js     (procedural PBR normal/roughness/albedo generators + shared materials)
       ├── src/lighting.js      (warm PMREM IBL, sun shadow rig, RectAreaLight, Golden Hour <-> Rainy Dusk)
       ├── src/room.js          (PBR oak plank floor, woven rug, walls w/ window cutout, trim, 4-panel door)
-      ├── src/exterior.js      (3D parallax outdoor world: GLSL sky, 3D ridges, wind pines, birds, rain, sunbeams)
+      ├── src/exterior.js      (3D parallax outdoor world: GLSL sky dome, ridge arcs, instanced forest, birds, rain, sunbeams)
       ├── src/window-nook.js   (mullioned window, physical glass + GLSL rain droplets, curtains, sill mood switch, bench, curio towers)
       ├── src/props.js         (succulents, potted plants, wax candles w/ flames, vases, stacks, prints, sculptures)
       ├── src/books.js         (bookcase carpentry, RoundedBoxGeometry books, spine/cover textures, Open Library, lever, cover arc)
@@ -60,9 +60,12 @@ THREE.Scene (environment = warm PMREM interior texture, Fog)
 │   ├── perimeter baseboards + crown molding
 │   └── doorGroup (front wall +Z at x = -1.9, 4 recessed panels, brass lever, threshold glow)
 ├── 3D Parallax Exterior (`src/exterior.js`, outside -X window)
-│   ├── skyPlane (GLSL Golden Hour <-> Rainy Dusk + sun halo + drifting noise clouds)
-│   ├── 4 depth-layered 3D mountain ridges (-4.6m to -18.5m) + valley mist plane
-│   ├── 6 wind-swaying 3D pine trees
+│   ├── skyDome (r = 28 m BackSide sphere at eye height; GLSL Golden Hour <-> Rainy Dusk,
+│   │   sun + clouds driven by view elevation/azimuth)
+│   ├── 4 mountain ridge arcs (r = 4.6 / 8.2 / 13 / 18.5 m, ±78° around the window;
+│   │   painterly ShaderMaterial: sun-lit crests/slopes, base shadow, brush noise, aerial haze)
+│   ├── instanced pine forest (1 InstancedMesh, ~600 trees on the 4 crests via ridgeTop();
+│   │   per-instance aerial-perspective tint, rewritten only when moodT changes)
 │   ├── 5-bird 3D flock (Golden Hour) + 260 falling 3D rain streaks (Rainy Dusk)
 │   └── indoor volumetric sunbeams (AdditiveBlending)
 ├── Built-in Book Nook (`src/window-nook.js`, left wall -X, rotated +π/2)
@@ -117,7 +120,8 @@ RenderPass(scene, camera)
 ### Dual Mood System (`golden` ↔ `rain`)
 `runtime.moodT` smoothly damps between `0` (Golden Hour) and `1` (Cozy Rainy Dusk):
 - **Exterior (`exterior.js` & `window-nook.js`):** Sky shader transitions from
-  warm amber sun halo to deep twilight blue; 3D ridges/foliage shift cool;
+  warm amber sun halo to deep twilight blue; ridge shaders (`uMood`) lose
+  their warm crest light and shift cool; foliage shifts cool;
   birds and sunbeams fade out while 3D rain streaks and GLSL
   window-pane trickling droplets fade in.
 - **Interior (`lighting.js`):** Directional sun dims and cools while practical
