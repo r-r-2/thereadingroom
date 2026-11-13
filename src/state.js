@@ -17,10 +17,15 @@ function loadPrefs() {
 }
 const saved = loadPrefs();
 
+/* Mood follows the visitor's local clock on load: Golden Hour 6:00–18:00,
+   Rainy Dusk otherwise. M / the sill switch change it for this visit only
+   (mood is deliberately not persisted), and it is not re-checked mid-visit. */
+const hour = new Date().getHours();
+const CLOCK_MOOD = hour >= 6 && hour < 18 ? 'golden' : 'rain';
+
 export function savePrefs() {
   try {
     localStorage.setItem(PREF_KEY, JSON.stringify({
-      mood: runtime.mood,
       headBob: runtime.headBob,
       quality: runtime.quality,
       qualityChosen: runtime.qualityChosen
@@ -67,8 +72,8 @@ export const runtime = {
   guestbookOpen: false,
   coverMode: false,
   coverT: 0,
-  mood: saved.mood === 'rain' ? 'rain' : 'golden',   // 'golden' | 'rain'
-  moodT: saved.mood === 'rain' ? 1 : 0,              // 0 = golden hour, 1 = rainy dusk
+  mood: CLOCK_MOOD,                                  // 'golden' | 'rain'
+  moodT: CLOCK_MOOD === 'rain' ? 1 : 0,              // 0 = golden hour, 1 = rainy dusk
   headBob: typeof saved.headBob === 'boolean' ? saved.headBob : !REDUCED_MOTION,
   // Everyone starts on Fast; a tier is remembered only once the visitor picks
   // one (Q / HUD). Older prefs saved 'high' implicitly, so they are ignored.

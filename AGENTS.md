@@ -42,7 +42,8 @@ A local HTTP server is required — ES module imports (`./src/main.js`,
   - `src/constants.js` — physical dimensions in metres (`ROOM`, `NOOK`, `CASE`,
     `SHELF_Y`, `TABLE`, `GUEST_TABLE`, `GUEST_LEDGE`, `STAND`, tonearm angles) + `damp()`.
   - `src/state.js` — single-source-of-truth `SETTINGS`, persisted user prefs
-    (`mood`, `headBob`, `quality`), shared `runtime`, `interactables`, `books`.
+    (`headBob`, chosen `quality`; mood comes from local time: Golden Hour 6–18,
+    else Rainy Dusk, M overrides for the visit only), shared `runtime`, `interactables`, `books`.
   - `src/quality.js` — `ultra` / `high` / `mobile` quality tiers (all visitors start on
     `mobile`/Fast; a tier is remembered only once chosen) + automatic
     low-FPS (<43 FPS) AO step-down watchdog.
