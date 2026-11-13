@@ -156,7 +156,7 @@ let controlsApi = null;
 const guestbookApi = buildGuestbookSystem(scene, GUESTS, renderer, {
   closeBook: () => controlsApi?.closeBook(),
   unlockPointer: () => { if (controlsApi?.controls.isLocked) controlsApi.controls.unlock(); },
-  lockPointer: () => controlsApi?.controls.lock(),
+  lockPointer: () => controlsApi?.relockPointer(),
   isPointerLocked: () => Boolean(controlsApi?.controls.isLocked),
   setTouchUiVisible: (v) => controlsApi?.setTouchUiVisible(v)
 });

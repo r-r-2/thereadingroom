@@ -119,6 +119,24 @@ export function setupControlsAndInteractions({
     onLeaveRoom();
   });
 
+  /* Re-capturing the mouse can be refused (Esc keydown is not an accepted
+     gesture, and browsers impose a ~1 s cooldown after a release). Without a
+     fallback the room stays "entered" with no pointer lock: the view can't be
+     turned and nothing re-captures it. Drop to the paused gate instead, where
+     one click re-enters. */
+  function fallBackToGate() {
+    if (runtime.useTouch || controls.isLocked || runtime.guestbookOpen || !runtime.inRoom) return;
+    onLeaveRoom();
+  }
+  document.addEventListener('pointerlockerror', fallBackToGate);
+  function relockPointer() {
+    try {
+      const p = controls.domElement.requestPointerLock?.();
+      p?.catch?.(fallBackToGate);   // newer browsers return a promise
+    } catch { fallBackToGate(); }
+    setTimeout(fallBackToGate, 400);  // browsers that refuse silently
+  }
+
   function enterTouch() {
     if (runtime.inRoom || performance.now() - lastLeaveAt < 350) return;
     if (!runtime.useTouch) {
@@ -543,6 +561,7 @@ export function setupControlsAndInteractions({
 
   return {
     controls,
+    relockPointer,
     closeBook,
     setTouchUiVisible,
     updateHover,
