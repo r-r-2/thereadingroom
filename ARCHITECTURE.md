@@ -64,7 +64,6 @@ THREE.Scene (environment = warm PMREM interior texture, Fog)
 │   │   sun + clouds driven by view elevation/azimuth)
 │   ├── 4 mountain ridge arcs (r = 4.6 / 8.2 / 13 / 18.5 m, ±78° around the window;
 │   │   painterly ShaderMaterial: sun-lit crests/slopes, base shadow, brush noise, aerial haze)
-│   │   + valley mist arc (open cylinder segment, r = 9.5 m)
 │   ├── instanced pine forest (1 InstancedMesh, ~600 trees on the 4 crests via ridgeTop();
 │   │   per-instance aerial-perspective tint, rewritten only when moodT changes)
 │   ├── 5-bird 3D flock (Golden Hour) + 260 falling 3D rain streaks (Rainy Dusk)

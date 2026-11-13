@@ -2,7 +2,7 @@
    Sits outside the left-wall book-nook window (-X) so stepping left/right
    or closer to the bench yields true 3D depth parallax at ~0 CPU cost:
    - Inside-facing GLSL sky dome (r = 28 m) blending Golden Hour ↔ Rainy Dusk
-   - 4 mountain ridges + valley mist as arcs (±78°) around the window, 4.6–18.5 m out
+   - 4 mountain ridges as arcs (±78°) around the window, 4.6–18.5 m out
    - Instanced pine forest (1 draw call) sitting on the ridge silhouettes
    - Drifting 3D bird flock (Golden Hour) & GPU rain streaks + glass droplets (Rainy Dusk)
    - Volumetric sunbeam shafts inside the room */
@@ -268,32 +268,6 @@ export function buildExterior(scene) {
     return mesh;
   });
 
-  /* ---- 3. Soft Valley Mist Ribbon (open cylinder arc) ---- */
-  // Feathered top/bottom so the mist doesn't draw a hard band across the hills.
-  const mistCanvas = document.createElement('canvas');
-  mistCanvas.width = 4; mistCanvas.height = 64;
-  const mg = mistCanvas.getContext('2d');
-  const grad = mg.createLinearGradient(0, 0, 0, 64);
-  grad.addColorStop(0, 'rgba(255,255,255,0)');
-  grad.addColorStop(0.55, 'rgba(255,255,255,1)');
-  grad.addColorStop(1, 'rgba(255,255,255,0)');
-  mg.fillStyle = grad; mg.fillRect(0, 0, 4, 64);
-  const mistMat = new THREE.MeshBasicMaterial({
-    color: 0xfbe8cc,
-    alphaMap: new THREE.CanvasTexture(mistCanvas),
-    transparent: true,
-    opacity: 0.26,
-    side: THREE.BackSide, // seen from inside the cylinder
-    depthWrite: false,
-    fog: false
-  });
-  // CylinderGeometry puts theta = 3π/2 on -X (straight out of the window).
-  const mistArc = new THREE.Mesh(
-    new THREE.CylinderGeometry(9.5, 9.5, 2.2, 64, 1, true, 1.5 * Math.PI - ARC_SPAN, 2 * ARC_SPAN),
-    mistMat
-  );
-  mistArc.position.set(0, 0.75, 0);
-  extGroup.add(mistArc);
 
   /* ---- 4. Instanced Pine Forest Along the Ridge Lines ---- */
   // One merged low-poly pine (unit height, base at y = 0) drawn as a single
@@ -335,10 +309,10 @@ export function buildExterior(scene) {
   // Per layer (far -> near): candidate count, clustering threshold, size range
   // and how far the band reaches down from the crest (fraction of tree height).
   const forestPlan = [
-    { count: 120, keep: 0.62, size: [0.85, 1.25], band: 0.15, dark: 0.0 },
-    { count: 170, keep: 0.5,  size: [0.7, 1.05],  band: 0.25, dark: 0.1 },
-    { count: 230, keep: 0.4,  size: [0.55, 0.9],  band: 0.4,  dark: 0.2 },
-    { count: 340, keep: 0.12, size: [0.45, 0.8],  band: 0.55, dark: 0.45 } // dense near treeline
+    { count: 50,  keep: 0.66, size: [0.85, 1.25], band: 0.15, dark: 0.0 },
+    { count: 70,  keep: 0.56, size: [0.7, 1.05],  band: 0.25, dark: 0.1 },
+    { count: 90,  keep: 0.48, size: [0.55, 0.9],  band: 0.4,  dark: 0.2 },
+    { count: 120, keep: 0.34, size: [0.45, 0.8],  band: 0.55, dark: 0.45 } // near treeline, a few clumps
   ];
   const pineGolden = new THREE.Color(0x3d5a3a);
   const pineDarkGolden = new THREE.Color(0x24382a);
@@ -482,19 +456,15 @@ export function buildExterior(scene) {
     sunbeams.push(beam);
   }
 
-  const mistGolden = new THREE.Color(0xfbe8cc);
-  const mistRain = new THREE.Color(0x3a485c);
 
   function update(t, dt) {
     const m = runtime.moodT;
     skyUniforms.uTime.value = t;
     skyUniforms.uMood.value = m;
 
-    // Interpolate 3D ridges, foliage, and valley mist between Golden Hour & Rainy Dusk
+    // Interpolate 3D ridges and foliage between Golden Hour & Rainy Dusk
     ridgeShared.uMood.value = m;
     updateForestTint(m);
-    mistMat.color.lerpColors(mistGolden, mistRain, m);
-    mistMat.opacity = THREE.MathUtils.lerp(0.24, 0.36, m);
 
     // Distant bird flock (visible during Golden Hour)
     const birdCycle = (t * 0.035) % 1.4;

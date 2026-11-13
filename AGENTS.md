@@ -59,7 +59,7 @@ A local HTTP server is required — ES module imports (`./src/main.js`,
     plaster walls with window cutout, perimeter baseboards & crown molding,
     and 4-panel entry door with brass lever hardware & hallway light sliver.
   - `src/exterior.js` — 3D parallax outdoor pocket world outside the left-wall
-    window (inside-facing GLSL sky dome, 4 mountain ridges + valley mist as
+    window (inside-facing GLSL sky dome, 4 mountain ridges as
     arcs curving around the window, painterly sun-lit ridge shader,
     instanced pine forest on the ridge crests, 3D bird flock, falling rain streaks,
     volumetric sunbeams).
