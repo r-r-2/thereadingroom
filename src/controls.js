@@ -104,10 +104,10 @@ export function setupControlsAndInteractions({
 
   /* ---- First-visit cinematic entrance ----
      Fade in from black and walk in from the doorway while the gaze sweeps from
-     the window nook to the bookcase. First visit only (localStorage), skipped
-     on ?edit=1 (keeps the harness deterministic; ?intro=1 forces it) and for
-     prefers-reduced-motion. Any key or click jumps to the end pose. */
-  const INTRO_KEY = 'rr-v2-intro-seen';
+     the window nook to the bookcase. Plays on the first entry of every page
+     load (not on re-entering after Esc), skipped on ?edit=1 (keeps the harness
+     deterministic; ?intro=1 forces it) and for prefers-reduced-motion. Any key
+     or click jumps to the end pose. */
   const INTRO_DUR = 4.2;
   const INTRO = {
     from: new THREE.Vector3(-1.9, EYE, ROOM.d / 2 - 0.35),     // just inside the door
@@ -121,9 +121,7 @@ export function setupControlsAndInteractions({
 
   function maybeStartIntro() {
     const forced = new URLSearchParams(location.search).has('intro');
-    let seen = false;
-    try { seen = localStorage.getItem(INTRO_KEY) === '1'; } catch { /* private mode */ }
-    if (!forced && (seen || EDIT || REDUCED_MOTION)) return;
+    if (!forced && (EDIT || REDUCED_MOTION)) return;
     intro = { t: 0, steps: 0 };
     introFade?.classList.add('on');
     requestAnimationFrame(() => introFade?.classList.add('fade'));
@@ -140,7 +138,6 @@ export function setupControlsAndInteractions({
     applyIntroPose(1);
     intro = null;
     introFade?.classList.remove('on', 'fade');
-    try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* ignore */ }
   }
   function advanceIntro(dt) {
     intro.t += dt;
