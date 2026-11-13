@@ -1,162 +1,173 @@
 # Gotchas
 
-Bugs that cost real time. Each entry explains the symptom, the root cause,
-and how it was fixed.
+Bugs and subtle invariants discovered across v1 and v2. Read before touching
+movement, import maps, book geometry, post-processing, or audio.
 
 ---
 
-## 1. NaN from `Number(undefined)` permanently broke movement
+## 1. `n8ao` requires `"three/examples/jsm/"` in the import map (v2)
 
-**Symptom:** Player could no longer move after pressing certain keys. Camera
-position was frozen or drifting.
+**Symptom:** Page halts on `Failed to start: TypeError: Failed to resolve module specifier "three/examples/jsm/postprocessing/Pass.js"`.
 
-**Cause:** The keyboard state map uses `keys[e.code] = true/false`. A key
-that has never been pressed has value `undefined`. Reading it with `Number()`
-returns `NaN`, which propagates into the direction vector, then into velocity,
-then into `camera.position`. Once NaN is in the position, it never clears
-because every subsequent arithmetic produces NaN.
+**Cause:** Our own v2 modules import Three addons via `"three/addons/..."`,
+which is the modern Three.js convention. However, `n8ao@1.9.4` internally
+imports `Pass.js` using the older `"three/examples/jsm/postprocessing/Pass.js"`
+specifier.
 
-**Fix:** Explicit ternaries everywhere:
-```js
-const fwd = (keys['KeyW'] || keys['ArrowUp']) ? 1 : 0;
-```
-Never `Number(keys[code])`. A `Number.isFinite` guard in the loop resets
-velocity as a backstop:
-```js
-if (!Number.isFinite(velocity.x) || !Number.isFinite(velocity.z)) velocity.set(0, 0, 0);
+**Fix:** Always include **both** prefix mappings in `reading-room.html`:
+```json
+"three/addons/": "https://esm.sh/three@0.172.0/examples/jsm/",
+"three/examples/jsm/": "https://esm.sh/three@0.172.0/examples/jsm/"
 ```
 
 ---
 
-## 2. `EffectComposer` rendered at half resolution
+## 2. Book `BoxGeometry` axis convention (`th, h, depth` vs `depth, h, th`) (v2)
 
-**Symptom:** The whole image looked soft and blurry, as if upscaled from a
-lower resolution. Bloom was blocky.
+**Symptom:** In Cover Exhibition Mode, books turn sideways showing thin spines
+instead of front covers; on tables, books show cream page blocks on top instead
+of their cover art.
 
-**Cause:** `EffectComposer` creates its own render target and does not
-inherit the renderer's pixel ratio. Without an explicit call, the composer
-renders at CSS pixel resolution (1×) while the canvas is drawn at device
-pixel ratio (2× on most displays).
+**Cause:** `makeBookMaterials()` assigns `[coverMat (+x), backMat (-x), page (+y), page (-y), spineMat (+z), page (-z)]`.
+If geometry is built as `(depth, h, th)` instead of `(th, h, depth)`, `+x` is
+only `th` (~2 cm) wide and `+z` is `depth` (~15 cm) wide — swapping the spine
+and cover aspect ratios and orientations by 90°.
 
-**Fix:**
-```js
-composer.setPixelRatio(Math.min(devicePixelRatio, 2));
-```
-Must also be called in the `resize` handler.
-
----
-
-## 3. `const interactables` threw a TDZ ReferenceError
-
-**Symptom:** Page sat on "Building the room…" text with nothing obviously
-wrong in the console.
-
-**Cause:** `const` is not hoisted (temporal dead zone). `interactables` was
-originally declared below `placeBooks()`, but `placeBooks()` runs at module
-scope and pushes into `interactables` immediately. The reference was read
-before the declaration was evaluated.
-
-**Fix:** Declare `interactables` before `placeBooks()` runs. Its current
-position (after the book-material helpers but before the function call) is
-correct.
-
-A global `error` handler was added to surface the message when the module
-throws:
-```js
-addEventListener('error', (e) => {
-  const el = document.getElementById('loading');
-  if (el) el.textContent = 'Failed to start: ' + (e.message || 'unknown error');
-});
-```
+**Fix:** Always construct book geometry as `RoundedBoxGeometry(b.th, b.h, depth)`:
+- Shelf rest: `rotation.y = 0` (`+z` spine faces room).
+- Cover arc: `rotation.y = -Math.PI / 2 - theta` (`+x` cover faces room).
+- Table flat: `mesh.rotation.z = -Math.PI / 2` inside `wrap` (`+x` cover faces `+Y` up).
 
 ---
 
-## 4. Tonearm angles placed the stylus outside the record
+## 3. JavaScript `0` is falsy when checking `rowIndex[b.row]` (v2)
 
-**Symptom:** The headshell hung visibly past the edge of the record.
+**Symptom:** Books with `row: 'people'` (`rowIndex.people === 0`) get duplicated
+onto the bottom `fiction` shelf when filtering fallback rows with `!rowIndex[b.row]`.
 
-**Cause:** Angles were guessed and eyeballed. The pivot is 0.247 m from the
-record centre; the arm is 0.228 m long. The original `+0.12` angle put the
-stylus 0.256 m from the centre — past the 0.148 m record edge.
+**Cause:** `!0 === true` in JavaScript, so `!rowIndex['people']` evaluates to `true`.
 
-**Fix:** Solve against the geometry. Current angles:
-- `ARM_PARK = 0.404` — clears the platter
-- `ARM_OUTER = −0.459` — stylus at r = 0.132 m (just inside the groove area)
-- `ARM_INNER = −0.710` — stylus at r = 0.075 m (just outside the label)
+**Fix:** Always check key membership with `!(b.row in rowIndex)` instead of `!rowIndex[b.row]`.
 
 ---
 
-## 5. Bloom blew out the room when combined with emissive geometry
+## 4. NaN from `Number(undefined)` permanently breaks movement (v1 & v2)
 
-**Symptom:** After adding any emissive surface, the whole room became
-washed out and overexposed.
+**Symptom:** Player freezes or camera teleports after pressing certain keys.
 
-**Cause:** `MeshBasicMaterial` surfaces (which ignore lighting and appear
-emissive) and the bloom pass interact: the basic-material surface is already
-bright, bloom amplifies it, which raises the overall brightness, which
-lowers perceived contrast everywhere.
+**Cause:** `keys[e.code]` is `undefined` for keys never pressed. `Number(undefined)`
+produces `NaN`, poisoning `velocity` and `camera.position` forever.
 
-**Fix:** Tune emissive intensity and bloom threshold together, not separately.
-The current bloom threshold of 0.90 means only the very brightest points
-(candle flames) glow. If you add a new emissive surface, lower its brightness
-first, then adjust bloom threshold.
+**Fix:** Use explicit ternaries (`keys.KeyW ? 1 : 0`) and keep the
+`Number.isFinite(camera.position.x)` guard in `src/controls.js`.
 
 ---
 
-## 6. `SETTINGS` values do not match scene initialisation
+## 5. `EffectComposer` pixel ratio & renderer toneMapping double-application (v1 & v2)
 
-**Symptom:** Opening the lil-gui panel immediately after page load shows
-slider values that do not reflect what the scene was actually built with.
-"Copy settings" at launch gives stale numbers.
+**Symptom:** Soft half-res rendering if composer DPR isn't synced, or washed-out/clipped
+colors if both `WebGLRenderer.toneMapping` and `pmndrs/postprocessing`
+`ToneMappingEffect` run simultaneously.
 
-**Cause:** The scene objects are hardcoded with one set of values, and
-`SETTINGS` (the object the GUI reads from) was updated at different times.
-Current mismatches:
-
-| SETTINGS key | SETTINGS value | Actual scene init |
-|---|---|---|
-| ambientIntensity | 0.5 | 0.62 |
-| ambientColor | `#ffeedd` | `0xffeaCF` |
-| keyIntensity | 22 | 19 |
-| keyColor | `#ffcb8a` | `0xffc078` |
-| fillIntensity | 9 | 7 |
-| fillColor | `#9fc4e8` (cool blue) | `0xd8cbb4` (warm beige) |
-| washColor | `#ffe0b0` | `0xffd9a0` |
-| fogNear | 6 | 7 |
-| fogFar | 15 | 17 |
-
-The fill colour mismatch is the most significant: the GUI colour picker
-starts at a cool blue, but the actual fill light is warm.
-
-**Fix:** Either initialise scene objects from `SETTINGS` values (so there is
-one source of truth), or update `SETTINGS` to match current hardcoded values.
+**Fix (`src/renderer.js`):**
+- Sync `renderer.setPixelRatio(dpr)`, `renderer.setSize(w, h)`, and
+  `composer.setSize(w, h)` on init, quality changes, `resize`, and `visualViewport` resize.
+- Keep `renderer.toneMapping = THREE.NoToneMapping` whenever `SETTINGS.effects`
+  is `true` (since `ToneMappingEffect(AGX)` handles tone mapping inside the
+  merged `EffectPass`), and switch to `THREE.AgXToneMapping` only when
+  rendering raw (`SETTINGS.effects = false`).
 
 ---
 
-## 7. `voices` array accumulates indefinitely
+## 6. Realtime shadows tank FPS unless `shadow.autoUpdate = false` (v2)
 
-**Symptom:** Not yet observable, but the `voices` array in the `Music` IIFE
-grows without bound across the lifetime of the page.
+**Symptom:** Re-rendering a 1536²–2048² shadow map across 100+ book and prop
+meshes every single frame wastes GPU vertex throughput even when nothing in
+the room is moving.
 
-**Cause:** Every `pad()` call pushes 4 oscillator nodes; every `pluck()` call
-pushes 1. The oscillators stop after their scheduled time, but they are never
-removed from `voices`. `stop()` clears `timers` but does not clear `voices`.
-At 9.5 s per chord over a 7-minute side, that's ~44 chords × 4 pad + ~110
-pluck = ~286 oscillator references held in memory after they've finished.
-
-**Fix:** Splice each oscillator out of `voices` in its `onended` handler:
-```js
-o.onended = () => voices.splice(voices.indexOf(o), 1);
-```
-Or clear `voices` inside `stop()` after cancelling oscillators. The array
-is also never actually read anywhere, which suggests the original intent was
-to be able to stop all active oscillators on `stop()` — that logic was never
-finished.
+**Fix:** Keep `renderer.shadowMap.autoUpdate = false` in `src/renderer.js` and
+set `runtime.shadowsDirty = true` only when lighting mood (`moodT`), quality
+tier, cover-exhibition mode (`coverT`), or book pull (`u.pull`) actually changes.
 
 ---
 
-## 8. Dead `SPEED` constant (resolved)
+## 7. `SETTINGS` mismatch & `voices[]` oscillator leak from v1 (resolved in v2)
 
-`const SPEED = 22;` used to sit unused next to `SETTINGS.moveSpeed`. It was
-removed when movement switched to wish-velocity smoothing (`moveSpeed` is
-now max speed in m/s, default `2.4`).
+- **`SETTINGS` single source of truth (`src/state.js`):** In v1, hardcoded light
+  colors/intensities drifted from `SETTINGS`, making `?edit=1` sliders lie on
+  open. In v2, `lighting.js` and `renderer.js` read directly from `SETTINGS` at
+  boot and on every mood tick.
+- **Oscillator cleanup (`src/audio.js`):** In v1, every synth chord/pluck pushed
+  `OscillatorNode`s into `voices = []` without ever removing ended nodes. In v2,
+  `activeVoices` is a `Set` cleaned automatically via `osc.onended = () => activeVoices.delete(osc)`.
+
+---
+
+## 8. Tonearm solved geometry (`src/constants.js` & `src/turntable.js`)
+
+Do not eyeball tonearm angles — keep the solved constants:
+- `ARM_PARK = 0.404` (clears platter)
+- `ARM_OUTER = -0.459` (outer groove)
+- `ARM_INNER = -0.710` (inner run-out before label)
+
+## 9. Table books: front cover up, spine left, gentle lift
+
+Reading-table and guest-table books use `mesh.rotation.z = +π/2` (puts the
+`+x` front-cover face, `material[0]`, on top) with wrap yaw `-π/2 + jitter`
+so the top of the book points away from the viewer and the jacket reads
+upright with the spine on the left. Using `-π/2` puts the jacket face-down;
+copying it onto `material[1]` hides that but mirrors the spine to the right.
+On hover they only lift (`+0.08 y`, `+0.06 z`, like v1) — no roll, or the
+book tips onto its spine edge and floats.
+
+Remote `cover` URLs (guest Open Library ids) need `crossOrigin = 'anonymous'`
+or WebGL rejects the image ("contains cross-origin data") and it renders black.
+
+## 10. NaN pixels become black rectangles
+
+The composer uses a HalfFloat buffer and mipmap bloom, which smears any
+NaN/Inf pixel into flickering black blocks (in every tier, since bloom stays
+on in Fast). In custom GLSL never `pow()` a value that can go negative — clamp
+first (see sunbeam shader in `exterior.js`).
+
+## 11. Inspect pose: book glides to the camera
+
+Clicking any book (shelf, cover mode, reading/guest table, ledge) blends its
+world pose toward a spot `INSPECT.dist` in front of the camera (`applyInspect`
+in `src/main.js`, driven by `userData.insp`). The rest pose is recomputed every
+frame first, so:
+- shelf books must reset `rotation.x` (the blend writes a full quaternion);
+- table/ledge meshes restore `userData.restLocal` before blending.
+Held books drop `castShadow` so the cached shadow map never keeps a stale
+shadow of a book floating in front of you. DoF focuses on the mesh itself.
+`inspectFit()` keeps the default pose when the book is on screen and clear of
+the drawer (desktop); otherwise it centres it in the largest free region and
+backs off to fit (phones, where the drawer is a full-width bottom bar). One
+rule, no device branch; test "clear of the drawer", not "inside a region", or a
+tall book beside the desktop drawer gets moved needlessly.
+
+## 12. Exterior sky dome: radius vs camera far plane, and colour space
+
+The view through the book-nook window is a pocket world inside a BackSide sky
+dome (`src/exterior.js`), centred at eye height just outside the window. Its
+radius (28 m) plus the farthest camera spot in the room (~9.5 m from the
+window) must stay under `camera.far` (42 m in `src/renderer.js`), or the far
+plane clips the sky and the window shows the flat `scene.background` again.
+Ridges and mist are arcs (±78°) around the same centre so oblique views never
+reach a ridge end; `scene.background` just follows the fog colour now.
+
+Exterior shaders author colours in sRGB and end with
+`pow(max(col, 0.0), vec3(2.2))`: the HDR pipeline expects linear values and
+without the conversion the sky reads pale grey. Clamp before the `pow()` (see
+#10). The sun disc is *added* on top of its glow, never mixed, so it stays the
+brightest thing in the sky.
+
+## 13. Exterior forest is forced perspective
+
+The pocket world outside the window is tiny: ridges sit only 4.6–18.5 m away
+and are 2.5–6.2 m tall. Pines are scaled to the ridges (~0.45–1.25 m), not
+to real trees, or they read as giants. They are planted with the same
+`ridgeTop()` profile that builds the ridge strips (rooted just below the
+crest, just in front of the strip). Change a ridge profile and the trees follow;
+place trees by hand and they float. Instance colours are rewritten only when
+`runtime.moodT` changes. Don't move that into the per-frame path.

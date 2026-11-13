@@ -1,39 +1,105 @@
-# The Reading Room — agents guide
+# The Reading Room — Agents Guide (v2 + v1 Time Capsule)
 
-A first-person walkable 3D room containing a bookshelf, built with Three.js.
-No build step, no framework, no bundler. The room is `reading-room.html`
-plus two data files (`books.js`, `guestbook.js`). Guest submissions go
-through a small Cloudflare Worker (`worker/`) into GitHub Issues, then an
-Action shelves approved ones. Three.js and lil-gui load from unpkg via an
-import map; cover images are fetched from Open Library on demand.
+A first-person walkable 3D room containing a personal bookshelf, built with
+Three.js (`0.172.0`), Physically Based Rendering (PBR), cached soft shadows,
+half-res screen-space ambient occlusion (`N8AO`), a 3D parallax exterior with
+Golden Hour ↔ Cozy Rainy Dusk weather moods, and HRTF 3D spatial audio.
+
+**Zero build step, no framework, no bundler.** Static native ES modules
+(`reading-room.html` + `src/*.js`) plus two shared data files (`books.js`,
+`guestbook.js`). Guest submissions go through a Cloudflare Worker (`worker/`)
+into GitHub Issues, then an Action shelves approved ones.
+
+The original 2025 single-file stylized Lambertian room is preserved verbatim
+at **`v1.html`** for nostalgia, reading from the **exact same `./books.js`
+and `./guestbook.js`** so new books and approved guest recommendations appear
+automatically in both v1 and v2.
 
 ## Running it
 
-```
+```bash
 python3 -m http.server
 ```
-then open `http://localhost:8000/reading-room.html`.
 
-A local server is required — `books.js` is a relative ES module import and
-Chrome blocks those from `file://` URLs. No build step beyond that.
+Then open:
+- **v2 (default):** `http://localhost:8000/reading-room.html`
+- **v1 (older):** `http://localhost:8000/v1.html`
+- **Design & automation harness:** `http://localhost:8000/reading-room.html?edit=1`
 
-## Files
+A local HTTP server is required — ES module imports (`./src/main.js`,
+`./books.js`, `./guestbook.js`) are blocked from `file://` URLs.
 
-- **`reading-room.html`** — scene, lights, room, window, bookcase, decor,
-  reading table, guest table, turntable, audio, controls, post-processing,
-  animation loop.
-- **`books.js`** — exported array of book objects. Edit this to add or update
-  books. See **Adding a book** below for the full field schema.
-- **`guestbook.js`** — approved guest recommendations on the table by the
-  door. Appended by the shelving Action, or by hand. See **Guest
-  recommendations** below.
+## Files & Module Layout
+
+- **`reading-room.html`** — v2 HTML shell, CSS, import map (`three@0.172.0`,
+  `postprocessing@6.36.6`, `n8ao@1.9.4`, `lil-gui`), HUD pills, book detail
+  drawer, cream two-page guestbook modal, touch controls, and link to `v1.html`.
+- **`v1.html`** — frozen 2025 single-file original room with reciprocal
+  `Step into v2 ->` link on the entry gate. Shares `./books.js` and `./guestbook.js`.
+- **`src/`** — modular v2 ES source files (no bundler):
+  - `src/main.js` — scene orchestration, animation loop, book pull/arc lerp,
+    HUD state sync, `?edit=1` `lil-gui` & `window.__room` automation harness.
+  - `src/constants.js` — physical dimensions in metres (`ROOM`, `NOOK`, `CASE`,
+    `SHELF_Y`, `TABLE`, `GUEST_TABLE`, `GUEST_LEDGE`, `STAND`, tonearm angles) + `damp()`.
+  - `src/state.js` — single-source-of-truth `SETTINGS`, persisted user prefs
+    (`headBob`, chosen `quality`; mood comes from local time: Golden Hour 6–18,
+    else Rainy Dusk, M overrides for the visit only), shared `runtime`, `interactables`, `books`.
+  - `src/quality.js` — `ultra` / `high` / `mobile` quality tiers (all visitors start on
+    `mobile`/Fast; a tier is remembered only once chosen) + automatic
+    low-FPS (<43 FPS) AO step-down watchdog.
+  - `src/renderer.js` — `WebGLRenderer`, cached `PCFSoftShadowMap`, and merged
+    `pmndrs/postprocessing` (`N8AOPostPass`, `DepthOfFieldEffect` on book
+    inspection, Mipmap `BloomEffect`, `ToneMappingMode.AGX`, `VignetteEffect`, `SMAAEffect`).
+  - `src/materials.js` — procedural PBR surface maps (wide-plank oak albedo,
+    normal & per-plank roughness; limewash plaster stipple; wood grain; fabric
+    weave; `MeshPhysicalMaterial` linen sheen, glazed ceramics, refractive glass, wax).
+  - `src/lighting.js` — warm interior `PMREMGenerator` IBL environment,
+    cached directional sun shadow map, `RectAreaLight` window bounce, indoor
+    lamps/sconces/candles, and live **Golden Hour ↔ Cozy Rainy Dusk** interpolation.
+  - `src/room.js` — oak plank floor, woven wool center rug (`RUG_BOUNDS`),
+    plaster walls with window cutout, perimeter baseboards & crown molding,
+    and 4-panel entry door with brass lever hardware & hallway light sliver.
+  - `src/exterior.js` — 3D parallax outdoor pocket world outside the left-wall
+    window (inside-facing GLSL sky dome, 4 mountain ridges as
+    arcs curving around the window, painterly sun-lit ridge shader,
+    instanced pine forest on the ridge crests, 3D bird flock, falling rain streaks,
+    volumetric sunbeams).
+  - `src/window-nook.js` — mullioned oak window, physical glass + GLSL animated
+    rain-droplet overlay, breathing sheer linen curtains, interactive brass
+    **Window-Sill Mood Switch**, cushioned bench, flanking curio towers & sconces.
+  - `src/props.js` — reusable PBR prop builders (succulents, potted plants,
+    wax candles with Rainy Dusk flames, ceramic/glass vases, flat book stacks,
+    framed art/prints, curio sculptures).
+  - `src/books.js` — bookcase carpentry, `RoundedBoxGeometry` tactile books,
+    spine/jacket canvas textures, Open Library + `./covers/` loader, brass wall
+    lever, and 4-row Cover Exhibition arc layout.
+  - `src/tables.js` — reading table, brass lamp, and cover-up `reading` books
+    with burgundy silk ribbon bookmarks.
+  - `src/guestbook.js` — guest table, embossed leather ledger with page-open
+    animation, refractive inkwell + quill, ghost slot, wall picture ledges,
+    Cloudflare Worker `POST`, GitHub Issues sync, and cream open-book modal.
+  - `src/turntable.js` — credenza, vinyl LP sleeves, brushed metal platter,
+    anisotropic radial micro-groove LP, S-tonearm, and acrylic dust cover.
+  - `src/gallery.js` — right-wall 7-poster salon (`./posters/*.jpg`) in a
+    3-over-4 grid with beveled oak frames, cream matboards & museum glass.
+  - `src/audio.js` — generative synth LP routed through an HRTF 3D `PannerNode`
+    at the turntable, spatialized Rainy Dusk window audio, and procedural foley
+    (oak vs. rug footsteps, book paper slide, brass switch clicks).
+  - `src/controls.js` — desktop `PointerLockControls` + WASD + shortcuts (`C`,
+    `M`, `B`, `Q`/`G` quality, `V` vinyl, `L` leave a book), mobile drag-to-look + virtual stick + tap raycast, furniture
+    AABB collisions, and subtle toggleable footstep-synced head-bob.
+- **`books.js`** — exported array of book objects (shared by v2 and v1).
+- **`guestbook.js`** — approved guest recommendations (shared by v2 and v1).
 - **`worker/`** — Cloudflare Worker that files `recommendation` issues for
   anonymous guests. Deploy notes in `worker/README.md`.
+- **`PLAN.md`**, **`ARCHITECTURE.md`**, **`GOTCHAS.md`** — living architecture
+  decisions, scene invariants, and past bug post-mortems. Keep these updated
+  whenever changing rendering, module boundaries, or interaction rules.
 
 ## Adding a book
 
-Edit only [`books.js`](books.js). Do not change placement logic in
-`reading-room.html` unless shelf or table capacity is exceeded.
+Edit only [`books.js`](books.js). Both `reading-room.html` (v2) and `v1.html`
+consume it automatically.
 
 ### Fields
 
@@ -43,167 +109,70 @@ Edit only [`books.js`](books.js). Do not change placement logic in
 | `c`, `f` | yes | fallback spine background / text colour (hex) |
 | `th`, `h` | yes | thickness / height in metres |
 | `isbn` | yes | ISBN-13 preferred; Open Library cover + title link |
-| `cover` | optional | local jacket path when Open Library has no image |
+| `cover` | optional | local jacket path (`./covers/...`) when Open Library has no image |
 | `fin` **or** `reading` | one of | finished date (`'Oct 2025'`) or progress `0–100` |
+| `row` | finished books | `'people'` (upper), `'other'` (middle), or `'fiction'` (bottom) |
+| `y` | optional | numeric sort year when `fin` has no 4-digit year (e.g. `'2000s'`) |
 | `note` | optional | short detail-panel line; omit or `''` to hide |
 | `review` | optional | longer personal review; Review section only if set |
 | `spineC`, `spineF` | optional | precomputed spine colours; skips image sampling |
 
-Finished books use `fin` and omit `reading`. In-progress books use `reading`
-and omit `fin`.
+### Shelf & Table Order
 
-Size heuristics from current entries: `th` ≈ `0.014`–`0.030`, `h` ≈ `0.178`–`0.229`.
-
-### Shelf order
-
-- Books with `reading` lie **cover-up** on the **reading table** (left of
-  the bookcase). The first **four** sit in a row; further titles stack on
-  the leftmost book.
-- Finished books fill the lower three shelves in **array order**: 5 / 5 /
-  remainder. The top shelf is decor only.
-- Cover mode lifts every finished book into a shallow arc in front of
-  the case: people on top, non-fiction in the middle, other fiction
-  centered under that, and Harry Potter on its own row below. The stack
-  sits low enough that the top row stays in a
-  landscape window. A category that outgrows the arc tightens its gap,
-  then gains a second rank, before any jacket shrinks. Table books
-  ignore cover-mode.
-
-Append finished books at the end of the array. `reading` books can sit
-anywhere; they are filtered onto the table.
-
-### Templates
-
-Finished:
-
-```js
-{ t: 'Title', a: 'Author', c: '#1A1A1A', f: '#F0F0F0', th: .022, h: .216,
-  note: '', isbn: '978XXXXXXXXXX', fin: 'Mon YYYY' },
-```
-
-Reading now (optional review):
-
-```js
-{ t: 'Title', a: 'Author', c: '#1A1A1A', f: '#F0F0F0', th: .022, h: .216,
-  isbn: '978XXXXXXXXXX', reading: 40, review: 'Optional longer review…' },
-```
-
-### Optional `spineC` / `spineF`
-
-After the page loads, Open Library covers are fetched. If `spineC` is
-missing, the console logs paste-ready values:
-
-```
-[spine] "Title"
-  spineC: 'rgb(...)', spineF: '#...'
-```
-
-Safe to omit on first add.
-
-### Detail panel behaviour
-
-- Pull a book out to open the panel. `note` shows only when set; a labeled
-  **Review** block shows only when `review` is set.
-- Press Esc, then click the title — opens
-  `https://openlibrary.org/isbn/{isbn}` in a new tab. The panel stays
-  above the entry gate so the link is clickable.
+- Books with `reading` lie **cover-up** on the **reading table** (left of the
+  bookcase) with a burgundy ribbon bookmark positioned at `reading`%.
+- Finished books (`!reading`) sort chronologically left-to-right onto the
+  lower three shelves by `row`: `people` → `SHELF_Y[2]`, `other` → `SHELF_Y[1]`,
+  `fiction` → `SHELF_Y[0]` (with Harry Potter kept together as a contiguous block).
+  The top shelf (`SHELF_Y[3]`) is decor only.
+- Cover Exhibition Mode (`C` key, HUD button, or brass wall lever) dims the
+  bookcase wood and floats shelf books into four shallow rows: `people` on top,
+  `other` (non-fiction) second, `fiction` third, and `Harry Potter` on its own
+  row underneath. Table books stay put on the table.
 
 ## Guest recommendations
 
-Visitors leave a book on the **guest table** (front wall, right of the
-door) without a GitHub account. The in-room form `POST`s to the Worker
-in [`worker/`](worker/README.md), which files a `recommendation` issue.
-The guest sees their book on the table immediately, with an "awaiting
-approval" tag. Other visitors see pending titles only in the ledger
-(`GUEST_PENDING_ON_TABLE = false`).
+Visitors leave a book on the **guest table** (front wall, right of the door)
+without a GitHub account. The in-room form `POST`s to `GUEST_RELAY_URL`
+(`worker/worker.js`), which files a `recommendation` GitHub Issue.
 
-The newest three approved books lie on the table (`GUEST_ON_TABLE`);
-guests listed in `GUEST_ALWAYS_ON_TABLE` always hold one of those three
-places with their newest book. Older books stand cover-out on the
-**picture ledge** on the wall above the table (two rails of eight,
-hidden while empty). When the ledge is full, the guest with the most books showing loses
-their oldest first; those titles stay in the ledger.
+- The submitter sees their book on the table immediately with a bobbing
+  **"awaiting approval"** tag (`localStorage` key `rr-guest-mine`).
+- Other visitors see pending titles on the **Waiting** page of the ledger
+  (`GUEST_PENDING_ON_TABLE = false`).
+- The newest three approved books (`GUEST_ON_TABLE = 3`) lie on the table,
+  with guests in `GUEST_ALWAYS_ON_TABLE` (`['Swaa']`) always holding one of
+  those three places with their newest book. Older approved books stand
+  cover-out on the two wall picture ledges (`GUEST_LEDGE`) above the table.
+- Adding the **`approved`** label to the GitHub issue triggers
+  `.github/workflows/shelve-recommendation.yml`, appending the entry to
+  `guestbook.js` and closing the issue.
 
-### Shelving a recommendation
+## Key Constraints & Architectural Invariants
 
-1. Open the issue. Add the **`approved`** label.
-2. `.github/workflows/shelve-recommendation.yml` appends the entry to
-   [`guestbook.js`](guestbook.js), commits to the default branch, and
-   closes the issue. Pages redeploys; the tag comes off for everyone.
-3. Close without `approved` to decline. The submitter's local copy is
-   dropped on their next visit.
-
-Edit `guestbook.js` by hand if you want to tweak a `why` line or drop
-an entry. The seed entry (`id: 0`) is a stand-in; delete it once real
-guests arrive.
-
-### Relay setup (once)
-
-See [`worker/README.md`](worker/README.md). Paste Cloudflare + GitHub
-tokens into Actions secrets, run **Deploy guestbook worker**, then put
-the printed URL in `GUEST_RELAY_URL` in `reading-room.html`. Until that
-string still contains `YOUR-SUBDOMAIN`, the form saves in this browser
-only (fine for local testing). Abuse limits live in `worker/worker.js`:
-20 entries per IP, 3/min burst, no links, duplicate and flood guards.
-
-## Script layout
-
-Everything in the HTML lives in one `<script type="module">`. Sections in order:
-
-1. **Imports** — Three.js addons, lil-gui, `BOOKS` from `./books.js`,
-   and `GUESTS` from `./guestbook.js`.
-2. **Scene** — `THREE.Scene`, camera (eye at 1.62 m), renderer, ACES tone
-   mapping, fog.
-3. **Lights** — ambient, key, fill, shelfWash, windowLight, candleLight,
-   lampLight, playerLight.
-4. **Room shell** — floor with procedural plank texture, ceiling, four walls,
-   closed door on the front wall (opposite the bookcase), left-wall
-   book nook (landscape window, bench seat, flanking curio shelves, decor).
-5. **Bookcase frame** — back panel, sides, top, toe board, shelf boards at
-   y = 0.42 / 0.90 / 1.38 / 1.86.
-6. **Book meshes** — `makeSpineTexture`, `makeCoverTexture`, `placeBooks()`,
-   `loadCover()`, wall lever and plaque. The `interactables` array is
-   declared here, before `placeBooks()` runs.
-7. **Post-processing** — `EffectComposer` with bloom, vignette, output pass.
-8. **Design harness** — `SETTINGS` object and lil-gui panel (visible only
-    with `?edit=1`).
-9. **Decor** — shelf props: succulents, candles, flat book stacks, framed
-   prints, vase, candleLight.
-10. **Reading table** — top, legs, apron, lamp, succulent, `placeTableBooks()`.
-11. **Guest table** — table by the door, ledger, quill, ghost slot, sign,
-    `layBookOnTable()`, guestbook overlay, first-visit toast.
-12. **Turntable** — credenza, plinth, platter, record, spindle, tonearm.
-    Tonearm hit targets added to `interactables`.
-13. **Music** — `Music` IIFE wrapping the Web Audio graph (pads, plucks,
-    delay, vinyl hiss).
-14. **Controls** — `PointerLockControls` on desktop; on touch, drag-to-look
-    plus a virtual stick, with Cover / Leave a book / Leave buttons.
-    Shared `inRoom` flag, keyboard map, velocity/collision.
-15. **Raycast interaction** — book pull-out, wall lever, detail
-    panel, record toggle, guestbook / guest-add. Taps raycast from the
-    finger; clicks use the center crosshair.
-16. **Animation loop** — movement, turntable rotation, arm travel, cover
-    mode / book animation, pending-tag bob, `composer.render()`.
-
-See `ARCHITECTURE.md` for the how and why of each section.
-
-## Constraints
-
-- **No realtime shadows.** Performance trap at browser scale. Bake into
-  textures if shadows are ever needed.
-- **Touch is first-person, not a 2D shelf.** Pointer Lock is unsupported on
-  iOS Safari, so phones and tablets use drag-to-look, a virtual stick, and
-  tap-to-interact. Desktop keeps Pointer Lock + WASD. Cap pixel ratio at
-  1.25 on touch. Do not add a separate mobile scene unless that is an
-  explicit product change.
-- **Single file** unless explicitly decided otherwise. See `ARCHITECTURE.md`
-  §Module split for the trade-offs.
-- **Stylized, not photoreal.** Spine text is larger and higher-contrast than a
-  real book spine — deliberately. Legibility beats fidelity.
+1. **Cached Soft Shadows (`shadow.autoUpdate = false`):** Never flip
+   `renderer.shadowMap.autoUpdate = true`. Instead set
+   `runtime.shadowsDirty = true` only when lighting mood, quality tier, or
+   book positions change. This keeps shadow cost at ~0 ms/frame while walking.
+2. **Import Map Compatibility:** Keep `"three/examples/jsm/"` mapped alongside
+   `"three/addons/"` in `reading-room.html` — `n8ao` imports Three's `Pass.js`
+   via `three/examples/jsm/postprocessing/Pass.js`.
+3. **Preserve `v1.html` & Shared Data:** Never fork `books.js` or `guestbook.js`.
+   Keep `v1.html` working as the frozen 2025 nostalgic edition.
+4. **Touch is First-Person, Not a 2D Fallback:** Mobile/tablet uses drag-to-look,
+   virtual walk stick, and tap raycasting, defaulting to the `mobile` (`Fast`)
+   quality tier (1.25 max DPR, no SSAO/shadow maps).
+5. **Subtle, Focus-Safe Head-Bob:** Head-bob must automatically damp to `0`
+   whenever `runtime.looked` or `runtime.opened` is truthy so aiming at thin
+   book spines or reading the inspection panel never jitters.
+6. **Preserve `?edit=1` Harness:** When `?edit=1` is present, `window.__room`
+   and `lil-gui` must be exposed so automated browser tests and look-tuning
+   scripts can drive the room without Pointer Lock.
 
 ## Git commits
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+(see `.cursor/rules/conventional-commits.mdc`):
 
 ```
 <type>[optional scope]: <description>
@@ -211,74 +180,39 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
 - **type:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, or `chore`
 - **scope** (optional): `room`, `books`, `guestbook`, `worker`, `audio`, `window`, `mobile`
-- **description:** imperative, lowercase, no trailing period — the *why* more than a file list
-- Body is optional. Breaking changes use a `BREAKING CHANGE:` footer, or `!` after the type (`feat(guestbook)!: …`)
-- One concern per commit. Do not mix unrelated work.
-
-Examples:
-
-```
-feat(analytics): track page views and room interactions with GA4
-fix(mobile): invert stick so forward matches look direction
-docs: record conventional commit format
-chore(worker): bump wrangler in the deploy workflow
-```
+- **description:** imperative, lowercase, no trailing period — explain *why*
+- One concern per commit.
 
 ## Verifying a change
 
+**Automated (on demand):** `/verify-room` (skill in `.claude/skills/verify-room/`)
+or `cd tools/verify && npm install && node verify.mjs check`. It runs headless
+assertions on the working copy (console errors, table covers face-up with the spine
+on the left, hover lift, Q/M/C keys, no NaN black blocks, gate copy, v1 link) and
+prints only failures. `node verify.mjs visual [ref]` writes a before/after page
+(`tools/verify/out/visual/index.html`) of fixed views versus `ref` (default
+`main`) for a human to review. Keep the `window.__room` harness intact, because
+the tool depends on it.
+
+**Manual:**
+
 1. Run `python3 -m http.server` and open `http://localhost:8000/reading-room.html`.
-2. Click to enter, walk to the bookcase (WASD + mouse).
-3. Look at a spine — crosshair should turn gold and the prompt should appear.
-4. Click to pull it out; click again to put it back.
-5. If the book has a `review`, the detail panel should show a Review section;
-   if not, that section should be absent. Empty `note` should leave no gap.
-6. With a book open, press Esc, then click the title — Open Library should
-   open in a new tab without re-locking the pointer.
-7. Walk to the wall left of the bookcase. A large plaque should read
-   "Float the books / to view / (press C)". Look at the lever
-   — prompt should read "Click to show covers". Click it — the handle
-   throws down and every shelf book lifts into rows — people on
-   top, non-fiction in the middle, other fiction centered under that,
-   Harry Potter on its own row below — low enough
-   that the top row stays in view. Press C to return to spines.
-8. In both modes, pull a book out and put it back. Cover mode should
-   step the jacket toward you along its facing (no extra quarter-turn).
-   Table books (if any `reading` entries exist) should stay on the
-   table, lying cover-up.
-9. Face the left wall: a built-in book nook — large landscape window over a
-   cushioned bench with pillows, flanked by wood curio towers (framed art,
-   ceramics, sculptures; books only as accents) and brass sconces — across
-   from the turntable. You should not be able to walk through the bench.
-10. Face the wall opposite the bookcase: a closed paneled wooden door with
-    casing and a knob should sit on the left side of that wall.
-11. Walk left of the bookcase: a wooden reading table with a lamp and
-    plant. You should not be able to walk through it. Each `reading`
-    book should show a burgundy ribbon bookmark in the pages, at a
-    depth matching its progress; pull it out and the ribbon stays put.
-    Cover-mode should leave table books (and their ribbons) alone.
-12. Walk to the turntable, click to stop/start the record.
-13. Check the browser console for errors. The global `error` handler on the
-    loading div will surface module-level throws.
-14. On a phone (or DevTools device mode): the gate should list drag / stick /
-    tap, not WASD. Tap to enter — a walk stick, Covers, Leave a book, and
-    Leave appear. Drag looks around; the stick walks; tap a book to pull
-    it out; Leave returns to the gate without re-entering from the same tap.
-15. The Look / lil-gui panel must be absent on the default URL. Open
-    `reading-room.html?edit=1`, press Esc (or stay on the gate): the panel
-    should appear. Toggle post-processing off to see the raw scene without
-    bloom. Without the query param, leaving the room must not show it.
-16. Turn around at spawn. A table by the door holds an open guestbook, a
-    quill, a standing sign that reads "Recommend a book for me / Click
-    the quill", and a ghost slot that reads "your book goes here". You
-    cannot walk through the table. A first-visit toast points at it.
-    Click the quill / ghost / sign / table top — the room stays visible
-    under a dim overlay; the form is a cream open book (pointer unlocks
-    on desktop, Esc / dimmer / Close re-locks). Click the ledger — two
-    cream pages, Guestbook and Waiting, not a dark card. Submit a book
-    (relay optional locally) — it appears on the table with an "awaiting
-    approval" tag, listed on the Waiting page in lighter ink. Pull it
-    out: meta reads "waiting for approval". Shelved entries in
-    `guestbook.js` are listed on the Guestbook page; the newest three
-    (always including one of Swaa's) lie on the table and older ones
-    stand cover-out on the wall ledge above it. Ledge books pull out like table books. There is no Left Hand
-    of Darkness seed.
+2. Click to step inside; verify zero console errors and smooth 60+ FPS walking
+   (WASD + mouse, subtle footstep foley changing between oak floor and center rug).
+3. Hover and click a spine on the bookcase: crosshair turns gold, book glides
+   up in front of you, cover facing you, with background Depth-of-Field blur, detail drawer opens. Press
+   `Esc` and click the book title to verify Open Library opens cleanly.
+4. Flip the brass wall lever left of the bookcase (or press `C`): verify all
+   4 rows of covers (`people`, `other`, `fiction`, `Harry Potter`) float out
+   with jackets facing you. Pull a book out in Cover Mode and return to spines.
+5. Press `M` (or click the brass toggle switch on the book-nook window sill):
+   verify the room transitions smoothly between **Golden Hour** (sunbeams,
+   birds, valley light) and **Cozy Rainy Dusk** (twilight sky,
+   falling rain + animated glass droplets, rain audio, and warm indoor table
+   lamp, sconces, gallery glow, and flickering wax candles turning ON).
+6. Check the reading table (cover-up `reading` books with burgundy ribbons),
+   right-wall turntable (click to lift/drop needle; HRTF spatial audio pans as
+   you turn) + 7-poster framed salon, and front-wall 4-panel door + guestbook
+   table (ledger, quill, ghost slot, Swaa's book).
+7. Click `visit older v1 ->` on the entry gate and confirm `v1.html`
+   loads cleanly and links back to v2 (`Step into v2 ->`).

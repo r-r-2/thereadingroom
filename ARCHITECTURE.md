@@ -1,410 +1,186 @@
-# Architecture
+# Architecture — The Reading Room v2
 
-## Scene graph
+> **Edition Coexistence:** `reading-room.html` + `src/*.js` power **v2** (PBR,
+> IBL, cached soft shadows, `N8AO`, 3D exterior, Golden Hour ↔ Rainy Dusk,
+> HRTF spatial audio). **`v1.html`** preserves the original 2025 single-file
+> `MeshLambertMaterial` scene verbatim. Both import the exact same `./books.js`
+> and `./guestbook.js`.
 
-```
-THREE.Scene
-├── ambient (AmbientLight, 0xffeaCF, intensity 0.62)
-├── key (PointLight, 0xffc078, intensity 19, range 10)
-├── fill (PointLight, 0xd8cbb4, intensity 7, range 12)
-├── shelfWash (PointLight, 0xffd9a0, intensity 7, range 4.6)
-├── windowLight (PointLight, 0xffd4a8, intensity 5.5, range 4.2)
-├── playerLight (PointLight, 0xffc98a, intensity 3.2, range 2.4)
-├── floor (Mesh)
-├── ceiling (Mesh)
-├── four wall planes (Mesh ×4)
-├── doorGroup (Group, front wall left side, opposite bookcase, rotated π)
-│   ├── casing, threshold, closed slab, recessed panels
-│   └── knob (sphere + stem + backplate)
-├── windowGroup (Group, left wall, rotated π/2, z ≈ −0.15) — book nook
-│   ├── landscape view plane (animated canvas: sky/mountains baked; trees/grass sway; one receding sky flock of 1-3 birds) + wood frame / mullion
-│   ├── bench base, drawers, cushion, pillows, throw
-│   ├── flanking curio towers (framed art, ceramics, sculptures; books as accents)
-│   ├── brass sconces (×2)
-│   └── (windowLight is scene-parented, not in this group)
-├── wallSwitch (Group, back wall left of the bookcase)
-│   ├── lever plate, bezel, pivot, arm, knob
-│   └── instruction plaque
-├── shelfGroup (Group, z = -ROOM.d/2 + 0.19)
-│   ├── bookcase panels and shelf boards (Mesh ×9)
-│   ├── finished-book meshes (Mesh ×N, added by placeBooks())
-│   ├── decor objects (Groups and Meshes)
-│   └── candleLight (PointLight, parented to shelfGroup)
-├── tableGroup (Group, left of the bookcase)
-│   ├── top, apron, legs
-│   ├── lamp (base, stem, shade, glow) + lampLight
-│   ├── succulent
-│   └── reading-book meshes (placeTableBooks())
-├── guestGroup (Group, front wall right of the door, rotated π)
-│   ├── top, apron, legs (top is `guest-add`)
-│   ├── ledger (open book, `guestbook`)
-│   ├── inkwell + quill (`guest-add`)
-│   ├── standing sign (`guest-add`)
-│   ├── ghost slot (`guest-add`)
-│   ├── picture ledge (two rails on the wall, hidden while empty)
-│   └── guest-book meshes (from guestbook.js + localStorage)
-└── player (Group, at far-right corner, rotated −π/2)
-    ├── credenza (Mesh)
-    ├── plinth (Mesh)
-    ├── platter (Mesh)
-    ├── record (Mesh)
-    ├── spindle (Mesh)
-    └── arm (Group — pivot point for tonearm rotation)
-        ├── armBase (Mesh)
-        ├── armTube (Mesh)
-        └── headshell (Mesh)
-```
+---
 
-`PointerLockControls` wraps the camera; the camera is added directly to the
-scene (the controls object / `controls.getObject()` is the camera itself in
-Three.js r170). On touch devices, Pointer Lock is skipped: the same camera
-is yaw/pitched from drag, and `moveForward` / `moveRight` still drive walking.
-
-## Real-world units
-
-Everything is in metres. Eye height is 1.62 m; books are 17.2–23.8 cm tall
-and 1.6–5.5 cm thick. Shelf boards sit at y = 0.42, 0.90, 1.38, 1.86. Room
-is 7 m wide × 6.4 m deep × 2.9 m tall. Scale being correct is why the room
-feels inhabited; a uniform 15 % error is invisible in isolation but makes
-every proportion feel wrong.
-
-## Lights
-
-Eight light sources in total (not three as originally noted):
-
-| Name | Type | Colour | Initial intensity |
-|---|---|---|---|
-| ambient | AmbientLight | 0xffeaCF | 0.62 |
-| key | PointLight | 0xffc078 | 19 |
-| fill | PointLight | 0xd8cbb4 | 7 |
-| shelfWash | PointLight | 0xffd9a0 | 7 |
-| windowLight | PointLight | 0xffd4a8 | 5.5 |
-| candleLight | PointLight | 0xffb765 | 0.9 |
-| lampLight | PointLight | 0xffc98a | 1.4 |
-| playerLight | PointLight | 0xffc98a | 3.2 |
-
-No realtime shadows anywhere. `MeshLambertMaterial` is used throughout
-(faster per-vertex lighting); `MeshPhongMaterial` is used only on the glazed
-succulent pots where the specular highlight is doing the visual work.
-`MeshBasicMaterial` (emissive, unaffected by scene lighting) is used for
-candle flames so that bloom can glow them.
-
-## Book mesh construction
-
-Each book is a `BoxGeometry` with an array of six materials. Three.js face
-order is `[+x, −x, +y, −y, +z, −z]`. Mapping:
+## 1. Module Dependency Graph (`src/`)
 
 ```
-mats = [cover, cover, PAGE_MAT, PAGE_MAT, spine, PAGE_MAT]
-         +x     −x      +y        −y        +z      −z
+reading-room.html (HTML shell, CSS, import map, HUD, detail drawer, guestbook modal)
+ └── src/main.js (bootstrapping, animation loop, book lerp, HUD sync, ?edit=1 harness)
+      ├── src/constants.js     (physical dimensions in metres, guestbook constants, damp)
+      ├── src/state.js         (single-source SETTINGS, persisted prefs, runtime, interactables)
+      ├── src/quality.js       (ultra / high / mobile tiers + low-FPS AO watchdog)
+      ├── src/renderer.js      (WebGLRenderer, cached PCFSoftShadowMap, pmndrs/postprocessing + N8AO + DoF)
+      ├── src/materials.js     (procedural PBR normal/roughness/albedo generators + shared materials)
+      ├── src/lighting.js      (warm PMREM IBL, sun shadow rig, RectAreaLight, Golden Hour <-> Rainy Dusk)
+      ├── src/room.js          (PBR oak plank floor, woven rug, walls w/ window cutout, trim, 4-panel door)
+      ├── src/exterior.js      (3D parallax outdoor world: GLSL sky dome, ridge arcs, instanced forest, birds, rain, sunbeams)
+      ├── src/window-nook.js   (mullioned window, physical glass + GLSL rain droplets, curtains, sill mood switch, bench, curio towers)
+      ├── src/props.js         (succulents, potted plants, wax candles w/ flames, vases, stacks, prints, sculptures)
+      ├── src/books.js         (bookcase carpentry, RoundedBoxGeometry books, spine/cover textures, Open Library, lever, cover arc)
+      ├── src/tables.js        (reading table, brass lamp, cover-up reading books + silk bookmarks)
+      ├── src/guestbook.js     (guest table, picture ledges, leather ledger, inkwell/quill, Worker POST, GitHub Issues sync)
+      ├── src/turntable.js     (credenza, LP sleeves, anisotropic vinyl disc, metallic platter, solved tonearm, dust cover)
+      ├── src/gallery.js       (right-wall 7-poster salon in 3-over-4 grid w/ beveled oak frames, matboards & museum glass)
+      ├── src/audio.js         (HRTF spatialized synth LP, Rainy Dusk window audio, surface-aware footsteps & foley)
+      └── src/controls.js      (PointerLock + WASD, touch drag + virtual stick + tap raycast, AABB collisions, focus-safe head-bob)
 ```
 
-`+z` faces the room (spine), `±x` are the front and back covers, the
-remaining three faces are the page block. A wall-mounted lever to the
-left of the bookcase lerps **shelf** books into an exhibition arc so
-the jacket (`+x`) faces the room. Table books skip that blend.
-Do not put the jacket texture on `+z` — that face
-is only 1.4–3 cm wide and would squash the cover.
+### Why Zero-Build Native ES Modules?
+- **Instant local dev & static hosting:** Works directly with `python3 -m http.server`
+  and GitHub Pages without Node build pipelines, Vite, or Rollup artifacts.
+- **Clean separation of concerns:** Replaces a 4,113-line single `<script>` tag
+  with 16 cohesive modules (~70–550 lines each) so humans and AI agents can
+  inspect or modify any subsystem (e.g. `exterior.js` or `audio.js`) in isolation.
 
-### Spine texture (`makeSpineTexture`)
+---
 
-Drawn to a 128 × 640 canvas at runtime:
-1. Flood-fill with the book's spine colour.
-2. Linear gradient across the width to fake curvature (dark edges,
-   light centre).
-3. Two thin horizontal bands near top and bottom (common spine design
-   motif).
-4. Title text rotated −90° and centred. Font size starts at 46 px and
-   steps down by 2 until the text fits within 470 px, flooring at 18 px.
+## 2. Scene Graph & Real-World Scale
 
-### Cover texture (`makeCoverTexture`)
-
-Drawn to a 256 × 384 canvas: spine colour as background, diagonal
-gradient, title word-wrapped to ≈200 px, author below. This face is
-rarely visible; it exists so covers aren't black when the player
-walks around a book mid-pull.
-
-To swap in real cover images, replace `makeCoverTexture` with a
-`THREE.TextureLoader` call. Set `crossOrigin` on the loader. Past ≈50
-books, pack them into a texture atlas — one texture per book creates
-50 `gl.texImage2D` calls on startup.
-
-### Book placement (`placeBooks` / `placeTableBooks`)
-
-Finished books (`!reading`) fill the three lower shelves in declaration
-order (5 / 5 / remainder across SHELF_Y[2..0]). The top shelf is decor
-only. Books with `reading` lie cover-up on the reading table to the left
-of the bookcase (`placeTableBooks`). The first four sit in a row on the
-tabletop; further titles stack on the leftmost book, each still its own
-interactable. Cover-mode does not stand them up or send them to a shelf.
-`makeTableLayout` / `layBookOnTable` is shared with the guest table.
-Each table book gets a burgundy ribbon child (`addBookmark`) inserted
-through the page block at `reading / 100` and sticking out of the
-table-front edge; it is posed once and rides with pull-out.
-
-Each shelf book is offset from the previous by its thickness plus a 4 mm
-gap. A small random Z-lean (`rotation.z ±0.015 rad`) keeps them from
-looking machine-placed.
-
-Shelf meshes store two rest poses: `spineHome` / `spineQuat` (current
-row, including the small Z-lean) and `faceHome` / `faceQuat`. Cover mode
-lifts every shelf book into a shallow arc in front of the case
-(`layoutExhibition`). Each shelf category is its own row: Harry Potter
-on its own row under the other fiction, which stays centered, then
-non-fiction (`other`) in the middle and people on top. A
-category that outgrows the arc tightens its gap, then gains a second
-rank, before any jacket shrinks. The bottom row sits lower than eye
-height so the top row stays inside a landscape window. Each jacket yaws
-toward a point in front of the arc and pitches toward eye height, so
-the upper covers face you. A rank that is still wider than the arc
-after that split scales down just enough to fit. A short centre-out lag
-(`flyLag`) makes the flock leave and return as one smooth gesture.
-Table books set `onTable`, rotate `z = −π/2` so the jacket (`+x`) faces
-up, and copy `spineHome` into `faceHome` so cover-mode is a no-op.
-Pull-out lifts them in Y rather than applying the standing-spine
-quarter-turn.
-
-The `interactables` array is declared at module scope **before**
-`placeBooks()` is called. Each book mesh is pushed into it; the
-cover-display lever (plate, arm, knob) and the tonearm hit targets
-(record, platter, plinth) are pushed in later.
-
-## Interaction model
-
-A `THREE.Raycaster` fires from normalised device coordinate (0, 0) —
-screen centre — every frame while the pointer is locked. `far` is 2.4 m.
-It tests only the `interactables` array (never the full scene graph).
-
-Each interactable carries `userData.type`: `'book'`, `'player'`, or
-`'switch'`.
-
-**Looking** at an object: crosshair scales up (`.hot` CSS class),
-prompt text appears.
-
-**Clicking** a book: sets `userData.out = true`. The animation loop
-lerps `userData.t` toward 1 over roughly 0.1 s, applied **on top of**
-the current rest pose (a blend of `spineHome` and `faceHome` by
-`coverT`):
-- Spine mode (`coverT ≈ 0`): `z + 0.17`, `y + 0.012`, `rotation.y += −0.95`
-- Cover mode (`coverT ≈ 1`): step toward you along the cover normal
-  (about 14 cm). The jacket already faces the room; another quarter-turn
-  would hide it. The book under the crosshair eases out a few centimetres
-  before the click.
-- Table books (`onTable`): lift `y + 0.08` and `z + 0.06`; no Y spin, so
-  the jacket stays facing up.
-
-Clicking again while looking at the open book closes it (`out = false`,
-`t` lerps back to 0). Clicking a different book while one is open first
-closes the open one.
-
-The detail panel (`#detail`) shows title, author, optional `note`, optional
-`review` (labeled section only when set), and finished / reading meta.
-The title is an `<a>` to `https://openlibrary.org/isbn/{isbn}`. While the
-panel is open it uses `pointer-events: auto` and `z-index` above the entry
-gate, so after Esc the player can click the title without the gate
-re-locking the pointer. Gate clicks ignore targets inside `#detail`.
-
-**Clicking** the turntable (record, platter, or plinth): toggles
-`Music.toggle()`.
-
-**Clicking** the wall lever (plate, arm, or knob), or pressing **C**
-while the pointer is locked: calls `toggleCoverMode()`. Any open book
-is closed first so the two animations do not fight. The lever throws
-up (spines) and down (covers) with `coverT`. `keydown` ignores
-`e.repeat` so holding C does not flicker. A plaque above the lever
-reads "Float the books / to view / (press C)". Prompts:
-`Click to show covers` / `Click to show spines`.
-
-## Movement and collision
-
-`PointerLockControls` handles mouse look on desktop. On `(hover: none) and
-(pointer: coarse)` — and if Pointer Lock errors or never arrives on a
-touch laptop/iPad — drag on the canvas yaws/pitches the camera (`YXZ`
-Euler) and a virtual stick on the left feeds the same `dir` vector as
-WASD. `inRoom` gates movement and interaction in both modes.
-
-Movement approaches a wish velocity with exponential smoothing each frame
-(`ACCEL = 12`). `SETTINGS.moveSpeed` is the max local speed in m/s
-(default `2.4`, matching the old steady-state of accel `22` / damp `9`):
-
-```js
-wishVel.set(dir.x, 0, dir.z).multiplyScalar(SETTINGS.moveSpeed);
-const k = 1 - Math.exp(-ACCEL * dt);
-velocity.x += (wishVel.x - velocity.x) * k;
-velocity.z += (wishVel.z - velocity.z) * k;
-```
-
-Key state is read with explicit ternaries, never `Number(keysMap[code])`.
-See GOTCHAS.md for why.
-
-A `Number.isFinite` guard resets velocity if NaN ever enters.
-
-Collision is a bounding-box clamp in `collide()`:
-1. Room walls: clamp x and z inside the room minus a 0.42 m padding.
-2. Bookcase footprint: if the player is within the case's x-extent and
-   tries to move past `CASE_MAX_Z`, clamp z to that boundary.
-3. Reading table AABB: if inside the table's x/z box, push to the
-   nearest face so the player can walk around it but not through it.
-4. Guest table AABB: same `pushOutOfBox` helper; personal space is on
-   the room-facing (−z) side because the table sits against the front
-   wall.
-5. Book nook AABB: if inside the left-wall bay (bench + flanking
-   towers), push to the nearest face so the seat cannot be walked
-   through.
-6. Eye height: `position.y` is always reset to 1.62. There is no
-   gravity and no jumping.
-
-When the clamp corrects position, local velocity is rebuilt from the
-actual world delta projected onto the camera's right/forward axes so the
-player slides along surfaces instead of fighting leftover speed into them.
-
-## Turntable
-
-The player group is placed at the far right of the room and rotated −π/2
-so it faces into the room. The tonearm pivots from a Group at
-`(0.17, 0.83, −0.13)` in player-local space.
-
-**Geometry solved against numbers:**
-- Pivot is 0.247 m from the record centre (player-local XZ).
-- Arm tube extends 0.228 m to the headshell.
-- `ARM_PARK = 0.404` clears the platter.
-- `ARM_OUTER = −0.459` lands the stylus 0.132 m from the record
-  centre (grooved area starts just inside the 0.148 m record edge).
-- `ARM_INNER = −0.710` reaches 0.075 m, just outside the label.
-
-When playing, `armTravel` increments by `dt / 420` each frame (capped
-at 0.05 s/frame). At 60 fps that is 7 minutes from outer groove to
-run-out.
-
-The record and platter rotate at 3.49 rad/s = 33⅓ rpm.
-
-## Audio graph
+All units are real-world metres (`ROOM = { w: 7, d: 6.4, h: 2.9 }`, `EYE = 1.62`):
 
 ```
-Oscillators (pads) ──┐
-Oscillators (plucks)─┤──► padGain ──────────────────────────────┐
-                     │                                           │
-                     │     ┌─► damp (lowpass 1400 Hz) ──► fb ──┤
-                     └─────┤                                     │
-                     pluck─┤───► delay (0.46 s) ──────► wet ───┤
-                           │                                     │
-                           └── (pluck goes directly to padGain) │
-                                                                 ▼
-noiseSource ──► nf (bandpass 3200 Hz) ──► noiseGain ──► tone (lowpass 2200 Hz)
-                                                                 │
-                                              padGain ──────────►│
-                                              wet ───────────────┘
-                                                                 ▼
-                                                              master (gain)
-                                                                 │
-                                                         ctx.destination
+THREE.Scene (environment = warm PMREM interior texture, Fog)
+├── Lighting (`src/lighting.js`)
+│   ├── ambient (AmbientLight) + hemi (HemisphereLight)
+│   ├── sun (DirectionalLight, PCFSoftShadowMap, shadow.autoUpdate = false)
+│   ├── fill (DirectionalLight)
+│   ├── windowArea (RectAreaLight spanning landscape window opening)
+│   └── practicals: lampLight, playerLight, sconceNorth, sconceSouth, shelfGlow, guestGlow
+├── Room Shell (`src/room.js`)
+│   ├── floor (wide-plank oak PBR: albedo + normal + per-plank roughness)
+│   ├── rug (woven wool center rug w/ geometric border, RUG_BOUNDS)
+│   ├── ceiling + back/front/right walls + 4-piece left wall framing window cutout
+│   ├── perimeter baseboards + crown molding
+│   └── doorGroup (front wall +Z at x = -1.9, 4 recessed panels, brass lever, threshold glow)
+├── 3D Parallax Exterior (`src/exterior.js`, outside -X window)
+│   ├── skyDome (r = 28 m BackSide sphere at eye height; GLSL Golden Hour <-> Rainy Dusk,
+│   │   sun + clouds driven by view elevation/azimuth)
+│   ├── 4 mountain ridge arcs (r = 4.6 / 8.2 / 13 / 18.5 m, ±78° around the window;
+│   │   painterly ShaderMaterial: sun-lit crests/slopes, base shadow, brush noise, aerial haze)
+│   ├── instanced pine forest (1 InstancedMesh, ~600 trees on the 4 crests via ridgeTop();
+│   │   per-instance aerial-perspective tint, rewritten only when moodT changes)
+│   ├── 5-bird 3D flock (Golden Hour) + 260 falling 3D rain streaks (Rainy Dusk)
+│   └── indoor volumetric sunbeams (AdditiveBlending)
+├── Built-in Book Nook (`src/window-nook.js`, left wall -X, rotated +π/2)
+│   ├── physical glass pane + GLSL animated rain-droplet & corner-mist shader
+│   ├── beveled oak frame & mullions + sheer breathing linen curtains
+│   ├── moodSwitch (interactive brass toggle on right window sill)
+│   ├── bench w/ 3 drawers, tufted physical-sheen linen cushion, 4 pillows, ceramic mug
+│   └── north & south curio towers (4 shelves each, cabinets, brass sconces, curated curios)
+├── Bookcase & Wall Lever (`src/books.js`, back wall -Z)
+│   ├── beveled oak bookcase (dimmable `caseWood`/`caseWoodDark` clones)
+│   ├── finished books (`RoundedBoxGeometry(th, h, depth)`) on lower 3 shelves
+│   ├── decorGroup (succulents, wax candles w/ flames, flat stacks, typography prints, vases)
+│   └── wallSwitch (framed plaque + brass clevis & wooden-grip lever)
+├── Reading Table (`src/tables.js`, left of bookcase)
+│   ├── beveled oak table, brass reading lamp, ceramic succulent
+│   └── cover-up `reading` books + burgundy silk ribbon bookmarks
+├── Guest Table & Wall Ledges (`src/guestbook.js`, front wall +Z right of door, rotated π)
+│   ├── beveled oak table + 2 wall picture ledges (`GUEST_LEDGE`, hidden when empty)
+│   ├── embossed leather ledger (`ledgerBlocks` open smoothly on hover/modal)
+│   ├── refractive dark-glass inkwell + brass collar + animated quill
+│   ├── standing framed sign + dashed ghost book slot
+│   └── shelved & local-pending 3D guest books + bobbing "awaiting approval" tags
+├── Hero Turntable (`src/turntable.js`, right wall +X, rotated -π/2)
+│   ├── walnut/oak credenza + 12 leaning LP sleeves
+│   └── plinth, brass feet, metal platter, felt mat, anisotropic micro-groove LP, tonearm, dust cover
+└── Salon Gallery Wall (`src/gallery.js`, right wall +X above credenza)
+    └── 7 vintage reading posters (`./posters/*.jpg`) in 3-over-4 grid w/ oak frames, matboards & glass
 ```
 
-**Chords:** Dm7 → Fmaj7 → Am7 → Gm7, cycling, each lasting 9.5 s. Each
-chord is four oscillators alternating `sine` / `triangle`, detuned by up
-to ±4.5 cents.
+---
 
-**Plucks:** 2–3 per chord, drawn from D minor pentatonic two octaves up
-(`[587.33, 698.46, 783.99, 880.0, 1046.5, 1174.66]` Hz). Each is a sine
-with a 20 ms attack and 2.6 s decay, fed into both the pad gain and the
-delay.
+## 3. Rendering, Shadows & Post-Processing Pipeline
 
-**Vinyl hiss:** white noise through a 3200 Hz bandpass, gain 0.012.
-
-**Distance falloff:** `Music.updateListener(camPos, srcPos)` computes a
-linear falloff between 1.2 m (full volume) and 7 m (38 % volume) and
-applies it to `master.gain`. Simpler and cheaper than a `PannerNode`.
-
-The `AudioContext` is not created until `Music.start()` is called, which
-happens inside `enterRoom()` — the earliest moment a user gesture is
-guaranteed (pointer-lock on desktop, tap-to-enter on touch).
-
-## Post-processing chain
+### Merged Post-Processing (`src/renderer.js`)
+Uses `pmndrs/postprocessing` (`HalfFloatType` HDR framebuffer) instead of
+legacy Three.js `examples/jsm/postprocessing` separate full-screen passes:
 
 ```
-RenderPass → UnrealBloomPass → ShaderPass(VignetteShader) → OutputPass
+RenderPass(scene, camera)
+  ──► N8AOPostPass (half-res contact AO in shelf corners, book gaps & baseboards)
+  ──► EffectPass(DepthOfFieldEffect) [enabled dynamically only when inspecting a book]
+  ──► EffectPass(BloomEffect[mipmapBlur], VignetteEffect, ToneMappingEffect[AGX], SMAAEffect)
 ```
 
-`EffectComposer` pixel ratio is set explicitly:
-```js
-composer.setPixelRatio(pixelRatio()); // 2 desktop, 1.25 touch
-```
-Without this it renders at roughly half resolution. See GOTCHAS.md.
+- **AgX Tone Mapping (`ToneMappingMode.AGX`):** Preserves warm highlights on
+  brass, lamp shades, and sunlit oak planks without ugly yellow/orange clipping.
+- **Cached Soft Shadows (`PCFSoftShadowMap`):** `renderer.shadowMap.autoUpdate`
+  is set to `false`. A shadow pass only runs when `runtime.shadowsDirty = true`
+  (initial boot, mood transition, quality change, or book movement). Steady-state
+  walking renders **zero shadow passes per frame**.
 
-Bloom parameters: strength 0.16, radius 0.45, threshold 0.90. The high
-threshold means only the brightest surfaces (candle flames via
-`MeshBasicMaterial`) bloom visibly. Emissive geometry and bloom amplify
-each other — tune them together.
+### Dual Mood System (`golden` ↔ `rain`)
+`runtime.moodT` smoothly damps between `0` (Golden Hour) and `1` (Cozy Rainy Dusk):
+- **Exterior (`exterior.js` & `window-nook.js`):** Sky shader transitions from
+  warm amber sun halo to deep twilight blue; ridge shaders (`uMood`) lose
+  their warm crest light and shift cool; foliage shifts cool;
+  birds and sunbeams fade out while 3D rain streaks and GLSL
+  window-pane trickling droplets fade in.
+- **Interior (`lighting.js`):** Directional sun dims and cools while practical
+  warm indoor point lights (`lampLight`, `playerLight`, `sconceNorth/South`,
+  `shelfGlow`, `guestGlow`), lamp shade emissive, and flickering candle flames
+  illuminate the study.
+- **Audio (`audio.js`):** Spatialized pink-noise rain patter outside the
+  window smoothly fades in via `rainGain`.
 
-## Design harness (lil-gui)
+---
 
-The panel is visible only with `?edit=1` in the URL, and then only when
-the pointer is unlocked (the entry gate). Visitors never see it. It edits
-a `SETTINGS` object and applies changes live to the scene. When the look
-feels right, "Copy settings" writes `JSON.stringify(SETTINGS)` to the
-clipboard. Paste the values you want back into the source as new
-hardcoded defaults.
+## 4. Book Mesh Orientation & Cover Exhibition Invariants
 
-**Important:** `SETTINGS` is initialised with values that were set at an
-earlier stage of development. Several of them do not match the current
-hardcoded scene initialisation values (see GOTCHAS.md). Before copying
-settings, verify that any slider you did not move shows the actual scene
-value — adjust it if not.
-
-Folders:
-- **Grade** — tone mapping exposure, bloom (strength / radius / threshold),
-  vignette (offset / darkness), global post-processing on/off toggle.
-- **Lighting** — ambient, key, fill, and shelf wash colours and intensities.
-  Key position (x/y/z).
-- **Room** — fog near/far, FOV, move speed.
-- **Sound** — volume slider, play/pause toggle.
-
-## Guest table and guestbook
-
-The guest table sits against the front wall, right of the door
-(`GUEST_X = 1.9`, `GUEST_Z = ROOM.d/2 − table depth/2`), rotated π so it
-shares the reading-table layout code (local +z toward the viewer).
+Every book mesh uses `RoundedBoxGeometry(b.th, b.h, depth)` with Three.js
+6-material face order:
 
 ```
-Form ──POST──► Cloudflare Worker ──PAT──► GitHub Issue (label: recommendation)
-                                         │
-                                         ├─ public API ──► ledger "Waiting"
-                                         │
-                    you add `approved` ──┴── Action ──► guestbook.js ──► 3D books
-Guest's own POST ──► localStorage ──► 3D book with pending tag (dopamine)
+[coverMat (+x), backMat (-x), PAGE_BLOCK_MAT (+y), PAGE_BLOCK_MAT (-y), spineMat (+z), PAGE_BLOCK_MAT (-z)]
 ```
 
-**Source of truth.** Committed entries in `guestbook.js` render as dark
-ink in the open ledger and as 3D books. `splitGuestDisplay` decides
-where: the newest `GUEST_ON_TABLE = 3` lie on the table, except that
-each guest named in `GUEST_ALWAYS_ON_TABLE` holds one of those places
-with their newest book however old it is. Older books stand cover-out
-on the picture ledge above the table (`GUEST_LEDGE`, two rails of
-eight, each row centred; `standGuestRow`). Once the ledge is full the
-guest with the most books showing gives up their oldest first. Dropped
-books stay in the ledger. Ledge books use the same nest-group pull-out
-as table books (`adoptNestedBook`). The submitter's own pending entries
-are stored in `localStorage` (`rr-guest-mine`) and placed on the table
-with a paper tag (Lambert `emissive` pulse + 4 mm bob). Other visitors'
-unapproved books are ledger-only unless `GUEST_PENDING_ON_TABLE` is
-flipped.
+- **Standing on Bookcase (`rotation.y = 0`):** `+z` (spine) faces the room (`+Z`).
+- **Cover Exhibition Arc (`rotation.y = -Math.PI / 2 - theta`):** `+x` (front
+  jacket) faces the viewer along a shallow 3.15 m arc (`people` top, `other`
+  second, `fiction` third, `Harry Potter` bottom).
+- **Lying on Reading / Guest Tables:** `mesh.rotation.z = -Math.PI / 2` inside
+  a `wrap` group (`wrap.rotation.y ≈ Math.PI / 2 ± jitter`) so `+x` (front
+  cover) faces straight up (`+Y`) and `+z` (spine) faces left. Pulling a table
+  book lifts `wrap` in `Y`/`Z` and tilts `mesh.rotation.x` toward the viewer.
 
-**On load** the client reconciles: if `guestbook.js` has that issue
-`id`, the local copy is treated as shelved and no tag is added; a
-public `GET /issues/{n}` that comes back closed without a matching
-entry drops the local copy (declined). The open-issue list is fetched
-unauthenticated, cached in `sessionStorage` for ten minutes, and
-ignored on failure.
+---
 
-**Abuse** is enforced in `worker/worker.js`: 20 posts per hashed IP
-(KV, no expiry), 3/min burst, origin allow-list, field lengths, no
-URLs, ISBN/cover format, 30-day duplicate key, stop at 100 open
-issues, honeypot. The client mirrors the count as UX only.
+## 5. Spatial Audio & Foley Graph (`src/audio.js`)
 
-**Desktop flow.** Clicking a `guestbook` or `guest-add` target sets
-`guestbookOpen`, shows `#gb-dim` over the live canvas, and calls
-`controls.unlock()` so the guest can type. The unlock handler must
-**not** call `leaveRoom()` while that flag is set — the 3D room keeps
-rendering. Esc, the dimmer, or Close hide the overlay and re-lock.
-Touch stays in the room and opens the same cream/leather book as a
-bottom sheet (stick hidden); a HUD button opens the form from anywhere.
+```
+Synth Pads + Plucks + Slapback Delay + Vinyl Crackle
+  ──► musicBus (GainNode)
+  ──► panner (HRTF PannerNode at turntable worldPos) ──┐
+                                                       ├──► master ──► ctx.destination
+Pink-Noise Rain Loop ──► Lowpass (1150 Hz)             │
+  ──► rainGain (tracks moodT)                          │
+  ──► rainPanner (HRTF PannerNode at window opening) ──┤
+                                                       │
+Procedural Foley (oak/rug footsteps, book slide, click)┘
+```
+
+- Every scheduled `OscillatorNode` registers an `onended` handler to delete
+  itself from `activeVoices` (`Set`), preventing oscillator memory accumulation.
+- `AudioContext` is lazily created on the first user gesture (`enterRoom()`).
+
+---
+
+## 6. Adaptive Quality Tiers (`src/quality.js`)
+
+| Tier | Default On | Max DPR | Cached Soft Shadows | `N8AO` Contact AO | SMAA |
+| --- | --- | --- | --- | --- | --- |
+| `ultra` | Manual toggle | `2.0` | `2048²` | Full-res | Yes |
+| `high` | Desktop | `1.75` | `1536²` | Half-res | Yes |
+| `mobile` (`Fast`) | Touch / Mobile | `1.25` | Off | Off | Off |
+
+`monitorPerformance()` samples 2-second windows while `runtime.inRoom` is true;
+if sustained FPS drops below 43 for two consecutive windows, it steps `ultra`
+down to `high`, or disables `aoEnabled` on `high`.

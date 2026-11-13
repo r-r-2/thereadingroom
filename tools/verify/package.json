@@ -1,0 +1,13 @@
+{
+  "name": "reading-room-verify",
+  "private": true,
+  "type": "module",
+  "description": "On-demand headless checks for The Reading Room (not part of the site; the room itself stays build-free).",
+  "scripts": {
+    "check": "node verify.mjs check",
+    "visual": "node verify.mjs visual"
+  },
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}
