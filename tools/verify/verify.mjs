@@ -342,6 +342,8 @@ async function shoot(browser, base, dir, log) {
   await page.screenshot({ path: path.join(dir, 'gate.png') });
   await enter(page);
   await waitForCovers(page);
+  // Mood now follows the local clock on load; start every run from Golden Hour.
+  if (await page.evaluate(() => window.__room.runtime?.mood === 'rain')) await toggle(page, 'mood');
   await page.clock.runFor(500);
   let covers = false;
   let rain = false;
