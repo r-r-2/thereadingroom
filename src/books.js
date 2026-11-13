@@ -662,7 +662,6 @@ export function buildBookcaseAndBooks(scene, BOOKS, renderer) {
     leverPivot.rotation.x = THREE.MathUtils.lerp(0.55, 2.35, runtime.coverT);
     caseWood.color.lerpColors(caseWoodBase, caseWoodDim, runtime.coverT);
     caseWoodDark.color.lerpColors(caseWoodDarkBase, caseWoodDarkDim, runtime.coverT);
-    decorGroup.visible = runtime.coverT < 0.85;
   }
 
   return {
