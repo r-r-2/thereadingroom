@@ -88,7 +88,42 @@ function makeWoodGrainMaps(repeatX = 2, repeatY = 2) {
     x.fillRect(Math.random() * 256, Math.random() * 256, 36 + Math.random() * 80, 1.2);
   }
   const normal = heightToNormal(c, 0.7, repeatX, repeatY);
-  return { normal };
+
+  // Colour grain: near-white base with long wavy darker streaks, a few dark
+  // lines and soft tone bands. Multiplied by each wood material's colour, so
+  // one texture serves oak, walnut, door and trim alike.
+  const a = document.createElement('canvas');
+  a.width = a.height = 256;
+  const ax = a.getContext('2d');
+  ax.fillStyle = 'rgb(238,236,232)';
+  ax.fillRect(0, 0, 256, 256);
+  for (let y = 0; y < 256; y++) {
+    const band = Math.sin(y * 0.045) * 7 + Math.sin(y * 0.17 + 1.3) * 4;
+    if (band < 0) {
+      ax.fillStyle = `rgba(120,96,70,${(-band / 11) * 0.14})`;
+      ax.fillRect(0, y, 256, 1);
+    }
+  }
+  for (let i = 0; i < 70; i++) {
+    const y0 = Math.random() * 256;
+    const amp = 1 + Math.random() * 3;
+    const freq = 0.01 + Math.random() * 0.02;
+    const dark = Math.random() < 0.18;
+    ax.strokeStyle = dark ? 'rgba(80,58,38,0.32)' : 'rgba(120,94,66,0.16)';
+    ax.lineWidth = dark ? 0.9 : 0.6 + Math.random() * 1.4;
+    ax.beginPath();
+    for (let x = 0; x <= 256; x += 8) {
+      const yy = y0 + Math.sin(x * freq + i) * amp;
+      if (x === 0) ax.moveTo(x, yy); else ax.lineTo(x, yy);
+    }
+    ax.stroke();
+  }
+  const map = new THREE.CanvasTexture(a);
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  map.repeat.set(repeatX, repeatY);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 8;
+  return { normal, map };
 }
 
 function makeFabricNormal(repeatX = 6, repeatY = 6) {
@@ -131,9 +166,9 @@ export function makeFloorTextures(maxAnisotropy = 8) {
   const ph = H / planks;
   for (let i = 0; i < planks; i++) {
     const shade = (i % 3 - 1) * 8 + (Math.random() - 0.5) * 6;
-    const r = Math.min(255, Math.max(0, 200 + shade));
-    const g = Math.min(255, Math.max(0, 155 + shade * 0.82));
-    const b = Math.min(255, Math.max(0, 108 + shade * 0.65));
+    const r = Math.min(255, Math.max(0, 186 + shade));
+    const g = Math.min(255, Math.max(0, 136 + shade * 0.82));
+    const b = Math.min(255, Math.max(0, 88 + shade * 0.65));
     ax.fillStyle = `rgb(${r | 0},${g | 0},${b | 0})`;
     ax.fillRect(0, i * ph, W, ph - 2);
 
@@ -210,7 +245,8 @@ export const TRIM_MAT = new THREE.MeshStandardMaterial({
 });
 
 export const WOOD = new THREE.MeshStandardMaterial({
-  color: 0xc49a68,
+  color: 0xb27a46,   // warm medium oak (x grain map)
+  map: woodGrain.map,
   roughness: 0.56,
   metalness: 0.02,
   normalMap: woodGrain.normal,
@@ -218,7 +254,8 @@ export const WOOD = new THREE.MeshStandardMaterial({
 });
 
 export const WOOD_DARK = new THREE.MeshStandardMaterial({
-  color: 0xa67e4e,
+  color: 0x86593a,   // walnut accents
+  map: woodGrain.map,
   roughness: 0.6,
   metalness: 0.02,
   normalMap: woodGrain.normal,
@@ -226,7 +263,8 @@ export const WOOD_DARK = new THREE.MeshStandardMaterial({
 });
 
 export const DOOR_WOOD = new THREE.MeshStandardMaterial({
-  color: 0xa07850,
+  color: 0x96673f,
+  map: woodGrain.map,
   roughness: 0.52,
   metalness: 0.02,
   normalMap: woodGrain.normal,
@@ -234,7 +272,8 @@ export const DOOR_WOOD = new THREE.MeshStandardMaterial({
 });
 
 export const DOOR_RECESS = new THREE.MeshStandardMaterial({
-  color: 0x87623e,
+  color: 0x744d30,
+  map: woodGrain.map,
   roughness: 0.62,
   metalness: 0.02,
   normalMap: woodGrain.normal,
@@ -242,7 +281,8 @@ export const DOOR_RECESS = new THREE.MeshStandardMaterial({
 });
 
 export const DOOR_TRIM = new THREE.MeshStandardMaterial({
-  color: 0xb89066,
+  color: 0xa2744a,
+  map: woodGrain.map,
   roughness: 0.5,
   metalness: 0.02
 });
@@ -266,7 +306,7 @@ export const FELT = new THREE.MeshStandardMaterial({
 });
 
 export const PLINTH = new THREE.MeshStandardMaterial({
-  color: 0xb68c5c,
+  color: 0xa06f44,
   roughness: 0.44,
   metalness: 0.04,
   normalMap: woodGrain.normal,
