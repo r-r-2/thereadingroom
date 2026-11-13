@@ -10,7 +10,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { TABLE } from './constants.js';
 import { interactables, books } from './state.js';
 import { WOOD, WOOD_DARK, BRASS, CERAMIC, SHADE_MAT, BOOKMARK_MAT } from './materials.js';
-import { makeSucculent } from './props.js';
+import { makeSucculent, makeTableLamp } from './props.js';
 import { makeBookMaterials, loadCover } from './books.js';
 
 export function buildReadingTable(scene, BOOKS, renderer) {
@@ -56,33 +56,7 @@ export function buildReadingTable(scene, BOOKS, renderer) {
   }
 
   /* ---- Brass Reading Lamp ---- */
-  const lamp = new THREE.Group();
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.082, 0.018, 22), BRASS);
-  base.position.y = 0.009;
-  base.castShadow = true;
-  lamp.add(base);
-
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.013, 0.27, 14), BRASS);
-  stem.position.y = 0.018 + 0.135;
-  stem.castShadow = true;
-  lamp.add(stem);
-
-  const bulb = new THREE.Mesh(
-    new THREE.SphereGeometry(0.022, 12, 10),
-    new THREE.MeshBasicMaterial({ color: 0xffe2a8 })
-  );
-  bulb.position.y = 0.28;
-  lamp.add(bulb);
-
-  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.135, 0.145, 24, 1, true), SHADE_MAT);
-  shade.position.y = 0.018 + 0.27 + 0.04;
-  shade.castShadow = true;
-  lamp.add(shade);
-
-  const finial = new THREE.Mesh(new THREE.SphereGeometry(0.01, 10, 8), BRASS);
-  finial.position.y = 0.398;
-  lamp.add(finial);
-
+  const lamp = makeTableLamp();
   lamp.position.set(0.4, TABLE.h, -0.12);
   readingTable.add(lamp);
 

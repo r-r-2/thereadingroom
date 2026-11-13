@@ -7,9 +7,10 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { ROOM, STAND, ARM_PARK, ARM_OUTER, ARM_INNER, damp } from './constants.js';
+import { ROOM, STAND, ARM_PARK, ARM_OUTER, ARM_INNER, CREDENZA_LAMP, LAMP_SCALE, damp } from './constants.js';
 import { interactables } from './state.js';
 import { WOOD, WOOD_DARK, PLINTH, METAL, BRASS, FELT } from './materials.js';
+import { makeTableLamp } from './props.js';
 
 function makeVinylGrooveTextures() {
   const c = document.createElement('canvas');
@@ -62,6 +63,13 @@ export function buildTurntable(scene) {
   playerUnit.position.set(ROOM.w / 2 - STAND.d / 2 - 0.06, 0, -0.4);
   playerUnit.rotation.y = -Math.PI / 2;
   scene.add(playerUnit);
+
+  // Small lamp on the free end of the credenza: the visible source of the
+  // corner glow (lighting.js places its PointLight in this shade).
+  const creLamp = makeTableLamp(LAMP_SCALE);
+  creLamp.position.set(CREDENZA_LAMP.x, STAND.h, CREDENZA_LAMP.z);
+  creLamp.rotation.y = 0.4;
+  playerUnit.add(creLamp);
 
   function sPart(w, h, d, mat, x, y, z, bevel = 0.004) {
     const geo = bevel > 0

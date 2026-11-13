@@ -22,7 +22,8 @@ import {
   makeCandle,
   makeVase,
   makeFlatStack,
-  makeFramedPrint
+  makeFramedPrint,
+  makePictureLight
 } from './props.js';
 
 export const MONTHS = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
@@ -439,6 +440,10 @@ export function buildBookcaseAndBooks(scene, BOOKS, renderer) {
   part(T, CASE.h, CASE.d, caseWood, -CASE.w / 2 + T / 2, CASE.h / 2, 0);
   part(T, CASE.h, CASE.d, caseWood, CASE.w / 2 - T / 2, CASE.h / 2, 0);
   part(CASE.w + 0.04, T * 1.2, CASE.d + 0.03, caseWood, 0, CASE.h + T * 0.6, 0.01);
+  // Library picture light on the top front edge: the visible source of shelfGlow.
+  const caseLight = makePictureLight(CASE.w * 0.55);
+  caseLight.position.set(0, CASE.h - 0.05, CASE.d / 2 + 0.02);
+  bookcase.add(caseLight);
   part(CASE.w - T * 2, 0.06, 0.02, caseWoodDark, 0, 0.03, CASE.d / 2 - 0.02);
   SHELF_Y.forEach((y) => part(CASE.w - T * 2, T, CASE.d - 0.016, caseWood, 0, y, 0.004));
 

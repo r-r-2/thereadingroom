@@ -25,7 +25,8 @@ import {
   PLANT_A,
   PLANT_B,
   PLANT_C,
-  SOIL
+  SOIL,
+  SHADE_MAT
 } from './materials.js';
 
 export function makeSucculent(scale = 1, potMat = TERRACOTTA) {
@@ -442,5 +443,60 @@ export function makeGlassBottle(h = 0.19, r = 0.042) {
   const cork = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.26, r * 0.23, 0.022, 12), WOOD_DARK);
   cork.position.y = h * 0.95;
   g.add(cork);
+  return g;
+}
+
+/* Brass table lamp with a SHADE_MAT cone (glows in Rainy Dusk). Base at y = 0;
+   `LAMP_LIGHT_Y * scale` is where its PointLight belongs (inside the shade). */
+export const LAMP_LIGHT_Y = 0.3;
+export function makeTableLamp(scale = 1) {
+  const lamp = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.082, 0.018, 22), BRASS);
+  base.position.y = 0.009;
+  base.castShadow = true;
+  lamp.add(base);
+
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.013, 0.27, 14), BRASS);
+  stem.position.y = 0.018 + 0.135;
+  stem.castShadow = true;
+  lamp.add(stem);
+
+  const bulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.022, 12, 10),
+    new THREE.MeshBasicMaterial({ color: 0xffe2a8 })
+  );
+  bulb.position.y = 0.28;
+  lamp.add(bulb);
+
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.135, 0.145, 24, 1, true), SHADE_MAT);
+  shade.position.y = 0.018 + 0.27 + 0.04;
+  shade.castShadow = true;
+  lamp.add(shade);
+
+  const finial = new THREE.Mesh(new THREE.SphereGeometry(0.01, 10, 8), BRASS);
+  finial.position.y = 0.398;
+  lamp.add(finial);
+
+  lamp.scale.setScalar(scale);
+  return lamp;
+}
+
+/* Brass library picture light: a shaded bar on a short arm, mounted on the
+   top front edge of a case and washing light down over the shelves. */
+export function makePictureLight(width = 0.5) {
+  const g = new THREE.Group();
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.035, 0.012), BRASS);
+  g.add(plate);
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.12, 10), BRASS);
+  arm.rotation.x = Math.PI / 2 - 0.35;
+  arm.position.set(0, 0.02, 0.055);
+  g.add(arm);
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, width, 18, 1, true, 0, Math.PI), BRASS);
+  bar.rotation.z = Math.PI / 2;
+  bar.position.set(0, 0.045, 0.11);
+  g.add(bar);
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(width * 0.94, 0.006, 0.026), SHADE_MAT);
+  glow.position.set(0, 0.032, 0.11);
+  g.add(glow);
   return g;
 }

@@ -59,6 +59,10 @@ export const GUEST_LEDGE = {
 };
 
 export const STAND = { w: 1.15, d: 0.46, h: 0.72 };
+// Lamp spots in their furniture's local space (lighting.js mirrors them in world space)
+export const CREDENZA_LAMP = { x: 0.42, z: -0.08 };   // free right end of the credenza
+export const GUEST_LAMP = { x: -0.84, z: -0.16 };     // free left end of the guest table
+export const LAMP_SCALE = 0.82;
 export const ARM_PARK = 0.404;
 export const ARM_OUTER = -0.459;
 export const ARM_INNER = -0.710;

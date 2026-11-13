@@ -6,7 +6,8 @@
 
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { ROOM, NOOK, TABLE } from './constants.js';
+import { ROOM, NOOK, TABLE, CASE, STAND, GUEST_TABLE, CREDENZA_LAMP, GUEST_LAMP, LAMP_SCALE } from './constants.js';
+import { LAMP_LIGHT_Y } from './props.js';
 import { SETTINGS, runtime, candleFlames } from './state.js';
 import { currentTier } from './quality.js';
 import { SHADE_MAT, WAX } from './materials.js';
@@ -114,23 +115,30 @@ export function createLighting(scene, renderer) {
   lampLight.position.set(TABLE.x + 0.40, TABLE.h + 0.30, TABLE.z - 0.12);
   scene.add(lampLight);
 
+  /* Every practical light sits inside a visible fixture (no glow from nowhere).
+     Credenza unit: origin (ROOM.w/2 - STAND.d/2 - 0.06, 0, -0.4), yaw -π/2,
+     so local (x, z) -> world (ox - z, -0.4 + x). */
+  const lampY = LAMP_LIGHT_Y * LAMP_SCALE;
   const playerLight = new THREE.PointLight(0xffbe76, 0.06, 3.0, 1.8);
-  playerLight.position.set(ROOM.w / 2 - 0.72, 1.32, -0.4);
+  playerLight.position.set(ROOM.w / 2 - STAND.d / 2 - 0.06 - CREDENZA_LAMP.z, STAND.h + lampY, -0.4 + CREDENZA_LAMP.x);
   scene.add(playerLight);
 
   const sconceSpan = NOOK.winW / 2 + NOOK.frameT + NOOK.towerW / 2;
   const sconceNorth = new THREE.PointLight(0xffb86b, 0.05, 2.6, 1.9);
-  sconceNorth.position.set(-ROOM.w / 2 + NOOK.towerD + 0.14, 1.84, NOOK.worldZ - sconceSpan);
+  // Inside the sconce shades (window-nook.js: sconce at y 2.38, shade +0.04 up, +0.105 out)
+  sconceNorth.position.set(-ROOM.w / 2 + NOOK.towerD + 0.11, 2.37, NOOK.worldZ - sconceSpan);
   const sconceSouth = new THREE.PointLight(0xffb86b, 0.05, 2.6, 1.9);
-  sconceSouth.position.set(-ROOM.w / 2 + NOOK.towerD + 0.14, 1.84, NOOK.worldZ + sconceSpan);
+  sconceSouth.position.set(-ROOM.w / 2 + NOOK.towerD + 0.11, 2.37, NOOK.worldZ + sconceSpan);
   scene.add(sconceNorth, sconceSouth);
 
-  const shelfGlow = new THREE.PointLight(0xffaa58, 0.0, 2.2, 2.0);
-  shelfGlow.position.set(0.35, 1.52, -ROOM.d / 2 + 0.48);
+  // Just under the brass picture light on the bookcase's top front edge (books.js)
+  const shelfGlow = new THREE.PointLight(0xffaa58, 0.0, 2.8, 2.0);
+  shelfGlow.position.set(0, CASE.h - 0.07, -ROOM.d / 2 + CASE.d + 0.03 + 0.14);
   scene.add(shelfGlow);
 
   const guestGlow = new THREE.PointLight(0xffbe76, 0.04, 2.6, 1.9);
-  guestGlow.position.set(1.9, 1.38, ROOM.d / 2 - 0.42);
+  // Guest table is yawed π: local (x, z) -> world (GT.x - x, GT.z - z)
+  guestGlow.position.set(GUEST_TABLE.x - GUEST_LAMP.x, GUEST_TABLE.h + lampY, GUEST_TABLE.z - GUEST_LAMP.z);
   scene.add(guestGlow);
 
   const fogGolden = new THREE.Color(0xf1e6d6);
@@ -187,7 +195,7 @@ export function createLighting(scene, renderer) {
     sconceNorth.intensity = THREE.MathUtils.lerp(0.05, 1.25, m);
     sconceSouth.intensity = THREE.MathUtils.lerp(0.05, 1.25, m);
     guestGlow.intensity = THREE.MathUtils.lerp(0.04, 1.05, m);
-    shelfGlow.intensity = Math.max(0, THREE.MathUtils.lerp(0.0, 0.85 + flicker * 2.0, m) * coverDim);
+    shelfGlow.intensity = THREE.MathUtils.lerp(0.0, 0.85, m) * coverDim; // steady lamp, no candle flicker
 
     SHADE_MAT.emissiveIntensity = THREE.MathUtils.lerp(0.06, 0.95, m);
     WAX.emissiveIntensity = THREE.MathUtils.lerp(0.0, 0.32 + flicker, m);

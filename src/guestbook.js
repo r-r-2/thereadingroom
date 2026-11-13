@@ -24,9 +24,10 @@ import {
   GUEST_TABLE,
   GUEST_LEDGE,
   damp
-} from './constants.js';
+, GUEST_LAMP, LAMP_SCALE } from './constants.js';
 import { runtime, interactables, books, track } from './state.js';
 import { WOOD, WOOD_DARK, BRASS, LEATHER, PAGE_MAT, GLASS, makePlaque } from './materials.js';
+import { makeTableLamp } from './props.js';
 import { makeBookMaterials, loadCover } from './books.js';
 
 const RELAY_LIVE = Boolean(GUEST_RELAY_URL) && !GUEST_RELAY_URL.includes('YOUR-SUBDOMAIN');
@@ -38,6 +39,12 @@ export function buildGuestbookSystem(scene, GUESTS, renderer, hooks) {
   guestTable.position.set(GUEST_TABLE.x, 0, GUEST_TABLE.z);
   guestTable.rotation.y = Math.PI;
   scene.add(guestTable);
+
+  // Small lamp at the free end: the visible source of the guest-table glow.
+  const guestLamp = makeTableLamp(LAMP_SCALE);
+  guestLamp.position.set(GUEST_LAMP.x, GUEST_TABLE.h, GUEST_LAMP.z);
+  guestLamp.rotation.y = -0.3;
+  guestTable.add(guestLamp);
 
   /* ---- 1. Beveled Oak Table & Stretcher ---- */
   const topT = 0.034;
