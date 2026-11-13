@@ -225,6 +225,10 @@
     .gb-spread::after{display:none}
   }
 
+  /* First-visit entrance: black veil that fades out as the camera walks in */
+  #intro-fade{position:fixed;inset:0;z-index:13;background:#0d0a07;opacity:0;pointer-events:none;display:none}
+  #intro-fade.on{display:block;opacity:1}
+  #intro-fade.on.fade{opacity:0;transition:opacity 1.4s ease .15s}
   #loading{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
     font-size:13px;color:#B8A896;letter-spacing:.03em}
 </style>
@@ -232,6 +236,7 @@
 <body>
 
 <div id="loading">Lighting the room&hellip;</div>
+<div id="intro-fade"></div>
 <script>
   function showError(msg) {
     const el = document.getElementById('loading');

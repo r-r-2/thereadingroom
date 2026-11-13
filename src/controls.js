@@ -23,6 +23,7 @@ import {
 import {
   SETTINGS,
   EDIT,
+  REDUCED_MOTION,
   runtime,
   interactables,
   savePrefs,
@@ -95,12 +96,64 @@ export function setupControlsAndInteractions({
       hasEnteredOnce = true;
       audio.start();
       guestbookApi.showFirstVisitToast();
+      maybeStartIntro();
     }
     onHudSync?.();
     track('room_enter', { method });
   }
 
+  /* ---- First-visit cinematic entrance ----
+     Fade in from black and walk in from the doorway while the gaze sweeps from
+     the window nook to the bookcase. First visit only (localStorage), skipped
+     on ?edit=1 (keeps the harness deterministic; ?intro=1 forces it) and for
+     prefers-reduced-motion. Any key or click jumps to the end pose. */
+  const INTRO_KEY = 'rr-v2-intro-seen';
+  const INTRO_DUR = 4.2;
+  const INTRO = {
+    from: new THREE.Vector3(-1.9, EYE, ROOM.d / 2 - 0.35),     // just inside the door
+    to: new THREE.Vector3(-0.6, EYE, 1.6),
+    lookFrom: new THREE.Vector3(-ROOM.w / 2, 1.35, NOOK.worldZ), // window nook
+    lookTo: new THREE.Vector3(0, 1.25, -ROOM.d / 2)              // bookcase
+  };
+  const _introLook = new THREE.Vector3();
+  let intro = null;
+  const introFade = document.getElementById('intro-fade');
+
+  function maybeStartIntro() {
+    const forced = new URLSearchParams(location.search).has('intro');
+    let seen = false;
+    try { seen = localStorage.getItem(INTRO_KEY) === '1'; } catch { /* private mode */ }
+    if (!forced && (seen || EDIT || REDUCED_MOTION)) return;
+    intro = { t: 0, steps: 0 };
+    introFade?.classList.add('on');
+    requestAnimationFrame(() => introFade?.classList.add('fade'));
+    applyIntroPose(0);
+  }
+  function applyIntroPose(k) {
+    const e = k * k * (3 - 2 * k);                // smoothstep ease
+    camera.position.lerpVectors(INTRO.from, INTRO.to, e);
+    _introLook.lerpVectors(INTRO.lookFrom, INTRO.lookTo, e);
+    camera.lookAt(_introLook);
+  }
+  function finishIntro() {
+    if (!intro) return;
+    applyIntroPose(1);
+    intro = null;
+    introFade?.classList.remove('on', 'fade');
+    try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* ignore */ }
+  }
+  function advanceIntro(dt) {
+    intro.t += dt;
+    const k = Math.min(1, intro.t / INTRO_DUR);
+    applyIntroPose(k);
+    // Soft footsteps through the walk (4 steps across the middle of the move)
+    const step = Math.floor((k - 0.12) / 0.17);
+    if (k > 0.12 && k < 0.85 && step >= intro.steps) { intro.steps = step + 1; audio.playFootstep(false); }
+    if (k >= 1) finishIntro();
+  }
+
   function onLeaveRoom() {
+    finishIntro();
     runtime.inRoom = false;
     lastLeaveAt = performance.now();
     gate.classList.remove('hidden');
@@ -162,6 +215,7 @@ export function setupControlsAndInteractions({
   /* ---- Keyboard Input (NaN-safe explicit boolean map) ---- */
   const keys = {};
   window.addEventListener('keydown', (e) => {
+    if (intro) { finishIntro(); return; }
     if (runtime.guestbookOpen) {
       if (e.code === 'Escape') { e.preventDefault(); guestbookApi.closeGuestbook(true); }
       return;
@@ -339,6 +393,7 @@ export function setupControlsAndInteractions({
   }
 
   window.addEventListener('mousedown', (e) => {
+    if (intro) { finishIntro(); return; }
     if (runtime.useTouch || !controls.isLocked || e.button !== 0) return;
     handleTarget(runtime.looked, 'pointer');
   });
@@ -386,6 +441,7 @@ export function setupControlsAndInteractions({
   }
 
   renderer.domElement.addEventListener('touchstart', (e) => {
+    if (intro) { finishIntro(); return; }
     if (!runtime.useTouch || !runtime.inRoom || lookTouchId !== null) return;
     const t = e.changedTouches[0];
     lookTouchId = t.identifier;
@@ -468,6 +524,7 @@ export function setupControlsAndInteractions({
   let lastStepHalfCycle = 0;
 
   function updateMovement(t, dt) {
+    if (intro) { advanceIntro(dt); return; }
     if (controls.isLocked || (runtime.useTouch && runtime.inRoom)) {
       // NaN-safe explicit ternaries (never Number(keys[...]))
       const kbZ = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);

@@ -183,6 +183,13 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - **description:** imperative, lowercase, no trailing period — explain *why*
 - One concern per commit.
 
+## First-visit entrance
+
+On a visitor's first entry the camera fades in and walks in from the door
+while the gaze sweeps from the window nook to the bookcase (`maybeStartIntro`
+in `src/controls.js`, flag `rr-v2-intro-seen`). Skipped on `?edit=1` (append
+`&intro=1` to force it) and for `prefers-reduced-motion`; any key/click/tap skips.
+
 ## Verifying a change
 
 **Automated (on demand):** `/verify-room` (skill in `.claude/skills/verify-room/`)
