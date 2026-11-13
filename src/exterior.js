@@ -22,6 +22,10 @@ export function buildExterior(scene) {
   // Low sun slightly toward +z (azimuth measured from -X, the window's outward axis)
   const SUN_DIR = new THREE.Vector3(-22, 2.58, 3.8).normalize();
   const SUN_AZ = Math.atan2(SUN_DIR.z, -SUN_DIR.x);
+  // Night: crescent moon on the other side of the window, a little higher.
+  // The second direction is the offset "shadow" disc that carves the crescent.
+  const MOON_DIR = new THREE.Vector3(-22, 4.6, -5.2).normalize();
+  const MOON_CUT = MOON_DIR.clone().add(new THREE.Vector3(0, 0.014, 0.026)).normalize();
 
   /* ---- 1. Atmospheric Sky Dome (GLSL shader: Golden Hour ↔ Rainy Dusk) ---- */
   // An inside-facing sphere centred at eye height just outside the window, so
@@ -30,7 +34,9 @@ export function buildExterior(scene) {
   const skyUniforms = {
     uTime: { value: 0 },
     uMood: { value: runtime.moodT },
-    uSunDir: { value: SUN_DIR }
+    uSunDir: { value: SUN_DIR },
+    uMoonDir: { value: MOON_DIR },
+    uMoonCut: { value: MOON_CUT }
   };
 
   const skyMat = new THREE.ShaderMaterial({
@@ -49,6 +55,8 @@ export function buildExterior(scene) {
       uniform float uTime;
       uniform float uMood;
       uniform vec3 uSunDir;
+      uniform vec3 uMoonDir;
+      uniform vec3 uMoonCut;
       varying vec3 vDir;
 
       float hash(vec2 p) {
@@ -102,6 +110,18 @@ export function buildExterior(scene) {
 
         vec3 col = mix(golden, rainy, uMood);
         col = mix(col, cloudCol, cloudMask * mix(0.42, 0.65, uMood));
+
+        // Crescent moon (night only): bright disc minus an offset disc, faint
+        // cool halo, dimmed a little where clouds drift across it.
+        float dMoon = acos(clamp(dot(dir, uMoonDir), -1.0, 1.0));
+        float dCut = acos(clamp(dot(dir, uMoonCut), -1.0, 1.0));
+        float moonR = 0.032;
+        float disc = smoothstep(moonR + 0.003, moonR - 0.003, dMoon);
+        float cut = smoothstep(moonR + 0.003, moonR - 0.003, dCut);
+        float crescent = disc * (1.0 - cut);
+        float moonVis = smoothstep(0.35, 0.9, uMood) * (1.0 - cloudMask * 0.55);
+        col += vec3(0.62, 0.68, 0.80) * exp(-dMoon * 9.0) * 0.16 * moonVis;
+        col = mix(col, vec3(0.97, 0.95, 0.88), crescent * moonVis);
 
         // Colours above are authored in sRGB; the HDR pipeline expects linear.
         // Without this the sky reads pale grey instead of golden.
