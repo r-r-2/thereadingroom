@@ -36,7 +36,7 @@ export function buildGalleryWall(scene, renderer) {
     clearcoat: 0.85,
     clearcoatRoughness: 0.08,
     transparent: true,
-    opacity: 0.11,
+    opacity: 0.05,   // was 0.11: the glass veiled the prints in a milky haze
     depthWrite: false
   });
 
@@ -96,6 +96,10 @@ export function buildGalleryWall(scene, renderer) {
       tex.anisotropy = maxAniso;
       artMat.map = tex;
       artMat.color.setHex(0xffffff);
+      // Slight self-glow from the print itself so posters read as lit, not dull
+      artMat.emissiveMap = tex;
+      artMat.emissive.setHex(0xffffff);
+      artMat.emissiveIntensity = 0.22;
       artMat.needsUpdate = true;
     });
 
