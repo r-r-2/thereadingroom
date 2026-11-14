@@ -98,7 +98,12 @@ export function buildWindowNook(scene) {
         float n = hash21(id);
         if (n < 0.68) return 0.0;              // most cells stay dry
         float x = (n - 0.5) * 0.55;
-        float y = -sin(t * (0.8 + n) + n * 6.28) * 0.32;
+        // Slide down only (on top of the grid's own downward scroll), looping
+        // within the cell; fade at the loop so drops never jump or rise.
+        // (A sine wobble here outran the scroll and made drops climb.)
+        float fr = fract(t * (0.08 + 0.1 * n) + n * 7.0);
+        float y = 0.32 - 0.64 * fr;
+        float life = smoothstep(0.0, 0.12, fr) * smoothstep(1.0, 0.85, fr);
         x += sin((uv.y + n) * 18.0) * 0.05;
         vec2 dropPos = (gv - vec2(x, y)) / aspect;
         float r = length(dropPos);
@@ -109,7 +114,7 @@ export function buildWindowNook(scene) {
         trailPos.y = (fract(trailPos.y * 4.0) - 0.5) / 4.0;
         float trail = smoothstep(0.012, 0.003, length(trailPos)) * smoothstep(-0.02, 0.35, gv.y - y);
         trail *= step(0.86, n);                // only some drops leave a trail
-        return max(drop, trail * 0.45);
+        return max(drop, trail * 0.45) * life;
       }
 
       void main() {
