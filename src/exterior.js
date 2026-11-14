@@ -34,6 +34,7 @@ export function buildExterior(scene) {
   const skyUniforms = {
     uTime: { value: 0 },
     uMood: { value: runtime.moodT },
+    uFlash: { value: 0 },
     uSunDir: { value: SUN_DIR },
     uMoonDir: { value: MOON_DIR },
     uMoonCut: { value: MOON_CUT }
@@ -55,6 +56,7 @@ export function buildExterior(scene) {
       uniform float uTime;
       uniform float uMood;
       uniform vec3 uSunDir;
+      uniform float uFlash;
       uniform vec3 uMoonDir;
       uniform vec3 uMoonCut;
       varying vec3 vDir;
@@ -125,6 +127,9 @@ export function buildExterior(scene) {
 
         // Colours above are authored in sRGB; the HDR pipeline expects linear.
         // Without this the sky reads pale grey instead of golden.
+        // Lightning: cool wash over the sky, strongest in the clouds
+        col += vec3(0.78, 0.84, 1.0) * uFlash * uMood * (0.35 + 0.5 * cloudMask);
+
         gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(2.2)), 1.0);
       }
     `
@@ -481,6 +486,7 @@ export function buildExterior(scene) {
     const m = runtime.moodT;
     skyUniforms.uTime.value = t;
     skyUniforms.uMood.value = m;
+    skyUniforms.uFlash.value = runtime.flash;
 
     // Interpolate 3D ridges and foliage between Golden Hour & Rainy Dusk
     ridgeShared.uMood.value = m;

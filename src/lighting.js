@@ -175,7 +175,7 @@ export function createLighting(scene, renderer) {
     fill.intensity = THREE.MathUtils.lerp(SETTINGS.fillIntensity, 0.14, m);
 
     windowArea.color.lerpColors(winAreaGolden, winAreaRain, m);
-    windowArea.intensity = THREE.MathUtils.lerp(SETTINGS.windowBounce, 0.68, m);
+    windowArea.intensity = THREE.MathUtils.lerp(SETTINGS.windowBounce, 0.68, m) + runtime.flash * 2.2 * m;
 
     scene.environmentIntensity = THREE.MathUtils.lerp(SETTINGS.envIntensity, SETTINGS.envIntensity * 0.55, m);
 

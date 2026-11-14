@@ -20,6 +20,7 @@ import { damp } from './constants.js';
 import {
   SETTINGS,
   EDIT,
+  REDUCED_MOTION,
   runtime,
   interactables,
   books,
@@ -219,6 +220,7 @@ if (EDIT) {
     addGuestBook: guestbookApi.addGuestBook,
     redrawLedger: guestbookApi.redrawLedger,
     toggleMood,
+    strike: () => triggerStrike(clock.elapsedTime),
     toggleCoverMode: () => bookcaseApi.toggleCoverMode('harness', controlsApi.closeBook, audio.playSfx),
     interact: controlsApi.interact,
     interactables
@@ -390,6 +392,39 @@ function animateBooks(dt) {
   }
 }
 
+/* ---- Rainy Dusk lightning ----
+   First strike 15–30 s after night sets in, then every 60–120 s. A soft flash
+   (sometimes a double flicker, never a strobe) lights the sky and washes the
+   room through the window; thunder follows 1–4 s later. Reduced-motion
+   visitors get the thunder without the flash. Shadows are not re-rendered. */
+let nextStrike = -1;
+let strike = null;
+function triggerStrike(elapsed) {
+  const delay = 1 + Math.random() * 3;
+  strike = { t0: elapsed, power: 0.45 + Math.random() * 0.3, double: Math.random() < 0.45 };
+  audio.playThunder?.(delay, 1 - (delay - 1) / 3);
+}
+function updateStorm(elapsed) {
+  const night = runtime.inRoom && runtime.moodT > 0.9;
+  if (!night) {
+    nextStrike = -1;
+  } else if (nextStrike < 0) {
+    nextStrike = elapsed + 15 + Math.random() * 15;
+  } else if (elapsed >= nextStrike) {
+    nextStrike = elapsed + 60 + Math.random() * 60;
+    triggerStrike(elapsed);
+  }
+  let f = 0;
+  if (strike) {
+    const d = elapsed - strike.t0;
+    // Hold briefly at peak, then fade (~0.3 s); an optional second flicker
+    f = strike.power * (d < 0.06 ? 1 : Math.exp(-(d - 0.06) / 0.12));
+    if (strike.double && d > 0.24) f += strike.power * 0.7 * (d < 0.29 ? 1 : Math.exp(-(d - 0.29) / 0.12));
+    if (d > 1.2) strike = null;
+  }
+  runtime.flash = REDUCED_MOTION ? 0 : f;
+}
+
 function animate() {
   const rawDt = clock.getDelta();
   const dt = Math.min(rawDt, 0.05);
@@ -410,6 +445,7 @@ function animate() {
   bookcaseApi.update(dt);
   animateBooks(dt);
 
+  updateStorm(elapsed);
   lighting.updateMood(elapsed);
   exterior.update(elapsed, dt);
   windowNook.update(elapsed, dt);

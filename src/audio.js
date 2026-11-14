@@ -258,6 +258,54 @@ export function createAudioEngine(turntableWorldPos) {
     src.stop(t + len + 0.01);
   }
 
+  /* Thunder: brown-ish noise through a low-pass, swelling then rolling off,
+     placed at the window via HRTF. `delay` seconds after the flash; closer
+     strikes (short delay) are louder and a little brighter. */
+  let thunderBuf = null;
+  let thunderPanner = null;
+  function playThunder(delay = 2, strength = 0.6) {
+    if (!ctx || ctx.state !== 'running') return;
+    const vol = Math.min(1, SETTINGS.volume * 2.5);
+    if (vol <= 0.01) return;
+    if (!thunderBuf) {
+      const len = Math.floor(ctx.sampleRate * 4.5);
+      thunderBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = thunderBuf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;   // brown noise
+        d[i] = last * 3.2;
+      }
+    }
+    if (!thunderPanner) {
+      thunderPanner = ctx.createPanner();
+      thunderPanner.panningModel = 'HRTF';
+      thunderPanner.distanceModel = 'inverse';
+      thunderPanner.refDistance = 3.0;
+      thunderPanner.rolloffFactor = 0.3;
+      thunderPanner.positionX.value = -ROOM.w / 2 - 2;
+      thunderPanner.positionY.value = NOOK.sill + NOOK.winH;
+      thunderPanner.positionZ.value = NOOK.worldZ;
+      thunderPanner.connect(master);
+    }
+    const t = ctx.currentTime + delay;
+    const src = ctx.createBufferSource();
+    src.buffer = thunderBuf;
+    src.playbackRate.value = 0.8 + Math.random() * 0.3;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 140 + strength * 160;
+    const g = ctx.createGain();
+    const peak = (0.18 + 0.32 * strength) * vol;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + 0.25 + (1 - strength) * 0.5);
+    g.gain.exponentialRampToValueAtTime(peak * 0.35, t + 1.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 4.0);
+    src.connect(lp).connect(g).connect(thunderPanner);
+    src.start(t);
+    src.stop(t + 4.2);
+  }
+
   function playSfx(kind) {
     if (!ctx || ctx.state !== 'running') return;
     const t = ctx.currentTime;
@@ -365,6 +413,7 @@ export function createAudioEngine(turntableWorldPos) {
       musicBus.gain.linearRampToValueAtTime(Math.max(v, 0.0001), ctx.currentTime + 0.08);
     },
     playFootstep,
+    playThunder,
     playSfx,
     updateListener,
     _hiss: () => hissNode

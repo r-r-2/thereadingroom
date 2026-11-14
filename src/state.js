@@ -81,7 +81,8 @@ export const runtime = {
   qualityChosen: Boolean(saved.qualityChosen && saved.quality),
   looked: null,
   opened: null,
-  shadowsDirty: true
+  shadowsDirty: true,
+  flash: 0            // 0..1 lightning flash (Rainy Dusk storm)
 };
 
 // AO follows the starting tier (Fast has none).
