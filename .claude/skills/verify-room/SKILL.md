@@ -40,6 +40,10 @@ The script serves the repo itself on a random port, so it doesn't need `python3 
 
 Ignored as noise: `favicon.ico`, Open Library `?default=false` 404s (the designed "no cover" fallback).
 
+## Reel mode (before/after video)
+
+`node verify.mjs reel --frame` renders one composed still for approval; `node verify.mjs reel` films v1 (top, "before") and v2 (bottom, "now") frame by frame at 30 fps into `out/reel/reading-room-before-now.mp4` (1080×1350, H.264 + music), with `poster.jpg` and `contact-sheet.jpg`. Needs ffmpeg (`brew install ffmpeg`) and the design-system end-card kit in `out/reel/endcard/` (from design.rr2.dev/personal/v1). Music: `REEL_MUSIC` / `REEL_MUSIC_START` env vars. Beats and timed actions are the `BEATS` / `EVENTS` tables in `verify.mjs`. Hand the user the paths; don't review frames unless diagnosing a reported glitch.
+
 ## When adding a check
 
 Add it to `check()` in `tools/verify/verify.mjs` with `pass/fail/warn`. Keep its failure message to one line that names the book or view. Then confirm the check actually fails: temporarily reintroduce the bug, run, and restore.
